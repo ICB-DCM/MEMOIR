@@ -84,7 +84,7 @@ if ~isempty(Sim)
         subplot(nr,nc,2*j); hold off;
         for i = 1:size(Data.SCTL.Y,3)
             ind = ~isnan(Data.SCTL.Y(:,j,i));
-            plot(Data.SCTL.time(ind,1),Data.SCTL.Y(ind,j,i)-Sim(ind,j,i),'-',...
+            plot(Data.SCTL.time(ind,1),Data.SCTL.Y(ind,j,i)-Sim.Y(ind,j,i),'-',...
                 'linewidth',options.error.lw,...
                 'linestyle',options.error.ls,...
                 'color',options.error.col); hold on;
@@ -98,29 +98,22 @@ if ~isempty(Sim)
         subplot(nr,nc,2*(n_y+j)-1); hold off;
         for i = 1:size(Data.SCTL.T,3)
             ind = ~isnan(Data.SCTL.T(:,j,i));
-            lh(1) = stem(Data.SCTL.T(ind,j,i),'-',...
+            lh(1) = stem(Data.SCTL.T(ind,j,i),zeros(size(Data.SCTL.T(j,ind,i))),...
                 'color',options.data.col); hold on;
-            lh(2) = plot(Data.SCTL.time,Sim(:,j,i),'-',...
-                'linewidth',options.sim.lw,...
-                'linestyle',options.sim.ls,...
+            lh(2) = stem(Sim.T(:,j,i),Sim.R(:,j,i),...
                 'color',options.sim.col);
         end
-        xlabel('time'); ylabel(Data.measurands{j});
+        xlabel('time'); ylabel(Data.events{j});
         xlim(Data.SCTL.time([1,end]));
-        if j == 1
-            legend(lh,{'data','model'});
-        end
         
         % Error 
-        subplot(nr,nc,2*j); hold off;
-        for i = 1:size(Data.SCTL.Y,3)
-            ind = ~isnan(Data.SCTL.Y(:,j,i));
-            plot(Data.SCTL.time(ind,1),Data.SCTL.Y(ind,j,i)-Sim(ind,j,i),'-',...
-                'linewidth',options.error.lw,...
-                'linestyle',options.error.ls,...
+        subplot(nr,nc,2*(n_y+j)); hold off;
+        for i = 1:size(Data.SCTL.T,3)
+            ind = ~isnan(Data.SCTL.T(j,:,i));
+            line([Sim.T(j,:,i);Data.SCTL.T(ind,j,i)],[Sim.R(j,ind,i);zeros(size(Data.SCTL.T(j,ind,i)))],...
                 'color',options.error.col); hold on;
         end
-        xlabel('time'); ylabel(['error ' Data.measurands{j}]);
+        xlabel('time'); ylabel(['error ' Data.events{j}]);
         xlim(Data.SCTL.time([1,end]));
     end
 end

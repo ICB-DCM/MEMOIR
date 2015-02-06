@@ -98,7 +98,9 @@ function varargout = logL_CE_w_grad_2(varargin)
             [~,ind_time] = ismember(Data{s}.SCTL.time,t_s);
             
             % Initialization
-            Sim_SCTL = nan(size(Data{s}.SCTL.Y));
+            Sim_SCTL.Y = nan(size(Data{s}.SCTL.Y));
+            Sim_SCTL.T = nan(size(Data{s}.SCTL.T));
+            Sim_SCTL.R = nan(size(Data{s}.SCTL.T));
             
             % Loop: Indiviudal cells
             for i = 1:size(Data{s}.SCTL.Y,3)
@@ -107,7 +109,7 @@ function varargout = logL_CE_w_grad_2(varargin)
                 Tm_si = Data{s}.SCTL.T(:,:,i);
                 
                 ind_y = find(~isnan(Ym_si));
-                int_t = find(~isnan(Tm_si));
+                ind_t = find(~isnan(Tm_si));
                 
                 if logL_old == -inf
                     bhat_si0 = zeros(length(Model.exp{s}.sym.b),1);
@@ -125,12 +127,12 @@ function varargout = logL_CE_w_grad_2(varargin)
                         F_diff = 0;
                         b_diff = 0;
                         [bhat_si,G] ...
-                            = optimize_SCTL_si(Model,Data,bhat_si0,beta,delta,type_D,t_s,Ym_si,Tm_si,ind_y,ind_time,F_diff,b_diff,s);
+                            = optimize_SCTL_si(Model,Data,bhat_si0,beta,delta,type_D,t_s,Ym_si,Tm_si,ind_y,ind_t,F_diff,b_diff,s);
                     case 1
                         F_diff = 0;
                         b_diff = 0;
                         [bhat_si,G] ...
-                            = optimize_SCTL_si(Model,Data,bhat_si0,beta,delta,type_D,t_s,Ym_si,Tm_si,ind_y,ind_time,F_diff,b_diff,s);
+                            = optimize_SCTL_si(Model,Data,bhat_si0,beta,delta,type_D,t_s,Ym_si,Tm_si,ind_y,ind_t,F_diff,b_diff,s);
                     case 2
                         b_diff = 1;
                         if(Model.integration)
@@ -138,13 +140,13 @@ function varargout = logL_CE_w_grad_2(varargin)
                             
                             [bhat_si,dbhat_sidbeta,dbhat_siddelta,...
                                 G,dGdb,pdGpdbeta,pdGpddelta] ...
-                                = optimize_SCTL_si(Model,Data,bhat_si0,beta,delta,type_D,t_s,Ym_si,Tm_si,ind_y,ind_time,F_diff,b_diff,s);
+                                = optimize_SCTL_si(Model,Data,bhat_si0,beta,delta,type_D,t_s,Ym_si,Tm_si,ind_y,ind_t,F_diff,b_diff,s);
                             % [g,g_fd_f,g_fd_b,g_fd_c]=testGradient(beta,@(beta)optimize_SCTL_si(Model,Data,bhat_si0,beta,D,dDddelta,ddDddeltaddelta,invD,dinvDddelta,ddinvDddeltaddelta,t_s,Ym_si,ind,F_diff,b_diff,s),1e-4,1,2)
                         else
                             F_diff = 2;
                             [bhat_si,dbhat_sidbeta,dbhat_siddelta,...
                                 G] ...
-                                = optimize_SCTL_si(Model,Data,bhat_si0,beta,delta,type_D,t_s,Ym_si,Tm_si,ind_y,ind_time,F_diff,b_diff,s);
+                                = optimize_SCTL_si(Model,Data,bhat_si0,beta,delta,type_D,t_s,Ym_si,Tm_si,ind_y,ind_t,F_diff,b_diff,s);
                             %                             [bhat_si_e,dbhat_sidbeta_e,dbhat_siddelta_e,G_e] ...
                             %                                 = optimize_SCTL_si(Model,Data,bhat_si0,beta_e,D_e,dDddelta_e,ddDddeltaddelta_e,invD_e,dinvDddelta_e,ddinvDddeltaddelta_e,t_s,Ym_si,ind,F_diff,b_diff,s);
                             % [g,g_fd_f,g_fd_b,g_fd_c]=testGradient(beta,@(beta)optimize_SCTL_si(Model,Data,bhat_si0,beta,delta,type_D,t_s,Ym_si,ind,F_diff,b_diff,s),1e-4,1,2)
@@ -158,14 +160,14 @@ function varargout = logL_CE_w_grad_2(varargin)
                             [bhat_si,dbhat_sidbeta,dbhat_siddelta,ddbhat_sidbetadbeta,ddbhat_sidbetaddelta,ddbhat_siddeltaddelta,...
                                 G,dGdb,pdGpdbeta,pdGpddelta,ddGdbdb,pddGdbpdbeta,pdpdGpdbetapdbeta,pddGdbpddelta,pdpdGpddeltapddelta,...
                                 pdpdGpdbetapddelta] ...
-                                = optimize_SCTL_si(Model,Data,bhat_si0,beta,delta,type_D,t_s,Ym_si,Tm_si,ind_y,ind_time,F_diff,b_diff,s);
+                                = optimize_SCTL_si(Model,Data,bhat_si0,beta,delta,type_D,t_s,Ym_si,Tm_si,ind_y,ind_t,F_diff,b_diff,s);
                         else
                             F_diff = 3;
                             b_diff = 2;
                             % [g,g_fd_f,g_fd_b,g_fd_c]=testGradient(beta,@(beta)optimize_SCTL_si(Model,Data,bhat_si0,beta,D,dDddelta,ddDddeltaddelta,invD,dinvDddelta,ddinvDddeltaddelta,t_s,Ym_si,ind,F_diff,b_diff,s),1e-4,2,4)
                             [bhat_si,dbhat_sidbeta,dbhat_siddelta,ddbhat_sidbetadbeta,ddbhat_sidbetaddelta,ddbhat_siddeltaddelta,...
                                 G,dGdb,pdGpdbeta] ...
-                                = optimize_SCTL_si(Model,Data,bhat_si0,beta,delta,type_D,t_s,Ym_si,Tm_si,ind_y,ind_time,F_diff,b_diff,s);
+                                = optimize_SCTL_si(Model,Data,bhat_si0,beta,delta,type_D,t_s,Ym_si,Tm_si,ind_y,ind_t,F_diff,b_diff,s);
                         end
                 end
                 
@@ -192,7 +194,7 @@ function varargout = logL_CE_w_grad_2(varargin)
                 R = sol.rootval;
                 Y_si = Y(ind_time,:);
                 T_si = T(ind_t,:);
-                R_si = T(ind_t,:);
+                R_si = R(ind_t,:);
                 dTdphi = sol.rootS(ind_t,:,:);
                 
                 % Apply indexing to derivatives of Y
@@ -220,46 +222,46 @@ function varargout = logL_CE_w_grad_2(varargin)
                 end
                 
                 % Construct sigma
-                sigma_noise = Model.exp{s}.sigma_noise(phi);
+                sigma_noise = Model.exp{s}.sigma_noise(phi_si);
                 
-                if(size(sigma_noise,1) == size(Ym,1))
+                if(size(sigma_noise,1) == size(Ym_si,1))
                     if(size(sigma_noise,2) == 1)
-                        Sigma_noise_si = repmat(sigma_noise,[1,size(Ym,2)]);
-                    elseif(size(sigma,2) == size(Ym,2))
+                        Sigma_noise_si = repmat(sigma_noise,[1,size(Ym_si,2)]);
+                    elseif(size(sigma,2) == size(Ym_si,2))
                         Sigma_noise_si = sigma_noise;
                     else
                         error('Incompatible size of sigma_noise parametrisation!')
                     end
-                elseif(size(sigma_noise,2) == size(Ym,2))
+                elseif(size(sigma_noise,2) == size(Ym_si,2))
                     if(size(sigma_noise,1) == 1)
-                        Sigma_noise_si = repmat(sigma_noise,[size(Ym,1),1]);
+                        Sigma_noise_si = repmat(sigma_noise,[size(Ym_si,1),1]);
                     else
                         error('Incompatible size of sigma_noise parametrisation!')
                     end
                 elseif(and(size(sigma_noise,1)==1,size(sigma_noise,2)==1))
-                    Sigma_noise_si = repmat(sigma_noise,size(Ym));
+                    Sigma_noise_si = repmat(sigma_noise,size(Ym_si));
                 else
                     error('Incompatible size of sigma_noise parametrisation!')
                 end
                 
-                sigma_time = Model.exp{s}.sigma_time(phi);
+                sigma_time = Model.exp{s}.sigma_time(phi_si);
                 
-                if(size(sigma_time,1) == size(Tm,1))
+                if(size(sigma_time,1) == size(Tm_si,1))
                     if(size(sigma_time,2) == 1)
-                        Sigma_time_si = repmat(sigma_time,[1,size(Tm,2)]);
-                    elseif(size(sigma,2) == size(Tm,2))
+                        Sigma_time_si = repmat(sigma_time,[1,size(Tm_si,2)]);
+                    elseif(size(sigma,2) == size(Tm_si,2))
                         Sigma_time_si = sigma_time;
                     else
                         error('Incompatible size of sigma_time parametrisation!')
                     end
-                elseif(size(sigma_time,2) == size(Tm,2))
+                elseif(size(sigma_time,2) == size(Tm_si,2))
                     if(size(sigma_time,1) == 1)
-                        Sigma_time_si = repmat(sigma_time,[size(Tm,1),1]);
+                        Sigma_time_si = repmat(sigma_time,[size(Tm_si,1),1]);
                     else
                         error('Incompatible size of sigma_time parametrisation!')
                     end
                 elseif(and(size(sigma_time,1)==1,size(sigma_time,2)==1))
-                    Sigma_time_si = repmat(sigma_time,size(Tm));
+                    Sigma_time_si = repmat(sigma_time,size(Tm_si));
                 else
                     error('Incompatible size of sigma_time parametrisation!')
                 end
@@ -301,13 +303,13 @@ function varargout = logL_CE_w_grad_2(varargin)
                     case 'normal'
                         switch(nargout)
                             case 0
-                                J_T = normal_noise(T_si,Tm_si,R_si,Sigma_time_si,ind_t);
+                                J_T = normal_time(T_si,Tm_si,R_si,Sigma_time_si,ind_t);
                             case 1
-                                J_T = normal_noise(T_si,Tm_si,R_si,Sigma_time_si,ind_t);
+                                J_T = normal_time(T_si,Tm_si,R_si,Sigma_time_si,ind_t);
                             case 2
-                                [J_T,dJ_TdT,dJ_TdSigma] = normal_noise(T_si,Tm_si,R_si,Sigma_time_si,ind_t);
+                                [J_T,dJ_TdT,dJ_TdSigma] = normal_time(T_si,Tm_si,R_si,Sigma_time_si,ind_t);
                             case 3
-                                [J_T,dJ_TdT,dJ_TdSigma,ddJ_TdTdT,ddJ_TdTdSigma,ddJ_TdSigmadSigma] = normal_noise(T_si,Tm_si,R_si,Sigma_time_si,ind_t);
+                                [J_T,dJ_TdT,dJ_TdSigma,ddJ_TdTdT,ddJ_TdTdSigma,ddJ_TdSigmadSigma] = normal_time(T_si,Tm_si,R_si,Sigma_time_si,ind_t);
                         end
                 end
                 
@@ -461,18 +463,18 @@ function varargout = logL_CE_w_grad_2(varargin)
                             + chainrule_ddxdydy_dydz_dydv(ddphidbetaddelta,dbetadxi,ddeltadxi) + permute(chainrule_ddxdydy_dydz_dydv(ddphidbetaddelta,dbetadxi,ddeltadxi),[1,3,2]);
                         
                         ddJ_DdphidY = bsxfun(@times,ddJ_DdYdY,permute(dY_sidphi,[3,1,2])) + ...
-                            bsxfun(@times,ddJ_DdYdSigma,permute(dSigmadphi,[3,1,2]));
+                            bsxfun(@times,ddJ_DdYdSigma,permute(dSigma_noisedphi,[3,1,2]));
                         
                         ddJ_DdphidSigma = bsxfun(@times,ddJ_DdYdSigma,permute(dY_sidphi,[3,1,2])) + ...
-                            bsxfun(@times,ddJ_DdSigmadSigma,permute(dSigmadphi,[3,1,2]));
+                            bsxfun(@times,ddJ_DdSigmadSigma,permute(dSigma_noisedphi,[3,1,2]));
                         
                         ddJ_Ddphidphi = chainrule_dxdy_dydz(dJ_DdY,ddY_sidphidphi) ...
                             + squeeze(sum(bsxfun(@times,ddJ_DdphidY,permute(dY_sidphi,[3,1,4,2])) ...
-                            + bsxfun(@times,ddJ_DdphidSigma,permute(dSigmadphi,[3,1,4,2])),2));
+                            + bsxfun(@times,ddJ_DdphidSigma,permute(dSigma_noisedphi,[3,1,4,2])),2));
                         
                         ddJ_Ddxidxi = chainrule_dxdy_dydz(dJ_Ddphi,ddphidxidxi) + chainrule_ddxdydy_dydz(ddJ_Ddphidphi,dphidxi);
                         
-                        ddJ_TdphidT = bsxfun(@times,ddJ_TdTdt,permute(dT_sidphi,[3,1,2])) + ...
+                        ddJ_TdphidT = bsxfun(@times,ddJ_TdTdT,permute(dT_sidphi,[3,1,2])) + ...
                             bsxfun(@times,ddJ_TdTdSigma,permute(dSigma_timedphi,[3,1,2]));
                         
                         ddJ_TdphidSigma = bsxfun(@times,ddJ_TdTdSigma,permute(dT_sidphi,[3,1,2])) + ...
@@ -615,19 +617,19 @@ function varargout = logL_CE_w_grad_2(varargin)
                 figure(Model.exp{s}.fl)
                 if(Model.penalty)
                     if(Model.integration)
-                        bar([logL_D,logL_b,logL_I,logL_s])
-                        set(gca,'XTickLabel',{'Data','Par','Int','Pen'})
+                        bar([logL_D,logL_T,logL_b,logL_I,logL_s])
+                        set(gca,'XTickLabel',{'Data','Event','Par','Int','Pen'})
                     else
-                        bar([logL_D,logL_b,logL_s])
-                        set(gca,'XTickLabel',{'Data','Par','Pen'})
+                        bar([logL_D,logL_T,logL_b,logL_s])
+                        set(gca,'XTickLabel',{'Data','Event','Par','Pen'})
                     end
                 else
                     if(Model.integration)
-                        bar([logL_D,logL_b,logL_I])
-                        set(gca,'XTickLabel',{'Data','Par','Int'})
+                        bar([logL_D,logL_T,logL_b,logL_I])
+                        set(gca,'XTickLabel',{'Data','Event','Par','Int'})
                     else
-                        bar([logL_D,logL_b])
-                        set(gca,'XTickLabel',{'Data','Par'})
+                        bar([logL_D,logL_T,logL_b])
+                        set(gca,'XTickLabel',{'Data','Event','Par'})
                     end
                 end
                 ylabel('log-likelihood')
@@ -1070,8 +1072,9 @@ function varargout = objective_SCTL_s1(Model,beta,b,kappa,delta,type_D,t,Ym,Tm,i
         temp2 = sol.rootS(ind_t,:,:);
         %         temp2 = ddYdphidphi;
         dYdphi = zeros(length(ind_y),length(phi));
-        dTdphi = zeros(length(ind_y),length(phi));
+        dTdphi = zeros(length(ind_t),length(phi));
         ddYdphidphi = zeros(length(ind_y),length(phi),length(phi));
+        ddTdphidphi = zeros(length(ind_t),length(phi),length(phi));
         for j = 1:length(phi)
             tempy = temp1(:,:,j);
             tempt = temp2(:,:,j);
@@ -1089,7 +1092,7 @@ function varargout = objective_SCTL_s1(Model,beta,b,kappa,delta,type_D,t,Ym,Tm,i
         temp1 = dYdphi;
         temp2 = sol.rootS(ind_t,:,:);
         dYdphi = zeros(length(ind_y),length(phi));
-        dTdphi = zeros(length(ind_y),length(phi));
+        dTdphi = zeros(length(ind_t),length(phi));
         for j = 1:length(phi)
             tempy = temp1(:,:,j);
             tempt = temp2(:,:,j);
@@ -1202,7 +1205,7 @@ function varargout = objective_SCTL_s1(Model,beta,b,kappa,delta,type_D,t,Ym,Tm,i
     
     if nargout >= 2 % first order derivatives
         dsigma_timedphi = Model.exp{s}.dsigma_timedphi(phi);
-        dSigma_timedphi = zeros(length(ind_y),length(phi));
+        dSigma_timedphi = zeros(length(ind_t),length(phi));
         
         if(size(dsigma_timedphi,1) == size(Tm,1))
             if(size(dsigma_timedphi,2) == 1)
@@ -1220,7 +1223,7 @@ function varargout = objective_SCTL_s1(Model,beta,b,kappa,delta,type_D,t,Ym,Tm,i
         
         if nargout >= 3 % second order derivatives
             ddsigma_timedphidphi = Model.exp{s}.ddsigma_timedphidphi(phi);
-            ddSigma_timedphidphi = zeros(length(ind_y),length(phi),length(phi));
+            ddSigma_timedphidphi = zeros(length(ind_t),length(phi),length(phi));
             if(size(dsigma_timedphi,1) == size(Tm,1))
                 if(size(dsigma_timedphi,2) == 1)
                     ddSTdphidphi = repmat(ddsigma_timedphidphi,[1,size(Tm,2),1,1]);
@@ -1238,7 +1241,7 @@ function varargout = objective_SCTL_s1(Model,beta,b,kappa,delta,type_D,t,Ym,Tm,i
         
         if nargout >= 9 % third order derivatives
             dddsigma_timedphidphidphi = Model.exp{s}.dddsigma_timedphidphidphi(phi);
-            dddSigma_timedphidphidphi = zeros(length(ind_y),length(phi),length(phi),length(phi));
+            dddSigma_timedphidphidphi = zeros(length(ind_t),length(phi),length(phi),length(phi));
             if(size(dsigma_timedphi,1) == size(Tm,1))
                 if(size(dsigma_timedphi,2) == 1)
                     dddSTdphidphidphi = repmat(dddsigma_timedphidphidphi,[1,size(Tm,2),1,1,1]);
@@ -1256,7 +1259,7 @@ function varargout = objective_SCTL_s1(Model,beta,b,kappa,delta,type_D,t,Ym,Tm,i
         
         if nargout >= 14 % fourth order derivatives
             ddddsigma_timedphidphidphidphi = Model.exp{s}.ddddsigma_timedphidphidphidphi(phi);
-            ddddSigma_timedphidphidphidphi = zeros(length(ind_y),length(phi),length(phi),length(phi),length(phi));
+            ddddSigma_timedphidphidphidphi = zeros(length(ind_t),length(phi),length(phi),length(phi),length(phi));
             if(size(dsigma_timedphi,1) == size(Tm,1))
                 if(size(dsigma_timedphi,2) == 1)
                     ddddSTdphidphidphidphi = repmat(ddddsigma_timedphidphidphidphi,[1,size(Tm,2),1,1,1]);
@@ -1274,19 +1277,19 @@ function varargout = objective_SCTL_s1(Model,beta,b,kappa,delta,type_D,t,Ym,Tm,i
         
         for k = 1:length(phi) % first order derivatives
             temp = dSTdphi(:,:,k);
-            dSigma_timedphi(:,k) = temp(ind_y);
+            dSigma_timedphi(:,k) = temp(ind_t);
             if nargout >= 3 % second order derivatives
                 for l = 1:length(phi)
                     temp = ddSTdphidphi(:,:,k,l);
-                    ddSigma_timedphidphi(:,k,l) = temp(ind_y);
+                    ddSigma_timedphidphi(:,k,l) = temp(ind_t);
                     if nargout >= 9 % third order derivatives
                         for m = 1:length(phi)
                             temp = dddSTdphidphidphi(:,:,k,l,m);
-                            dddSigma_timedphidphidphi(:,k,l,m) = temp(ind_y);
+                            dddSigma_timedphidphidphi(:,k,l,m) = temp(ind_t);
                             if nargout >= 14 % fourth order derivatives
                                 for n = 1:length(phi)
                                     temp = ddddSTdphidphidphidphi(:,:,k,l,m,n);
-                                    ddddSigma_timedphidphidphidphi(:,k,l,m,n) = temp(ind_y);
+                                    ddddSigma_timedphidphidphidphi(:,k,l,m,n) = temp(ind_t);
                                 end
                             end
                         end
@@ -1404,7 +1407,9 @@ function varargout = objective_SCTL_s1(Model,beta,b,kappa,delta,type_D,t,Ym,Tm,i
         
         dJ_Ddb = chainrule_dxdy_dydz(dJ_Ddphi,dphidb);
         
-        dJdb = dJ_Ddb + dJ_Tdphi + dJ_bdb;
+        dJ_Tdb = chainrule_dxdy_dydz(dJ_Tdphi,dphidb);
+        
+        dJdb = dJ_Ddb + dJ_Tdb + dJ_bdb;
         
         varargout{2} = dJdb;
         
@@ -1420,9 +1425,9 @@ function varargout = objective_SCTL_s1(Model,beta,b,kappa,delta,type_D,t,Ym,Tm,i
             ddJ_Ddbdphi = transpose(squeeze(sum(bsxfun(@times,ddJ_Ddphidphi,permute(dphidb,[3,1,2])),2)));
             ddJ_Ddbdb = squeeze(sum(bsxfun(@times,ddJ_Ddbdphi,permute(dphidb,[3,1,2,4])),2)) + chainrule_dxdy_dydz(dJ_Ddphi,ddphidbdb);
             
-            ddJ_TdphidT = bsxfun(@times,ddJ_TdTdT,permute(dYdphi,[3,1,2])) + bsxfun(@times,ddJ_TdTdSigma,permute(dSigma_timedphi,[3,1,2]));
-            ddJ_TdphidSigma = bsxfun(@times,ddJ_TdTdSigma,permute(dYdphi,[3,1,2])) + bsxfun(@times,ddJ_TdSigmadSigma,permute(dSigma_timedphi,[3,1,2]));
-            ddJ_Tdphidphi = squeeze(sum(bsxfun(@times,ddJ_TdphidT,permute(dYdphi,[3,1,4,2])) + bsxfun(@times,ddJ_TdphidSigma,permute(dSigma_timedphi,[3,1,4,2])),2));
+            ddJ_TdphidT = bsxfun(@times,ddJ_TdTdT,permute(dTdphi,[3,1,2])) + bsxfun(@times,ddJ_TdTdSigma,permute(dSigma_timedphi,[3,1,2]));
+            ddJ_TdphidSigma = bsxfun(@times,ddJ_TdTdSigma,permute(dTdphi,[3,1,2])) + bsxfun(@times,ddJ_TdSigmadSigma,permute(dSigma_timedphi,[3,1,2]));
+            ddJ_Tdphidphi = squeeze(sum(bsxfun(@times,ddJ_TdphidT,permute(dTdphi,[3,1,4,2])) + bsxfun(@times,ddJ_TdphidSigma,permute(dSigma_timedphi,[3,1,4,2])),2));
             
             ddphidbdb = Model.exp{s}.ddphidbdb(beta,b);
             
@@ -1502,7 +1507,7 @@ function varargout = objective_SCTL_s1(Model,beta,b,kappa,delta,type_D,t,Ym,Tm,i
                         + bsxfun(@times,dddJ_DdYdYdSigma,permute(dSigma_noisedphi,[3,1,2]));
                     dddJ_DdphidYdSigma = bsxfun(@times,dddJ_DdYdYdSigma,permute(dYdphi,[3,1,2])) ...
                         + bsxfun(@times,dddJ_DdYdSigmadSigma,permute(dSigma_noisedphi,[3,1,2]));
-                    dddJ_DdphidSigmadSigma = bsxfun(@times,dddJ_DdYdSigma_noisedSigma,permute(dYdphi,[3,1,2])) ...
+                    dddJ_DdphidSigmadSigma = bsxfun(@times,dddJ_DdYdSigmadSigma,permute(dYdphi,[3,1,2])) ...
                         + bsxfun(@times,dddJ_DdSigmadSigmadSigma,permute(dSigma_noisedphi,[3,1,2]));
                     dddJ_DdphidphidY = bsxfun(@times,dddJ_DdphidYdY,permute(dYdphi,[3,1,4,2])) ...
                         + bsxfun(@times,dddJ_DdphidYdSigma,permute(dSigma_noisedphi,[3,1,4,2]));
