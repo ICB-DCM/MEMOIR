@@ -141,7 +141,7 @@ function varargout = logL_CE_w_grad_2(varargin)
                             [bhat_si,dbhat_sidbeta,dbhat_siddelta,...
                                 G,dGdb,pdGpdbeta,pdGpddelta] ...
                                 = optimize_SCTL_si(Model,Data,bhat_si0,beta,delta,type_D,t_s,Ym_si,Tm_si,ind_y,ind_t,F_diff,b_diff,s);
-                            % [g,g_fd_f,g_fd_b,g_fd_c]=testGradient(beta,@(beta)optimize_SCTL_si(Model,Data,bhat_si0,beta,D,dDddelta,ddDddeltaddelta,invD,dinvDddelta,ddinvDddeltaddelta,t_s,Ym_si,ind,F_diff,b_diff,s),1e-4,1,2)
+                            % [g,g_fd_f,g_fd_b,g_fd_c]=testGradient(beta,@(beta)optimize_SCTL_si(Model,Data,bhat_si0,beta,delta,type_D,t_s,Ym_si,Tm_si,ind_y,ind_t,F_diff,b_diff,s),1e-4,1,2)
                         else
                             F_diff = 2;
                             [bhat_si,dbhat_sidbeta,dbhat_siddelta,...
@@ -164,7 +164,7 @@ function varargout = logL_CE_w_grad_2(varargin)
                         else
                             F_diff = 3;
                             b_diff = 2;
-                            % [g,g_fd_f,g_fd_b,g_fd_c]=testGradient(beta,@(beta)optimize_SCTL_si(Model,Data,bhat_si0,beta,D,dDddelta,ddDddeltaddelta,invD,dinvDddelta,ddinvDddeltaddelta,t_s,Ym_si,ind,F_diff,b_diff,s),1e-4,2,4)
+                            % [g,g_fd_f,g_fd_b,g_fd_c]=testGradient(beta,@(beta)optimize_SCTL_si(Model,Data,bhat_si0,beta,delta,type_D,t_s,Ym_si,Tm_si,ind_y,ind_t,F_diff,b_diff,s),1e-4,2,4)
                             [bhat_si,dbhat_sidbeta,dbhat_siddelta,ddbhat_sidbetadbeta,ddbhat_sidbetaddelta,ddbhat_siddeltaddelta,...
                                 G,dGdb,pdGpdbeta] ...
                                 = optimize_SCTL_si(Model,Data,bhat_si0,beta,delta,type_D,t_s,Ym_si,Tm_si,ind_y,ind_t,F_diff,b_diff,s);
@@ -878,10 +878,10 @@ function varargout = optimize_SCTL_si(Model,Data,bhat_0,beta,delta,type_D,t,Ym,T
                     varargout{7} = pdGpddelta;
                 case 2
                     % Higher order derivatives objective function
-                    % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(bhat,@(b)objective_SCTL_s1(Model,beta,b,Data{s}.condition,delta,type_D,t,Ym,ind,s),1e-4,2,3)
-                    % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(beta,@(beta)objective_SCTL_s1(Model,beta,bhat,Data{s}.condition,delta,type_D,t,Ym,ind,s),1e-4,2,4)
-                    % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(delta,@(delta)objective_SCTL_s1(Model,beta,bhat,Data{s}.condition,delta,type_D,t,Ym,ind,s),1e-4,2,5)
-                    % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(bhat,@(b)objective_SCTL_s1(Model,beta,b,Data{s}.condition,delta,type_D,t,Ym,ind,s),1e-4,1,2)
+                    % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(bhat,@(b)objective_SCTL_s1(Model,beta,b,Data{s}.condition,delta,type_D,t,Ym,Tm,ind_y,ind_t,s),1e-4,2,3)
+                    % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(beta,@(beta)objective_SCTL_s1(Model,beta,bhat,Data{s}.condition,delta,type_D,t,Ym,Tm,ind_y,ind_t,s),1e-4,2,4)
+                    % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(delta,@(delta)objective_SCTL_s1(Model,beta,bhat,Data{s}.condition,delta,type_D,t,Ym,Tm,ind_y,ind_t,s),1e-4,2,5)
+                    % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(bhat,@(b)objective_SCTL_s1(Model,beta,b,Data{s}.condition,delta,type_D,t,Ym,Tm,ind_y,ind_t,s),1e-4,1,2)
                     [~,~,G,...
                         ddJdbdbeta,ddJdbddelta,ddJdbetadbeta,ddJddeltaddelta,ddJdbetaddelta] = ...
                         objective_SCTL_s1(Model,beta,bhat,Data{s}.condition,delta,type_D,t,Ym,Tm,ind_y,ind_t,s);
@@ -1065,6 +1065,7 @@ function varargout = objective_SCTL_s1(Model,beta,b,kappa,delta,type_D,t,Ym,Tm,i
     % Simulate model
     if nargout >= 3
         %[~,~,~,Y,~,dYdphi,~,ddYdphidphi] = Model.exp{s}.model(t,phi,kappa);
+        h = zeros(size(phi));
         [~,~,~,Y,~,dYdphi,sol] = Model.exp{s}.model(t,phi,kappa);
         T = sol.root(ind_t,:);
         R = sol.rootval(ind_t,:);
@@ -1356,6 +1357,20 @@ function varargout = objective_SCTL_s1(Model,beta,b,kappa,delta,type_D,t,Ym,Tm,i
             if nargout <= 1
                 J_T = normal_time(T,Tm,R,Sigma_time,ind_t);
             elseif nargout <=2 % first order derivatives
+                % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(T,@(T)normal_time(T,Tm,R,Sigma_time,ind_t),1e-5,1,2)
+                % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(Sigma_time,@(Sigma_time)normal_time(T,Tm,R,Sigma_time,ind_t),1e-5,1,3)
+                % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(T,@(T)normal_time(T,Tm,R,Sigma_time,ind_t),1e-5,2,4)
+                % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(Sigma_time,@(Sigma_time)normal_time(T,Tm,R,Sigma_time,ind_t),1e-5,2,5)
+                % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(Sigma_time,@(Sigma_time)normal_time(T,Tm,R,Sigma_time,ind_t),1e-5,3,6)
+                % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(T,@(T)normal_time(T,Tm,R,Sigma_time,ind_t),1e-5,4,7)
+                % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(Sigma_time,@(Sigma_time)normal_time(T,Tm,R,Sigma_time,ind_t),1e-5,4,8)
+                % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(Sigma_time,@(Sigma_time)normal_time(T,Tm,R,Sigma_time,ind_t),1e-5,5,9)
+                % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(Sigma_time,@(Sigma_time)normal_time(T,Tm,R,Sigma_time,ind_t),1e-5,6,10)
+                % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(T,@(T)normal_time(T,Tm,R,Sigma_time,ind_t),1e-5,7,11)
+                % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(Sigma_time,@(Sigma_time)normal_time(T,Tm,R,Sigma_time,ind_t),1e-5,7,12)
+                % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(Sigma_time,@(Sigma_time)normal_time(T,Tm,R,Sigma_time,ind_t),1e-5,8,13)
+                % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(Sigma_time,@(Sigma_time)normal_time(T,Tm,R,Sigma_time,ind_t),1e-5,9,14)
+                % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(Sigma_time,@(Sigma_time)normal_time(T,Tm,R,Sigma_time,ind_t),1e-5,10,15)
                 [J_T,...
                     dJ_TdT,dJ_TdSigma] = normal_time(T,Tm,R,Sigma_time,ind_t);
             elseif nargout <=8 % second order derivatives
@@ -1770,7 +1785,7 @@ function varargout = normal_noise(Y,Ym,Sigma,ind)
                         %ddddJ_DdYdSigmadSigmadSigma
                         varargout{14} = transpose(- 24*((Y(ind) - Ym(ind))./(Sigma(ind).^5)));
                         %ddddJ_DdSigmadSigmadSigmadSigma
-                        varargout{15} = transpose(60*(((Y(ind) - Ym(ind)).^2)./(Sigma(ind).^5)) - 6./(Sigma(ind).^4));
+                        varargout{15} = transpose(60*(((Y(ind) - Ym(ind)).^2)./(Sigma(ind).^6)) - 6./(Sigma(ind).^4));
                     end
                 end
             end
@@ -1825,14 +1840,14 @@ function varargout = normal_time(T,Tm,R,Sigma,ind)
     if nargout >=1
         % J_D
         varargout{1} = sum(0.5*((T(ind) - Tm(ind))./Sigma(ind)).^2 + sum(0.5*((R(ind))./Sigma(ind)).^2) + log(sqrt(2*pi)*Sigma(ind).^2));
-        if nargout >= 3
+        if nargout >= 2
             % dJ_DdT
             varargout{2} = transpose((T(ind) - Tm(ind))./(Sigma(ind).^2) + R(ind)./(Sigma(ind).^2));
             % dJ_DdSigma
             varargout{3} = transpose(- (((T(ind) - Tm(ind)).^2)./(Sigma(ind).^3)) - (((R(ind)).^2)./(Sigma(ind).^3)) + 2./Sigma(ind));
             if nargout >= 4
                 %ddJ_DdTdT
-                varargout{4} = transpose(2./(Sigma(ind).^2));
+                varargout{4} = transpose(1./(Sigma(ind).^2));
                 %ddJ_DdTdSigma
                 varargout{5} = transpose(-2*(T(ind) - Tm(ind))./(Sigma(ind).^3) -2*(R(ind))./(Sigma(ind).^3));
                 %ddJ_DdSigmadSigma
@@ -1841,7 +1856,7 @@ function varargout = normal_time(T,Tm,R,Sigma,ind)
                     %dddJ_DdTdTdT
                     varargout{7} = transpose(zeros(size(T(ind))));
                     %dddJ_DdTdTdSigma
-                    varargout{8} = transpose(- 4./(Sigma(ind).^3));
+                    varargout{8} = transpose(- 2./(Sigma(ind).^3));
                     %dddJ_DdTdSigmadSigma
                     varargout{9} = transpose(6*(T(ind) - Tm(ind))./(Sigma(ind).^4) + 6*(R(ind))./(Sigma(ind).^4));
                     %dddJ_DdSigmadSigmadSigma
@@ -1852,11 +1867,11 @@ function varargout = normal_time(T,Tm,R,Sigma,ind)
                         %ddddJ_DdTdTdTdSigma
                         varargout{12} = transpose(zeros(size(T(ind))));
                         %ddddJ_DdTdTdSigmadSigma
-                        varargout{13} = transpose(12./(Sigma(ind).^4));
+                        varargout{13} = transpose(6./(Sigma(ind).^4));
                         %ddddJ_DdTdSigmadSigmadSigma
                         varargout{14} = transpose(- 24*((T(ind) - Tm(ind))./(Sigma(ind).^5)) - 24*((R(ind))./(Sigma(ind).^5)));
                         %ddddJ_DdSigmadSigmadSigmadSigma
-                        varargout{15} = transpose(60*(((T(ind) - Tm(ind)).^2)./(Sigma(ind).^5)) + 60*(((R(ind)).^2)./(Sigma(ind).^5)) - 12./(Sigma(ind).^4));
+                        varargout{15} = transpose(60*(((T(ind) - Tm(ind)).^2)./(Sigma(ind).^6)) + 60*(((R(ind)).^2)./(Sigma(ind).^6)) - 12./(Sigma(ind).^4));
                     end
                 end
             end
