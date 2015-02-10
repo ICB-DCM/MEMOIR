@@ -50,7 +50,7 @@ end
 n_o = n_y + n_t;
 
 if ~isempty(Sim)
-    nc = 2;
+    nc = 4;
     nr = n_o;
 else
     nc = ceil(sqrt(n_o));
@@ -62,7 +62,7 @@ if ~isempty(Sim)
     % Loop: measurands
     for j = 1:n_y
         % Data and simulation 
-        subplot(nr,nc,2*j-1); hold off;
+        subplot(nr,nc,[4*j-3,4*j-2]); hold off;
         for i = 1:size(Data.SCTL.Y,3)
             ind = ~isnan(Data.SCTL.Y(:,j,i));
             lh(1) = plot(Data.SCTL.time(ind,1),Data.SCTL.Y(ind,j,i),'-',...
@@ -81,7 +81,7 @@ if ~isempty(Sim)
         end
         
         % Error 
-        subplot(nr,nc,2*j); hold off;
+        subplot(nr,nc,[4*j-1,4*j]); hold off;
         for i = 1:size(Data.SCTL.Y,3)
             ind = ~isnan(Data.SCTL.Y(:,j,i));
             plot(Data.SCTL.time(ind,1),Data.SCTL.Y(ind,j,i)-Sim.Y(ind,j,i),'-',...
@@ -95,26 +95,53 @@ if ~isempty(Sim)
     % Loop: events
     for j = 1:n_t
         % Data and simulation 
-        subplot(nr,nc,2*(n_y+j)-1); hold off;
-        for i = 1:size(Data.SCTL.T,3)
-            ind = ~isnan(Data.SCTL.T(:,j,i));
-            lh(1) = stem(Data.SCTL.T(ind,j,i),zeros(size(Data.SCTL.T(j,ind,i))),...
-                'color',options.data.col); hold on;
-            lh(2) = stem(Sim.T(:,j,i),Sim.R(:,j,i),...
-                'color',options.sim.col);
+        subplot(nr,nc,4*n_y+4*j-3); hold off;
+        for i = 1:size(Data.SCTL.T,1)
+            ind = ~isnan(Data.SCTL.T(i,j,:));
+            scatter(squeeze(Sim.T(i,j,squeeze(Sim.R(i,j,ind)==0))),squeeze(Data.SCTL.T(i,j,squeeze(Sim.R(i,j,ind)==0))),[],'b','o')
+            hold on
+            scatter(squeeze(Sim.T(i,j,squeeze(Sim.R(i,j,ind)~=0))),squeeze(Data.SCTL.T(i,j,squeeze(Sim.R(i,j,ind)~=0))),[],'r','x')
         end
-        xlabel('time'); ylabel(Data.events{j});
+        ylabel([Data.events{j} '_{data}']);
+        xlabel([Data.events{j} '_{simu}']);
         xlim(Data.SCTL.time([1,end]));
+        ylim(Data.SCTL.time([1,end]));
+        plot([Data.SCTL.time(1),Data.SCTL.time(1)],[Data.SCTL.time(end),Data.SCTL.time(end)],'k-')
+        axis square
+        box on
+        
+        subplot(nr,nc,4*n_y+4*j-2); hold off;
+        for i = 1:size(Data.SCTL.T,1)
+            ind = ~isnan(Data.SCTL.T(i,j,:));
+            scatter(squeeze(Sim.R(i,j,squeeze(Sim.R(i,j,ind)~=0))),squeeze(Data.SCTL.T(i,j,squeeze(Sim.R(i,j,ind)~=0))))
+        end
+        ylabel([Data.events{j} '_{data}']);
+        xlabel(['rval ' Data.events{j} '_{simu}']);
+        ylim(Data.SCTL.time([1,end]));
+        box on
         
         % Error 
-        subplot(nr,nc,2*(n_y+j)); hold off;
-        for i = 1:size(Data.SCTL.T,3)
-            ind = ~isnan(Data.SCTL.T(j,:,i));
-            line([Sim.T(j,:,i);Data.SCTL.T(ind,j,i)],[Sim.R(j,ind,i);zeros(size(Data.SCTL.T(j,ind,i)))],...
-                'color',options.error.col); hold on;
+        subplot(nr,nc,4*n_y+4*j-1); hold off;
+        for i = 1:size(Data.SCTL.T,1)
+            ind = ~isnan(Data.SCTL.T(i,j,:));
+            scatter(squeeze(Sim.T(i,j,squeeze(Sim.R(i,j,ind)==0)))-squeeze(Data.SCTL.T(i,j,squeeze(Sim.R(i,j,ind)==0))),squeeze(Data.SCTL.T(i,j,squeeze(Sim.R(i,j,ind)==0))),[],'b','o')
+            hold on
+            scatter(squeeze(Sim.T(i,j,squeeze(Sim.R(i,j,ind)~=0)))-squeeze(Data.SCTL.T(i,j,squeeze(Sim.R(i,j,ind)~=0))),squeeze(Data.SCTL.T(i,j,squeeze(Sim.R(i,j,ind)~=0))),[],'r','x')
         end
-        xlabel('time'); ylabel(['error ' Data.events{j}]);
-        xlim(Data.SCTL.time([1,end]));
+        ylabel([Data.events{j} '_{data}']);
+        xlabel(['error ' Data.events{j} '_{simu}']);
+        ylim(Data.SCTL.time([1,end]));
+        box on
+        
+        subplot(nr,nc,4*n_y+4*j); hold off;
+        for i = 1:size(Data.SCTL.T,1)
+            ind = ~isnan(Data.SCTL.T(i,j,ind));
+            scatter(squeeze(Sim.R(i,j,squeeze(Sim.R(i,j,ind)~=0))),squeeze(Data.SCTL.T(i,j,squeeze(Sim.R(i,j,ind)~=0))))
+        end
+        ylabel([Data.events{j} '_{data}']);
+        xlabel(['rval ' Data.events{j} '_{simu}']);
+        ylim(Data.SCTL.time([1,end]));
+        box on
     end
 end
 
