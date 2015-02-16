@@ -637,6 +637,8 @@ for s = 1:length(Data)
                 end
                 xlim([-5*sqrt(D(j,j)),5*sqrt(D(j,j))])
                 ylim([0,1.1])
+                xlabel(char(Model.sym.b(Model.exp{s}.ind_b(j))));
+                ylabel('cdf')
                 box on
             end
             subplot(ceil(n_b+1/4),4,1,'Visible','off')
