@@ -206,8 +206,15 @@ t = isempty(file) || isvarname(file);
 % parse inputs and return option structure output
 function opts = getOptions(args)
 ip = inputParser;
-ip.addParameter('vars',{},@isVars);
-ip.addParameter('file','',@isFunc);
-ip.addParameter('outputs',{},@iscellstr);
+verMAT = ver('MATLAB');
+if(str2double(verMAT.Version)>=8.2)
+    ip.addParameter('vars',{},@isVars);
+    ip.addParameter('file','',@isFunc);
+    ip.addParameter('outputs',{},@iscellstr);
+else
+    ip.addParamValue('vars',{},@isVars);
+    ip.addParamValue('file','',@isFunc);
+    ip.addParamValue('outputs',{},@iscellstr);
+end
 ip.parse(args{:});
 opts = ip.Results;
