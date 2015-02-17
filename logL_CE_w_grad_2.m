@@ -147,10 +147,8 @@ for s = 1:length(Data)
                         [bhat_si,dbhat_sidbeta,dbhat_siddelta,...
                             G] ...
                             = optimize_SCTL_si(Model,Data,bhat_si0,beta,delta,type_D,t_s,Ym_si,Tm_si,ind_y,ind_t,F_diff,b_diff,s);
-                        %                             [bhat_si_e,dbhat_sidbeta_e,dbhat_siddelta_e,G_e] ...
-                        %                                 = optimize_SCTL_si(Model,Data,bhat_si0,beta_e,D_e,dDddelta_e,ddDddeltaddelta_e,invD_e,dinvDddelta_e,ddinvDddeltaddelta_e,t_s,Ym_si,ind,F_diff,b_diff,s);
-                        % [g,g_fd_f,g_fd_b,g_fd_c]=testGradient(beta,@(beta)optimize_SCTL_si(Model,Data,bhat_si0,beta,delta,type_D,t_s,Ym_si,ind,F_diff,b_diff,s),1e-4,1,2)
-                        % [g,g_fd_f,g_fd_b,g_fd_c]=testGradient(delta,@(delta)optimize_SCTL_si(Model,Data,bhat_si0,beta,delta,type_D,t_s,Ym_si,ind,F_diff,b_diff,s),1e-4,1,3)
+                        % [g,g_fd_f,g_fd_b,g_fd_c]=testGradient(beta,@(beta)optimize_SCTL_si(Model,Data,bhat_si0,beta,delta,type_D,t_s,Ym_si,Tm_si,ind_y,ind_t,F_diff,b_diff,s),1e-4,1,2)
+                        % [g,g_fd_f,g_fd_b,g_fd_c]=testGradient(delta,@(delta)optimize_SCTL_si(Model,Data,bhat_si0,beta,delta,type_D,t_s,Ym_si,Tm_si,ind_y,ind_t,F_diff,b_diff,s),1e-4,1,3)
                     end
                 case 3
                     if(Model.integration)
@@ -915,16 +913,16 @@ switch(b_diff)
                 varargout{7} = pdGpddelta;
             case 2
                 % Higher order derivatives objective function
-                % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(bhat,@(b)objective_SCTL_s1(Model,beta,b,Data{s}.condition,delta,type_D,t,Ym,Tm,ind_y,ind_t,s),1e-4,1,2)
-                % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(bhat,@(b)objective_SCTL_s1(Model,beta,b,Data{s}.condition,delta,type_D,t,Ym,Tm,ind_y,ind_t,s),1e-4,2,3)
-                % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(beta,@(beta)objective_SCTL_s1(Model,beta,bhat,Data{s}.condition,delta,type_D,t,Ym,Tm,ind_y,ind_t,s),1e-4,2,4)
-                % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(delta,@(delta)objective_SCTL_s1(Model,beta,bhat,Data{s}.condition,delta,type_D,t,Ym,Tm,ind_y,ind_t,s),1e-4,2,5)
+                % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(bhat,@(b)objective_SCTL_s1(Model,beta,b,Data{s}.condition,delta,type_D,t,Ym,Tm,ind_y,ind_t,s),1e-5,1,2)
+                % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(bhat,@(b)objective_SCTL_s1(Model,beta,b,Data{s}.condition,delta,type_D,t,Ym,Tm,ind_y,ind_t,s),1e-5,2,3)
+                % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(beta,@(beta)objective_SCTL_s1(Model,beta,bhat,Data{s}.condition,delta,type_D,t,Ym,Tm,ind_y,ind_t,s),1e-5,2,4)
+                % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(delta,@(delta)objective_SCTL_s1(Model,beta,bhat,Data{s}.condition,delta,type_D,t,Ym,Tm,ind_y,ind_t,s),1e-5,2,5)
                 
                 [~,~,G,...
-                    ddJdbdbeta,ddJdbddelta,ddJdbetadbeta,ddJddeltaddelta,ddJdbetaddelta] = ...
+                    ddJdbdbeta,ddJdbddelta,~,~,~] = ...
                     objective_SCTL_s1(Model,beta,bhat,Data{s}.condition,delta,type_D,t,Ym,Tm,ind_y,ind_t,s);
                 % Gradient of optimal point
-                [bhat,dbhatdbeta,dbhatddelta] = bhat_SCTL_si(bhat,G,ddJdbdbeta,ddJdbddelta,ddJdbetadbeta,ddJddeltaddelta,ddJdbetaddelta);
+                [bhat,dbhatdbeta,dbhatddelta] = bhat_SCTL_si(bhat,G,ddJdbdbeta,ddJdbddelta,[],[],[]);
                 varargout{1} = bhat;
                 varargout{2} = dbhatdbeta;
                 varargout{3} = dbhatddelta;
@@ -1001,7 +999,7 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %function [bhat,dbhatdbeta,dbhatddelta,ddbhatdbetadbeta,ddbhatdbetaddelta,ddbhatddeltaddelta] = bhat_SCTL_si(bhat,G,pdGpdbeta,pdGpddelta);
-function varargout = bhat_SCTL_si(bhat,G,ddJdbdbeta,ddJdbddelta,ddJdbetadbeta,ddJddeltaddelta,ddJdbetaddelta,dGdb,pdGpdbeta,pdGpddelta,dddJdbdbetadbeta,dddJdbddeltaddelta)
+function varargout = bhat_SCTL_si(bhat,G,ddJdbdbeta,ddJdbddelta,~,~,~,~,pdGpdbeta,pdGpddelta,dddJdbdbetadbeta,dddJdbddeltaddelta)
 
 invG = pinv(G);
 
@@ -1414,6 +1412,7 @@ switch(Model.exp{s}.time_model)
             % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(T,@(T)normal_time(T,Tm,R,Sigma_time,ind_t),1e-5,1,2)
             % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(R,@(R)normal_time(T,Tm,R,Sigma_time,ind_t),1e-5,1,3)
             % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(Sigma_time,@(Sigma_time)normal_time(T,Tm,R,Sigma_time,ind_t),1e-5,1,4)
+            % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(T,@(T)normal_time(T,Tm,R,Sigma_time,ind_t),1e-5,2,5)
             [J_T,...
                 dJ_TdT,dJ_TdR,dJ_TdSigma] = normal_time(T,Tm,R,Sigma_time,ind_t);
         elseif nargout <=8 % second order derivatives
@@ -1613,8 +1612,6 @@ if nargout >= 2
                 dddJ_TdphidphidR = bsxfun(@times,dddJ_TdphidTdR,permute(dTdphi,[3,1,4,2])) ...
                     + bsxfun(@times,dddJ_TdphidRdR,permute(dRdphi,[3,1,4,2])) ...
                     + bsxfun(@times,dddJ_TdphidRdSigma,permute(dSigma_timedphi,[3,1,4,2]));
-                dddJ_TdphidphidSigma = bsxfun(@times,dddJ_TdphidTdSigma,permute(dTdphi,[3,1,4,2])) ...
-                    + bsxfun(@times,dddJ_TdphidSigmadSigma,permute(dSigma_timedphi,[3,1,4,2]));
                 dddJ_TdphidphidSigma = bsxfun(@times,dddJ_TdphidTdSigma,permute(dTdphi,[3,1,4,2])) ...
                     + bsxfun(@times,dddJ_TdphidRdSigma,permute(dRdphi,[3,1,4,2])) ...
                     + bsxfun(@times,dddJ_TdphidSigmadSigma,permute(dSigma_timedphi,[3,1,4,2]));
@@ -1846,12 +1843,12 @@ function varargout = simulateForSP(model,tout,phi,kappa)
 
 % Simulate model
 if(nargout<2)
-    options_simu.sens = 0;
-    sol = model(tout,phi,kappa,options_simu.sens);
+    options_simu.sensi = 0;
+    sol = model(tout,phi,kappa,options_simu.sensi);
     varargout{1} = sol.y;
 else
-    options_simu.sens = 1;
-    sol = model(tout,phi,kappa,options_simu.sens);
+    options_simu.sensi = 1;
+    sol = model(tout,phi,kappa,options_simu.sensi);
     varargout{1} = sol.y;
     varargout{2} = sol.sy;
 end
@@ -1960,69 +1957,69 @@ if nargout >=1
         varargout{4} = transpose(- (((T(ind) - Tm(ind)).^2)./(Sigma(ind).^3)) - (((R(ind)).^2)./(Sigma(ind).^3)) + 2./Sigma(ind));
         if nargout >= 5
             %ddJ_TdTdT
-            varargout{4} = transpose(1./(Sigma(ind).^2));
+            varargout{5} = transpose(1./(Sigma(ind).^2));
             %ddJ_TdTdR
-            varargout{5} = transpose(zeros(size(T(ind))));
+            varargout{6} = transpose(zeros(size(T(ind))));
             %ddJ_TdRdR
-            varargout{6} = transpose(1./(Sigma(ind).^2));
+            varargout{7} = transpose(1./(Sigma(ind).^2));
             %ddJ_TdTdSigma
-            varargout{7} = transpose(-2*(T(ind) - Tm(ind))./(Sigma(ind).^3));
+            varargout{8} = transpose(-2*(T(ind) - Tm(ind))./(Sigma(ind).^3));
             %ddJ_TdRdSigma
-            varargout{8} = transpose(-2*(R(ind))./(Sigma(ind).^3));
+            varargout{9} = transpose(-2*(R(ind))./(Sigma(ind).^3));
             %ddJ_TdSigmadSigma
-            varargout{9} = transpose(3*(((T(ind) - Tm(ind)).^2)./(Sigma(ind).^4)) + 3*(((R(ind)).^2)./(Sigma(ind).^4)) - 2./(Sigma(ind).^2));
-            if nargout >= 10
+            varargout{10} = transpose(3*(((T(ind) - Tm(ind)).^2)./(Sigma(ind).^4)) + 3*(((R(ind)).^2)./(Sigma(ind).^4)) - 2./(Sigma(ind).^2));
+            if nargout >= 11
                 %dddJ_TdTdTdT
-                varargout{10} = transpose(zeros(size(T(ind))));
-                %dddJ_TdTdTdR
                 varargout{11} = transpose(zeros(size(T(ind))));
-                %dddJ_TdTdRdR
+                %dddJ_TdTdTdR
                 varargout{12} = transpose(zeros(size(T(ind))));
-                %dddJ_TdRdRdR
+                %dddJ_TdTdRdR
                 varargout{13} = transpose(zeros(size(T(ind))));
+                %dddJ_TdRdRdR
+                varargout{14} = transpose(zeros(size(T(ind))));
                 %dddJ_TdTdTdSigma
-                varargout{14} = transpose(- 2./(Sigma(ind).^3));
+                varargout{15} = transpose(- 2./(Sigma(ind).^3));
                 %dddJ_TdTdRdSigma
-                varargout{15} = transpose(zeros(size(T(ind))));
+                varargout{16} = transpose(zeros(size(T(ind))));
                 %dddJ_TdRdRdSigma
-                varargout{16} = transpose(- 2./(Sigma(ind).^3));
+                varargout{17} = transpose(- 2./(Sigma(ind).^3));
                 %dddJ_TdTdSigmadSigma
-                varargout{17} = transpose(6*(T(ind) - Tm(ind))./(Sigma(ind).^4));
+                varargout{18} = transpose(6*(T(ind) - Tm(ind))./(Sigma(ind).^4));
                 %dddJ_TdRdSigmadSigma
-                varargout{18} = transpose(6*(R(ind))./(Sigma(ind).^4));
+                varargout{19} = transpose(6*(R(ind))./(Sigma(ind).^4));
                 %dddJ_TdSigmadSigmadSigma
-                varargout{19} = transpose(- 12*(((T(ind) - Tm(ind)).^2)./(Sigma(ind).^5)) - 12*(((R(ind)).^2)./(Sigma(ind).^5)) + 4./(Sigma(ind).^3));
+                varargout{20} = transpose(- 12*(((T(ind) - Tm(ind)).^2)./(Sigma(ind).^5)) - 12*(((R(ind)).^2)./(Sigma(ind).^5)) + 4./(Sigma(ind).^3));
                 if nargout >= 20
                     %ddddJ_TdTdTdTdT
-                    varargout{20} = transpose(zeros(size(T(ind))));
+                    varargout{21} = transpose(zeros(size(T(ind))));
                     %ddddJ_TdTdTdTdR
-                    varargout{11} = transpose(zeros(size(T(ind))));
+                    varargout{22} = transpose(zeros(size(T(ind))));
                     %ddddJ_TdTdTdRdR
-                    varargout{12} = transpose(zeros(size(T(ind))));
+                    varargout{23} = transpose(zeros(size(T(ind))));
                     %ddddJ_TdTdRdRdR
-                    varargout{12} = transpose(zeros(size(T(ind))));
+                    varargout{24} = transpose(zeros(size(T(ind))));
                     %ddddJ_TdRdRdRdR
-                    varargout{12} = transpose(zeros(size(T(ind))));
+                    varargout{25} = transpose(zeros(size(T(ind))));
                     %ddddJ_TdTdTdTdSigma
-                    varargout{12} = transpose(zeros(size(T(ind))));
+                    varargout{26} = transpose(zeros(size(T(ind))));
                     %ddddJ_TdTdTdRdSigma
-                    varargout{12} = transpose(zeros(size(T(ind))));
+                    varargout{27} = transpose(zeros(size(T(ind))));
                     %ddddJ_TdTdRdRdSigma
-                    varargout{12} = transpose(zeros(size(T(ind))));
+                    varargout{28} = transpose(zeros(size(T(ind))));
                     %ddddJ_TdRdRdRdSigma
-                    varargout{12} = transpose(zeros(size(T(ind))));
+                    varargout{29} = transpose(zeros(size(T(ind))));
                     %ddddJ_TdTdTdSigmadSigma
-                    varargout{13} = transpose(6./(Sigma(ind).^4));
+                    varargout{30} = transpose(6./(Sigma(ind).^4));
                     %ddddJ_TdTdRdSigmadSigma
-                    varargout{13} = transpose(zeros(size(T(ind))));
+                    varargout{31} = transpose(zeros(size(T(ind))));
                     %ddddJ_TdRdRdSigmadSigma
-                    varargout{13} = transpose(6./(Sigma(ind).^4));
+                    varargout{32} = transpose(6./(Sigma(ind).^4));
                     %ddddJ_TdTdSigmadSigmadSigma
-                    varargout{14} = transpose(- 24*((T(ind) - Tm(ind))./(Sigma(ind).^5)));
+                    varargout{33} = transpose(- 24*((T(ind) - Tm(ind))./(Sigma(ind).^5)));
                     %ddddJ_TdRdSigmadSigmadSigma
-                    varargout{14} = transpose(- 24*((R(ind))./(Sigma(ind).^5)));
+                    varargout{34} = transpose(- 24*((R(ind))./(Sigma(ind).^5)));
                     %ddddJ_TdSigmadSigmadSigmadSigma
-                    varargout{15} = transpose(60*(((T(ind) - Tm(ind)).^2)./(Sigma(ind).^6)) + 60*(((R(ind)).^2)./(Sigma(ind).^6)) - 12./(Sigma(ind).^4));
+                    varargout{35} = transpose(60*(((T(ind) - Tm(ind)).^2)./(Sigma(ind).^6)) + 60*(((R(ind)).^2)./(Sigma(ind).^6)) - 12./(Sigma(ind).^4));
                 end
             end
         end
