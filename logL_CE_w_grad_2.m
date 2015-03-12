@@ -1,6 +1,8 @@
 % function [logL,dlogLdxi,ddlogLdxi2] = logL_CE_w_grad_2(xi,Data,Model,options,extract_flag)
 function varargout = logL_CE_w_grad_2(varargin)
 
+warning off
+
 %% Load
 persistent tau
 persistent P_old
@@ -185,24 +187,42 @@ for s = 1:length(Data)
                 option_simu.sensi = 0;
                 sol = Model.exp{s}.model(t_s,phi_si,Data{s}.condition,option_simu);
             elseif nargout <3
-                option_simu.sensi = 1;
-                sol = Model.exp{s}.model(t_s,phi_si,Data{s}.condition,option_simu);
-                dYdphi = sol.sy;
-                dTdphi = sol.sroot(ind_t,:,:);
-                dRdphi = sol.srootval(ind_t,:,:);
-            else
                 if(Model.integration)
-                    option_simu.sensi = 1;
+                    option_simu.sensi = 2;
                     sol = Model.exp{s}.model(t_s,phi_si,Data{s}.condition,option_simu);
                     dYdphi = sol.sy;
                     dTdphi = sol.sroot(ind_t,:,:);
                     dRdphi = sol.srootval(ind_t,:,:);
+                    try
+                        ddYdphidphi = sol.s2y;
+                        ddTdphidphi = sol.s2root(ind_t,:,:,:);
+                        ddRdphidphi = sol.s2rootval(ind_t,:,:,:);
+                    catch
+                        ddYdphidphi = zeros(length(t_s),size(sol.sy,2),length(phi_si),length(phi_si));
+                        ddTdphidphi = zeros(sum(ind_t),size(sol.sroot,2),length(phi_si),length(phi_si));
+                        ddRdphidphi = zeros(sum(ind_t),size(sol.srootval,2),length(phi_si),length(phi_si));
+                    end
                 else
                     option_simu.sensi = 1;
                     sol = Model.exp{s}.model(t_s,phi_si,Data{s}.condition,option_simu);
                     dYdphi = sol.sy;
                     dTdphi = sol.sroot(ind_t,:,:);
                     dRdphi = sol.srootval(ind_t,:,:);
+                end
+            else
+                option_simu.sensi = 2;
+                sol = Model.exp{s}.model(t_s,phi_si,Data{s}.condition,option_simu);
+                dYdphi = sol.sy;
+                dTdphi = sol.sroot(ind_t,:,:);
+                dRdphi = sol.srootval(ind_t,:,:);
+                try
+                    ddYdphidphi = sol.s2y;
+                    ddTdphidphi = sol.s2root(ind_t,:,:,:);
+                    ddRdphidphi = sol.s2rootval(ind_t,:,:,:);
+                catch
+                    ddYdphidphi = zeros(length(t_s),size(sol.sy,2),length(phi_si),length(phi_si));
+                    ddTdphidphi = zeros(sum(ind_t),size(sol.sroot,2),length(phi_si),length(phi_si));
+                    ddRdphidphi = zeros(sum(ind_t),size(sol.srootval,2),length(phi_si),length(phi_si));
                 end
             end
             Y = sol.y;
@@ -213,33 +233,21 @@ for s = 1:length(Data)
             R_si = R(ind_t,:);
             
             
-            % Apply indexing to derivatives of Y
+            % Apply indexing to derivatives
             if nargout >= 2
-                dY_sidphi = zeros(length(ind_y),length(phi_si));
-                dT_sidphi = zeros(length(ind_t),length(phi_si));
-                dR_sidphi = zeros(length(ind_t),length(phi_si));
+                tempy = reshape(dYdphi,[size(dYdphi,1)*size(dYdphi,2),size(dYdphi,3)]);
+                dY_sidphi = tempy(ind_y,:);
+                tempt = reshape(dTdphi,[size(dTdphi,1)*size(dTdphi,2),size(dTdphi,3)]);
+                dT_sidphi = tempt(ind_t,:);
+                tempr = reshape(dRdphi,[size(dRdphi,1)*size(dRdphi,2),size(dRdphi,3)]);
+                dR_sidphi = tempr(ind_t,:);
                 if nargout >= 3
-                    ddY_sidphidphi = zeros(length(ind_y),length(phi_si),length(phi_si));
-                    ddT_sidphidphi = zeros(length(ind_t),length(phi_si),length(phi_si));
-                    ddR_sidphidphi = zeros(length(ind_t),length(phi_si),length(phi_si));
-                end
-                for k = 1:length(phi_si)
-                    tempy = dYdphi(:,:,k);
-                    tempt = dTdphi(:,:,k);
-                    tempr = dRdphi(:,:,k);
-                    dY_sidphi(:,k) = tempy(ind_y);
-                    dT_sidphi(:,k) = tempt(ind_t);
-                    dR_sidphi(:,k) = tempr(ind_t);
-                    if Model.integration
-                        for j = 1:length(phi_si)
-                            tempy = ddYdphidphi(:,:,j,k);
-                            tempt = ddTdphidphi(:,:,j,k);
-                            tempr = ddRdphidphi(:,:,j,k);
-                            ddY_sidphidphi(:,j,k) = tempy(ind_y);
-                            ddT_sidphidphi(:,j,k) = tempt(ind_t);
-                            ddR_sidphidphi(:,j,k) = tempr(ind_t);
-                        end
-                    end
+                    tempy = reshape(ddYdphidphi,[size(ddYdphidphi,1)*size(ddYdphidphi,2),size(ddYdphidphi,3),size(ddYdphidphi,4)]);
+                    ddY_sidphidphi = tempy(ind_y,:,:);
+                    tempt = reshape(ddTdphidphi,[size(ddTdphidphi,1)*size(ddTdphidphi,2),size(ddTdphidphi,3),size(ddTdphidphi,4)]);
+                    ddT_sidphidphi = tempt(ind_t,:,:);
+                    tempr = reshape(ddRdphidphi,[size(ddRdphidphi,1)*size(ddRdphidphi,2),size(ddRdphidphi,3),size(ddRdphidphi,4)]);
+                    ddR_sidphidphi = tempr(ind_t,:,:);
                 end
             end
             
@@ -531,8 +539,7 @@ for s = 1:length(Data)
                         + chainrule_ddxdydy_dydz_dydv(dpdJ_bdbpddelta,dbdxi,ddeltadxi) ...
                         + chainrule_ddxdydy_dydz_dydv(permute(dpdJ_bdbpddelta,[2,1]),ddeltadxi,dbdxi);
                     
-                    ddlogLdxidxi = ddlogLdxidxi - ddJ_Ddxidxi - ddJ_Tdxidxi - ddJ_bdxidxi;
-                    
+                    ddlogLdxidxi = ddlogLdxidxi - ddJ_Ddxidxi  - ddJ_bdxidxi - ddJ_Tdxidxi;
                     if(Model.integration)
                         % laplace approximation
                         invG = pinv(G);
@@ -569,7 +576,7 @@ for s = 1:length(Data)
         end
         
         logL = logL + logL_D + logL_T + logL_b + logL_I;
-        
+
         if(Model.penalty)
             % parameter penalization terms
             % logL_s = log(p(mu_S,S_s|b_s,D))
@@ -917,7 +924,12 @@ switch(b_diff)
                 % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(bhat,@(b)objective_SCTL_s1(Model,beta,b,Data{s}.condition,delta,type_D,t,Ym,Tm,ind_y,ind_t,s),1e-5,2,3)
                 % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(beta,@(beta)objective_SCTL_s1(Model,beta,bhat,Data{s}.condition,delta,type_D,t,Ym,Tm,ind_y,ind_t,s),1e-5,2,4)
                 % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(delta,@(delta)objective_SCTL_s1(Model,beta,bhat,Data{s}.condition,delta,type_D,t,Ym,Tm,ind_y,ind_t,s),1e-5,2,5)
-                
+                % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(bhat,@(b)objective_SCTL_s1(Model,beta,b,Data{s}.condition,delta,type_D,t,Ym,Tm,ind_y,ind_t,s),1e-5,3,9)
+                % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(beta,@(beta)objective_SCTL_s1(Model,beta,bhat,Data{s}.condition,delta,type_D,t,Ym,Tm,ind_y,ind_t,s),1e-5,3,10)
+                % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(delta,@(delta)objective_SCTL_s1(Model,beta,bhat,Data{s}.condition,delta,type_D,t,Ym,Tm,ind_y,ind_t,s),1e-5,3,11)
+                % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(beta,@(beta)objective_SCTL_s1(Model,beta,bhat,Data{s}.condition,delta,type_D,t,Ym,Tm,ind_y,ind_t,s),1e-5,4,12)
+                % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(delta,@(delta)objective_SCTL_s1(Model,beta,bhat,Data{s}.condition,delta,type_D,t,Ym,Tm,ind_y,ind_t,s),1e-5,5,13)
+                % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(delta,@(delta)objective_SCTL_s1(Model,beta,bhat,Data{s}.condition,delta,type_D,t,Ym,Tm,ind_y,ind_t,s),1e-5,4,14)
                 [~,~,G,...
                     ddJdbdbeta,ddJdbddelta,~,~,~] = ...
                     objective_SCTL_s1(Model,beta,bhat,Data{s}.condition,delta,type_D,t,Ym,Tm,ind_y,ind_t,s);
@@ -935,11 +947,11 @@ switch(b_diff)
                 [~,~,G,...
                     ddJdbdbeta,ddJdbddelta,ddJdbetadbeta,ddJddeltaddelta,ddJdbetaddelta,...
                     dGdb,pdGpdbeta,pdGpddelta,...
-                    dddJdbdbetadbeta,dddJdbddeltaddelta,...
+                    dddJdbdbetadbeta,dddJdbddeltaddelta,dddJdbdbetaddelta,...
                     ddGdbdb,pddGdbpdbeta,pdpdGpdbetapdbeta,pddGdbpddelta,pdpdGpddeltapddelta,pdpdGpdbetapddelta] = ...
-                    objective_SCTL_s1(Model,beta,bhat,Data{s}.condition,delta,type_D,t,Ym,Tm,ind,s);
+                    objective_SCTL_s1(Model,beta,bhat,Data{s}.condition,delta,type_D,t,Ym,Tm,ind_y,ind_t,s);
                 % Gradient + Hessian of optimal point
-                [bhat,dbhatdbeta,dbhatddelta,ddbhatdbetadbeta,ddbhatdbetaddelta,ddbhatddeltaddelta] = bhat_SCTL_si(bhat,G,ddJdbdbeta,ddJdbddelta,ddJdbetadbeta,ddJddeltaddelta,ddJdbetaddelta,dGdb,pdGpdbeta,pdGpddelta,dddJdbdbetadbeta,dddJdbddeltaddelta);
+                [bhat,dbhatdbeta,dbhatddelta,ddbhatdbetadbeta,ddbhatdbetaddelta,ddbhatddeltaddelta] = bhat_SCTL_si(bhat,G,ddJdbdbeta,ddJdbddelta,ddJdbetadbeta,ddJddeltaddelta,ddJdbetaddelta,dGdb,pdGpdbeta,pdGpddelta,dddJdbdbetadbeta,dddJdbddeltaddelta,dddJdbdbetaddelta);
                 
                 
                 varargout{1} = bhat;
@@ -969,10 +981,10 @@ switch(b_diff)
                 [~,~,G,...
                     ddJdbdbeta,ddJdbddelta,ddJdbetadbeta,ddJddeltaddelta,ddJdbetaddelta,...
                     dGdb,pdGpdbeta,pdGpddelta,...
-                    dddJdbdbetadbeta,dddJdbddeltaddelta] = ...
+                    dddJdbdbetadbeta,dddJdbddeltaddelta,dddJdbdbetaddelta] = ...
                     objective_SCTL_s1(Model,beta,bhat,Data{s}.condition,delta,type_D,t,Ym,Tm,ind_y,ind_t,s);
                 % Gradient + Hessian of optimal point
-                [bhat,dbhatdbeta,dbhatddelta,ddbhatdbetadbeta,ddbhatdbetaddelta,ddbhatddeltaddelta] = bhat_SCTL_si(bhat,G,ddJdbdbeta,ddJdbddelta,ddJdbetadbeta,ddJddeltaddelta,ddJdbetaddelta,dGdb,pdGpdbeta,pdGpddelta,dddJdbdbetadbeta,dddJdbddeltaddelta);
+                [bhat,dbhatdbeta,dbhatddelta,ddbhatdbetadbeta,ddbhatdbetaddelta,ddbhatddeltaddelta] = bhat_SCTL_si(bhat,G,ddJdbdbeta,ddJdbddelta,ddJdbetadbeta,ddJddeltaddelta,ddJdbetaddelta,dGdb,pdGpdbeta,pdGpddelta,dddJdbdbetadbeta,dddJdbddeltaddelta,dddJdbdbetaddelta);
                 
                 varargout{1} = bhat;
                 
@@ -999,7 +1011,7 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %function [bhat,dbhatdbeta,dbhatddelta,ddbhatdbetadbeta,ddbhatdbetaddelta,ddbhatddeltaddelta] = bhat_SCTL_si(bhat,G,pdGpdbeta,pdGpddelta);
-function varargout = bhat_SCTL_si(bhat,G,ddJdbdbeta,ddJdbddelta,~,~,~,~,pdGpdbeta,pdGpddelta,dddJdbdbetadbeta,dddJdbddeltaddelta)
+function varargout = bhat_SCTL_si(bhat,G,ddJdbdbeta,ddJdbddelta,~,~,~,dGdb,pdGpdbeta,pdGpddelta,dddJdbdbetadbeta,dddJdbddeltaddelta,dddJdbdbetaddelta)
 
 invG = pinv(G);
 
@@ -1010,15 +1022,31 @@ if nargout>=2
     
     if nargout >= 4
         
-        invGdGdbeta = chainrule_dxdy_dydz(invG,pdGpdbeta);
-        invGdGddelta = chainrule_dxdy_dydz(invG,pdGpddelta);
+        ddbhatdbetadbeta = zeros(size(dddJdbdbetadbeta));
+        ddbhatdbetaddelta = zeros(size(dddJdbdbetaddelta));
+        ddbhatddeltaddelta = zeros(size(dddJdbddeltaddelta));
         
-        ddbhatdbetadbeta  = permute(sum(bsxfun(@times,permute(invGdGdbeta,[1,2,4,3]),permute(dbhatdbeta,[3,1,2])),2),[1,3,4,2]) - chainrule_dxdy_dydz(invG,dddJdbdbetadbeta);
-        
-        ddbhatddeltaddelta = permute(sum(bsxfun(@times,permute(invGdGddelta,[1,2,4,3]),permute(dbhatddelta,[3,1,2])),2),[1,3,4,2]) - chainrule_dxdy_dydz(invG,dddJdbddeltaddelta);
-        
-        ddbhatdbetaddelta = permute(sum(bsxfun(@times,permute(invGdGddelta,[1,2,4,3]),permute(dbhatdbeta,[3,1,2])),2),[1,3,4,2]);%- chainrule_dxdy_dydz(invG,dddJdbdbetaddelta) = 0
-        
+        for j=1:length(bhat)
+            for k = 1:length(bhat)
+            ddbhatdbetadbeta(j,:,:) = squeeze(ddbhatdbetadbeta(j,:,:)) - invG(j,k)*(...
+                squeeze(dddJdbdbetadbeta(k,:,:)) ...
+                + transpose(dbhatdbeta)*squeeze(pdGpdbeta(k,:,:)) ...
+                + transpose(transpose(dbhatdbeta)*squeeze(pdGpdbeta(k,:,:))) ...
+                + transpose(dbhatdbeta)*squeeze(dGdb(k,:,:))*dbhatdbeta);
+            
+            ddbhatdbetaddelta(j,:,:) = squeeze(ddbhatdbetaddelta(j,:,:)) - invG(j,k)*(...
+                squeeze(dddJdbdbetaddelta(k,:,:)) ...
+                + transpose(dbhatdbeta)*squeeze(pdGpddelta(k,:,:)) ...
+                + transpose(transpose(dbhatddelta)*squeeze(pdGpdbeta(k,:,:))) ...
+                + transpose(dbhatdbeta)*squeeze(dGdb(k,:,:))*dbhatddelta);
+            
+            ddbhatddeltaddelta(j,:,:) = squeeze(ddbhatddeltaddelta(j,:,:)) -invG(j,k)*(...
+                squeeze(dddJdbddeltaddelta(k,:,:)) ...
+                + transpose(dbhatddelta)*squeeze(pdGpddelta(k,:,:)) ...
+                + transpose(transpose(dbhatddelta)*squeeze(pdGpddelta(k,:,:))) ...
+                + transpose(dbhatddelta)*squeeze(dGdb(k,:,:))*dbhatddelta);
+            end
+        end
     end
 end
 
@@ -1104,32 +1132,35 @@ end
 % Simulate model
 if nargout >= 3
     %[~,~,~,Y,~,dYdphi,~,ddYdphidphi] = Model.exp{s}.model(t,phi,kappa);
-    option_simu.sensi = 1;
+    if nargout >= 4
+        option_simu.sensi = 2;
+    else
+        option_simu.sensi = 1;
+    end
     sol = Model.exp{s}.model(t,phi,kappa,option_simu);
     Y = sol.y;
     T = sol.root(ind_t,:);
     R = sol.rootval(ind_t,:);
-    temp1 = sol.sy;
-    temp2 = sol.sroot(ind_t,:,:);
-    temp3 = sol.srootval(ind_t,:,:);
-    %         temp2 = ddYdphidphi;
-    dYdphi = zeros(length(ind_y),length(phi));
-    dTdphi = zeros(length(ind_t),length(phi));
-    dRdphi = zeros(length(ind_t),length(phi));
-    ddYdphidphi = zeros(length(ind_y),length(phi),length(phi));
-    ddTdphidphi = zeros(length(ind_t),length(phi),length(phi));
-    ddRdphidphi = zeros(length(ind_t),length(phi),length(phi));
-    for j = 1:length(phi)
-        tempy = temp1(:,:,j);
-        tempt = temp2(:,:,j);
-        tempr = temp3(:,:,j);
-        dYdphi(:,j) = tempy(ind_y);
-        dTdphi(:,j) = tempt(ind_t);
-        dRdphi(:,j) = tempr(ind_t);
-        %             for k = 1:length(phi)
-        %                 temp = temp2(:,:,j,k);
-        %                 ddYdphidphi(:,j,k) = temp(ind);
-        %             end
+    
+    tempy = reshape(sol.sy,[size(sol.sy,1)*size(sol.sy,2),size(sol.sy,3)]);
+    dYdphi = tempy(ind_y,:);
+    tempt = reshape(sol.sroot(ind_t,:,:),[size(sol.sroot(ind_t,:,:),1)*size(sol.sroot(ind_t,:,:),2),size(sol.sroot(ind_t,:,:),3)]);
+    dTdphi = tempt(ind_t,:);
+    tempr = reshape(sol.srootval(ind_t,:,:),[size(sol.srootval(ind_t,:,:),1)*size(sol.srootval(ind_t,:,:),2),size(sol.srootval(ind_t,:,:),3)]);
+    dRdphi = tempr(ind_t,:);
+    if option_simu.sensi >= 2
+        try
+            tempy = reshape(sol.s2y,[size(sol.s2y,1)*size(sol.s2y,2),size(sol.s2y,3),size(sol.s2y,4)]);
+            ddYdphidphi = tempy(ind_y,:,:);
+            tempt = reshape(sol.s2root(ind_t,:,:,:),[size(sol.s2root(ind_t,:,:,:),1)*size(sol.s2root(ind_t,:,:,:),2),size(sol.s2root(ind_t,:,:,:),3),size(sol.s2root(ind_t,:,:,:),4)]);
+            ddTdphidphi = tempt(ind_t,:,:);
+            tempr = reshape(sol.s2rootval(ind_t,:,:,:),[size(sol.s2rootval(ind_t,:,:,:),1)*size(sol.s2rootval(ind_t,:,:,:),2),size(sol.s2rootval(ind_t,:,:,:),3),size(sol.s2rootval(ind_t,:,:,:),4)]);
+            ddRdphidphi = tempr(ind_t,:,:);
+        catch
+            ddYdphidphi = zeros(length(ind_y),length(phi),length(phi));
+            ddTdphidphi = zeros(length(ind_t),length(phi),length(phi));
+            ddRdphidphi = zeros(length(ind_t),length(phi),length(phi));
+        end
     end
 elseif nargout >=2
     option_simu.sensi = 1;
@@ -1137,20 +1168,12 @@ elseif nargout >=2
     Y = sol.y;
     T = sol.root(ind_t,:);
     R = sol.rootval(ind_t,:);
-    temp1 = sol.sy;
-    temp2 = sol.sroot(ind_t,:,:);
-    temp3 = sol.srootval(ind_t,:,:);
-    dYdphi = zeros(length(ind_y),length(phi));
-    dTdphi = zeros(length(ind_t),length(phi));
-    dRdphi = zeros(length(ind_t),length(phi));
-    for j = 1:length(phi)
-        tempy = temp1(:,:,j);
-        tempt = temp2(:,:,j);
-        tempr = temp3(:,:,j);
-        dYdphi(:,j) = tempy(ind_y);
-        dTdphi(:,j) = tempt(ind_t);
-        dRdphi(:,j) = tempr(ind_t);
-    end
+    tempy = reshape(sol.sy,[size(sol.sy,1)*size(sol.sy,2),size(sol.sy,3)]);
+    dYdphi = tempy(ind_y,:);
+    tempt = reshape(sol.sroot(ind_t,:,:),[size(sol.sroot(ind_t,:,:),1)*size(sol.sroot(ind_t,:,:),2),size(sol.sroot(ind_t,:,:),3)]);
+    dTdphi = tempt(ind_t,:);
+    tempr = reshape(sol.srootval(ind_t,:,:),[size(sol.srootval(ind_t,:,:),1)*size(sol.srootval(ind_t,:,:),2),size(sol.srootval(ind_t,:,:),3)]);
+    dRdphi = tempr(ind_t,:);
 else
     option_simu.sensi = 0;
     sol = Model.exp{s}.model(t,phi,kappa,option_simu);
@@ -1214,7 +1237,7 @@ if nargout >= 2 % first order derivatives
         end
     end
     
-    if nargout >= 14 % fourth order derivatives
+    if nargout >= 15 % fourth order derivatives
         ddddsigma_noisedphidphidphidphi = Model.exp{s}.ddddsigma_noisedphidphidphidphi(phi);
         ddddSigma_noisedphidphidphidphi = zeros(length(ind_y),length(phi),length(phi),length(phi),length(phi));
         if(size(dsigma_noisedphi,1) == size(Ym,1))
@@ -1243,7 +1266,7 @@ if nargout >= 2 % first order derivatives
                     for m = 1:length(phi)
                         temp = dddSNdphidphidphi(:,:,k,l,m);
                         dddSigma_noisedphidphidphi(:,k,l,m) = temp(ind_y);
-                        if nargout >= 14 % fourth order derivatives
+                        if nargout >= 15 % fourth order derivatives
                             for n = 1:length(phi)
                                 temp = ddddSNdphidphidphidphi(:,:,k,l,m,n);
                                 ddddSigma_noisedphidphidphidphi(:,k,l,m,n) = temp(ind_y);
@@ -1310,7 +1333,7 @@ if nargout >= 2 % first order derivatives
         end
     end
     
-    if nargout >= 14 % fourth order derivatives
+    if nargout >= 15 % fourth order derivatives
         ddddsigma_timedphidphidphidphi = Model.exp{s}.ddddsigma_timedphidphidphidphi(phi);
         ddddSigma_timedphidphidphidphi = zeros(length(ind_t),length(phi),length(phi),length(phi),length(phi));
         if(size(dsigma_timedphi,1) == size(Tm,1))
@@ -1339,7 +1362,7 @@ if nargout >= 2 % first order derivatives
                     for m = 1:length(phi)
                         temp = dddSTdphidphidphi(:,:,k,l,m);
                         dddSigma_timedphidphidphi(:,k,l,m) = temp(ind_t);
-                        if nargout >= 14 % fourth order derivatives
+                        if nargout >= 15 % fourth order derivatives
                             for n = 1:length(phi)
                                 temp = ddddSTdphidphidphidphi(:,:,k,l,m,n);
                                 ddddSigma_timedphidphidphidphi(:,k,l,m,n) = temp(ind_t);
@@ -1364,7 +1387,7 @@ switch(Model.exp{s}.noise_model)
             [J_D,...
                 dJ_DdY,dJ_DdSigma,...
                 ddJ_DdYdY,ddJ_DdYdSigma,ddJ_DdSigmadSigma] = normal_noise(Y,Ym,Sigma_noise,ind_y);
-        elseif nargout <=13 % third order derivatives
+        elseif nargout <=14 % third order derivatives
             [J_D,...
                 dJ_DdY,dJ_DdSigma,...
                 ddJ_DdYdY,ddJ_DdYdSigma,ddJ_DdSigmadSigma,...
@@ -1388,7 +1411,7 @@ switch(Model.exp{s}.noise_model)
             [J_D,...
                 dJ_DdY,dJ_DdSigma,...
                 ddJ_DdYdY,ddJ_DdYdSigma,ddJ_DdSigmadSigma] = lognormal_noise(Y,Ym,Sigma_noise,ind_y);
-        elseif nargout <=13 % third order derivatives
+        elseif nargout <=14 % third order derivatives
             [J_D,...
                 dJ_DdY,dJ_DdSigma,...
                 ddJ_DdYdY,ddJ_DdYdSigma,ddJ_DdSigmadSigma,...
@@ -1419,7 +1442,7 @@ switch(Model.exp{s}.time_model)
             [J_T,...
                 dJ_TdT,dJ_TdR,dJ_TdSigma,...
                 ddJ_TdTdT,ddJ_TdTdR,ddJ_TdRdR,ddJ_TdTdSigma,ddJ_TdRdSigma,ddJ_TdSigmadSigma] = normal_time(T,Tm,R,Sigma_time,ind_t);
-        elseif nargout <=13 % third order derivatives
+        elseif nargout <=14 % third order derivatives
             [J_T,...
                 dJ_TdT,dJ_TdR,dJ_TdSigma,...
                 ddJ_TdTdT,ddJ_TdTdR,ddJ_TdRdR,ddJ_TdTdSigma,ddJ_TdRdSigma,ddJ_TdSigmadSigma,...
@@ -1443,7 +1466,7 @@ switch(Model.exp{s}.parameter_model)
             [J_b,dJ_bdb,~]= normal_param(b,delta,type_D);
         elseif nargout <=8 % second order derivatives
             [J_b,dJ_bdb,~,ddJ_bdbdb,ddJ_bdbddelta,ddJ_bddeltaddelta] = normal_param(b,delta,type_D);
-        elseif nargout <=13 % third order derivatives
+        elseif nargout <=14 % third order derivatives
             [J_b,dJ_bdb,~,ddJ_bdbdb,ddJ_bdbddelta,ddJ_bddeltaddelta,dddJ_bdbdbdb,dddJ_bdbdbddelta,dddJ_bdbddeltaddelta] = normal_param(b,delta,type_D);
         else % fourth order derivatives
             [J_b,dJ_bdb,~,ddJ_bdbdb,ddJ_bdbddelta,ddJ_bddeltaddelta,dddJ_bdbdbdb,dddJ_bdbdbddelta,dddJ_bdbddeltaddelta,ddddJ_bdbdbdbdb,ddddJ_bdbdbdbddelta,ddddJ_bdbdbddeltaddelta] = normal_param(b,delta,type_D);
@@ -1452,6 +1475,7 @@ switch(Model.exp{s}.parameter_model)
 end
 
 J = J_D + J_T + J_b ;
+
 varargout{1} = J;
 
 if nargout >= 2
@@ -1493,7 +1517,7 @@ if nargout >= 2
         ddJ_Tdbdb = squeeze(sum(bsxfun(@times,ddJ_Tdbdphi,permute(dphidb,[3,1,2,4])),2)) + chainrule_dxdy_dydz(dJ_Tdphi,ddphidbdb);
         
         
-        ddJdbdb = squeeze(ddJ_Ddbdb) + squeeze(ddJ_Tdbdb) + squeeze(ddJ_bdbdb);
+        ddJdbdb = squeeze(ddJ_Ddbdb) + squeeze(ddJ_Tdbdb) + squeeze(ddJ_bdbdb) + diag(eps*ones(length(b),1));% regularization
         
         varargout{3} = ddJdbdb;
         
@@ -1658,13 +1682,16 @@ if nargout >= 2
                 
                 varargout{12} = squeeze(dddJdbdbetadbeta);
                 
-                %% dddJdbdbdelta
+                %% dddJdbddeltadelta
                 dddJdbddeltaddelta = dddJ_bdbddeltaddelta;
                 
                 varargout{13} = squeeze(dddJdbddeltaddelta);
                 
+                %% dddJdbdbetaddelta
                 
-                if nargout >= 14
+                varargout{14} = zeros(length(b),length(beta),size(dDddelta,3));
+                
+                if nargout >= 15
                     
                     %% ddddJdbdbdbdb
                     
@@ -1742,7 +1769,7 @@ if nargout >= 2
                         + bsxfun(@times,ddddJ_TdRdRdSigmadSigma,permute(dRdphi,[3,1,2])) ...
                         + bsxfun(@times,ddddJ_TdTdSigmadSigmadSigma,permute(dSigma_timedphi,[3,1,2]));
                     ddddJ_TdphidSigmadSigmadSigma = bsxfun(@times,ddddJ_TdTdSigmadSigmadSigma,permute(dTdphi,[3,1,2])) ...
-                        + bsxfun(@times,ddddJ_TdRdSigmadSigmadSigma,permute(drdphi,[3,1,2])) ...
+                        + bsxfun(@times,ddddJ_TdRdSigmadSigmadSigma,permute(dRdphi,[3,1,2])) ...
                         + bsxfun(@times,ddddJ_TdSigmadSigmadSigmadSigma,permute(dSigma_timedphi,[3,1,2]));
                     ddddJ_TdphidphidTdT = bsxfun(@times,ddddJ_TdphidTdTdT,permute(dTdphi,[3,1,4,2])) ...
                         + bsxfun(@times,ddddJ_TdphidTdTdR,permute(dRdphi,[3,1,4,2])) ...
@@ -1754,7 +1781,11 @@ if nargout >= 2
                         + bsxfun(@times,ddddJ_TdphidRdRdR,permute(dRdphi,[3,1,4,2])) ...
                         + bsxfun(@times,ddddJ_TdphidRdRdSigma,permute(dSigma_timedphi,[3,1,4,2]));
                     ddddJ_TdphidphidTdSigma = bsxfun(@times,ddddJ_TdphidTdTdSigma,permute(dTdphi,[3,1,4,2])) ...
+                        + bsxfun(@times,ddddJ_TdphidTdRdSigma,permute(dRdphi,[3,1,4,2])) ...
                         + bsxfun(@times,ddddJ_TdphidTdSigmadSigma,permute(dSigma_timedphi,[3,1,4,2]));
+                    ddddJ_TdphidphidRdSigma = bsxfun(@times,ddddJ_TdphidTdRdSigma,permute(dTdphi,[3,1,4,2])) ...
+                        + bsxfun(@times,ddddJ_TdphidRdRdSigma,permute(dRdphi,[3,1,4,2])) ...
+                        + bsxfun(@times,ddddJ_TdphidRdSigmadSigma,permute(dSigma_timedphi,[3,1,4,2]));
                     ddddJ_TdphidphidSigmadSigma = bsxfun(@times,ddddJ_TdphidTdSigmadSigma,permute(dTdphi,[3,1,4,2])) ...
                         + bsxfun(@times,ddddJ_TdphidRdSigmadSigma,permute(dRdphi,[3,1,4,2])) ...
                         + bsxfun(@times,ddddJ_TdphidSigmadSigmadSigma,permute(dSigma_timedphi,[3,1,4,2]));
@@ -1781,7 +1812,7 @@ if nargout >= 2
                     
                     ddddJdbdbdbdb = ddddJ_Ddbdbdbdb + ddddJ_Tdbdbdbdb + squeeze(ddddJ_bdbdbdbdb);
                     
-                    varargout{14} = ddddJdbdbdbdb;
+                    varargout{15} = ddddJdbdbdbdb;
                     
                     %% ddddJdbdbdbdbeta
                     
@@ -1793,7 +1824,7 @@ if nargout >= 2
                     
                     ddddJdbdbdbdbeta = ddddJ_Ddbdbdbdbeta + ddddJ_Tdbdbdbdbeta;
                     
-                    varargout{15} = ddddJdbdbdbdbeta;
+                    varargout{16} = ddddJdbdbdbdbeta;
                     
                     %% ddddJdbdbdbetadbeta
                     
@@ -1809,22 +1840,22 @@ if nargout >= 2
                     
                     ddddJdbdbdbetadbeta = ddddJ_Ddbdbdbetadbeta + ddddJ_Tdbdbdbetadbeta;
                     
-                    varargout{16} = ddddJdbdbdbetadbeta;
+                    varargout{17} = ddddJdbdbdbetadbeta;
                     
                     %% ddddJdbdbdbddelta
                     
                     ddddJdbdbdbddelta = ddddJ_bdbdbdbddelta;
                     
-                    varargout{17} = ddddJdbdbdbddelta;
+                    varargout{18} = ddddJdbdbdbddelta;
                     
                     %% ddddJdbdbddeltaddelta
                     
                     ddddJdbdbddeltaddelta = ddddJ_bdbdbddeltaddelta;
                     
-                    varargout{18} = ddddJdbdbddeltaddelta;
+                    varargout{19} = ddddJdbdbddeltaddelta;
                     
                     %% dddddJdbdbdbetaddelta
-                    varargout{19} = zeros(length(b),length(b),length(beta),length(b));
+                    varargout{20} = zeros(length(b),length(b),length(beta),length(b));
                     
                     
                 end
@@ -1844,11 +1875,11 @@ function varargout = simulateForSP(model,tout,phi,kappa)
 % Simulate model
 if(nargout<2)
     options_simu.sensi = 0;
-    sol = model(tout,phi,kappa,options_simu.sensi);
+    sol = model(tout,phi,kappa,options_simu);
     varargout{1} = sol.y;
 else
     options_simu.sensi = 1;
-    sol = model(tout,phi,kappa,options_simu.sensi);
+    sol = model(tout,phi,kappa,options_simu);
     varargout{1} = sol.y;
     varargout{2} = sol.sy;
 end
@@ -2165,8 +2196,12 @@ if(numel(dxdy)>1)
     else
         dxdz =     permute(sum(bsxfun(@times,dxdy,permute(dydz,[              1,2:d2])),d1),[1:(d1-1),(d1+1):(d1+d2-1),d1]);
     end
-else
+elseif(numel(dxdy)==1)
     dxdz = permute(dxdy*dydz,[d2+(1:(d1-1)),2:d2,1]);
+else
+    s1 = size(dxdy);
+    s2 = size(dydz);
+    dxdz = zeros([s1(1:(d1-1)),s2(2:d2)]);
 end
 dxdz = squeeze(dxdz);
 end
