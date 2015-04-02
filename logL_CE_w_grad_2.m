@@ -114,7 +114,7 @@ for s = 1:length(Data)
             ind_t = find(~isnan(Tm_si));
             
             if logL_old == -inf
-                bhat_si0 = zeros(length(Model.exp{s}.sym.b),1);
+                bhat_si0 = zeros(length(Model.exp{s}.ind_b),1);
             else
                 bhat_si0 = P_old{s}.SCTL.bhat(:,i);
             end
@@ -626,15 +626,16 @@ for s = 1:length(Data)
             d_s = size(b_s,2);
             n_b = size(b_s,1);
             
-            mu_s = 1/d_s*(sum(b_s,2));
-            S_s = 1/d_s*squeeze(sum(bsxfun(@times,permute(b_s,[2,1]),permute(b_s,[2,3,1])),1)) + 1e-10*eye(n_b); % regularization
             for j = 1:n_b
                 subplot(ceil((n_b+1)/4),4,j+1)
                 xx = linspace(-5*sqrt(D(j,j)),5*sqrt(D(j,j)),100);
                 %nhist(P{s}.SCTL.bhat(j,:),'pdf','noerror');
                 hold on
                 plot(xx,normcdf(xx,0,sqrt(D(j,j))),'.-b','LineWidth',2)
-                plot(xx,normcdf(xx,0,sqrt(S_s(j,j))),'--r','LineWidth',2)
+                for k = 1:length(xx)
+                    ecdf(k) = sum(b_s(j,:)<xx(k))/length(b_s(j,:));
+                end
+                plot(xx,ecdf,'--r','LineWidth',2)
                 
                 
                 if(j==1)
@@ -642,14 +643,14 @@ for s = 1:length(Data)
                 end
                 xlim([-5*sqrt(D(j,j)),5*sqrt(D(j,j))])
                 ylim([0,1.1])
-                xlabel(char(Model.sym.b(Model.exp{s}.ind_b(j))));
+                %xlabel(char(Model.sym.b(Model.exp{s}.ind_b(j))));
                 ylabel('cdf')
                 box on
             end
             subplot(ceil(n_b+1/4),4,1,'Visible','off')
             hold on
             plot(xx,normcdf(xx,0,sqrt(D(j,j))),'.-b','Visible','off')
-            plot(xx,normcdf(xx,0,sqrt(S_s(j,j))),'--r','Visible','off')
+            plot(xx,ecdf,'--r','LineWidth',2)
             
             
             legend('cdf of single cell Parameters','cdf of populaton Parameters')
@@ -758,7 +759,7 @@ for s = 1:length(Data)
         logL_m = - 0.5*sum(sum(((Data{s}.SCSH.m - m_SP)./Data{s}.SCSH.Sigma_m).^2,1),2);
         if nargout >= 2
             dlogL_mdxi = squeeze(sum(sum(bsxfun(@times,(Data{s}.SCSH.m - m_SP)./Data{s}.SCSH.Sigma_m.^2,dm_SP),1),2));
-            if narogut >= 3
+            if nargout >= 3
                 wdm_SP = bsxfun(@times,1./Data{s}.SCSH.Sigma_m,dm_SP);
                 wdm_SP = reshape(wdm_SP,[numel(m_SP),size(dm_SP,3)]);
                 ddlogL_mdxi2 = -wdm_SP'*wdm_SP;
@@ -1127,6 +1128,7 @@ else
 end
 
 % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(phi,@(phi)Model.exp{s}.model(t,phi,kappa,option_simu),1e-4,'root','sroot')
+
 
 
 % Simulate model
@@ -2119,9 +2121,12 @@ function varargout = penal_param(b_s,delta,type_D)
 d_s = size(b_s,2);
 n_b = size(b_s,1);
 
+b_s = b_s + 1e-3*randn(size(b_s));
+
 mu_s = 1/d_s*(sum(b_s,2));
 
-S_s = (b_s*b_s') + 1e-10*eye(n_b);
+S_s = b_s*(b_s)';
+% S_s = ((b_s-repmat(mu_s,[1,d_s]))*(b_s-repmat(mu_s,[1,d_s]))') + 1e-4;
 
 
 

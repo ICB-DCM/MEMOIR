@@ -73,31 +73,33 @@ function [ Model ] = make_model( Model )
             Model.sym.beta = sym('beta',[n_f,1]);
             Model.sym.b = sym('b',[n_r,1]);
             Model.sym.delta = sym('delta',[n_r,1]);
-            k = 1;
-            k_f = 1;
-            k_r = 1;
+            k = 0;
+            k_f = 0;
+            k_r = 0;
             
             for j = 1:n;
                 if(Model.fixed_effect(j))
                     % construct variables corresponding to fixed effects
+                    k_f = k_f + 1;
                     eval(['syms M_' Model.param{j} ';']);
                     eval(['Model.sym.xi(k_f) = M_' Model.param{j} ';']);
                     eval(['Model.sym.beta(k_f) = M_' Model.param{j} ';']);
-                    k_f = k_f + 1;
+                    
                 end
                 if(Model.random_effect(j))
                     % construct variables corresponding to radom effects
+                    k_r = k_r + 1;
                     eval(['syms C_' Model.param{j} ' b_' Model.param{j} ';']);
                     eval(['Model.sym.xi(sum(Model.fixed_effect)+k_r) = C_' Model.param{j} ';']);
                     eval(['Model.sym.b(k_r) = b_' Model.param{j} ';']);
-                    eval(['Model.sym.delta(k_r) = C_' Model.param{j} ';']);
-                    k_r = k_r + 1;
+                    eval(['Model.sym.delta(k_r) = C_' Model.param{j} ';']); 
                 end
                 if(or(Model.fixed_effect(j),Model.random_effect(j)))
                     % construct variables corresponding to mixed effects
+                    k = k + 1;
                     eval(['syms p_' Model.param{j} ';']);
                     eval(['Model.sym.phi(k) = p_' Model.param{j} ';']);
-                    k = k + 1;
+                    
                 end
             end
             for j = 1:length(Model.random_effect)
