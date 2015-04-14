@@ -1,3 +1,4 @@
+%% CURRENTLY DEPRECATED
 % function [logL] = logL_CE_w_grad_1(theta,Data,Model,options)
 function varargout = logL_CE_w_grad_1(varargin)
 
