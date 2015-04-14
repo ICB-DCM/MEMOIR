@@ -1,8 +1,6 @@
 % function [logL,dlogLdxi,ddlogLdxi2] = logL_CE_w_grad_2(xi,Data,Model,options,extract_flag)
 function varargout = logL_CE_w_grad_2(varargin)
 
-warning off
-
 %% Load
 persistent tau
 persistent P_old
@@ -101,16 +99,18 @@ for s = 1:length(Data)
         
         % Initialization
         Sim_SCTL.Y = nan(size(Data{s}.SCTL.Y));
+        
         Sim_SCTL.T = nan(size(Data{s}.SCTL.T));
         Sim_SCTL.R = nan(size(Data{s}.SCTL.T));
         
         % Loop: Indiviudal cells
         for i = 1:size(Data{s}.SCTL.Y,3)
             % Load single-cell data
-            Ym_si = Data{s}.SCTL.Y(ind_time,:,i);
-            Tm_si = Data{s}.SCTL.T(:,:,i);
             
+            Ym_si = Data{s}.SCTL.Y(ind_time,:,i);
             ind_y = find(~isnan(Ym_si));
+            
+            Tm_si = Data{s}.SCTL.T(:,:,i);
             ind_t = find(~isnan(Tm_si));
             
             if logL_old == -inf
@@ -491,9 +491,16 @@ for s = 1:length(Data)
                     ddphidbetaddelta = chainrule_dxdy_dydz(dphidb,ddbhat_sidbetaddelta) + chainrule_ddxdydy_dydz_dydv(ddphidbdb,dbhat_sidbeta,dbhat_siddelta);
                     ddphiddeltaddelta = chainrule_dxdy_dydz(dphidb,ddbhat_siddeltaddelta) + chainrule_ddxdydy_dydz(ddphidbdb,dbhat_siddelta);
                     
-                    ddphidxidxi = chainrule_dxdy_dydz(dphidbeta,ddbetadxidxi) + chainrule_ddxdydy_dydz(ddphidbetadbeta,dbetadxi) ...
-                        + chainrule_dxdy_dydz(dphiddelta,dddeltadxidxi) + chainrule_ddxdydy_dydz(ddphiddeltaddelta,ddeltadxi) ...
-                        + chainrule_ddxdydy_dydz_dydv(ddphidbetaddelta,dbetadxi,ddeltadxi) + permute(chainrule_ddxdydy_dydz_dydv(ddphidbetaddelta,dbetadxi,ddeltadxi),[1,3,2]);
+                    if(numel(bhat_si)==1) % we have to do this manually here since 3rd order tensors with trailing 1 dimensional orders are not possible in matlab ...
+                        ddphidxidxi = chainrule_dxdy_dydz(dphidbeta,ddbetadxidxi) + chainrule_ddxdydy_dydz(ddphidbetadbeta,dbetadxi) ...
+                            + chainrule_dxdy_dydz(dphiddelta,dddeltadxidxi) + chainrule_ddxdydy_dydz(ddphiddeltaddelta,ddeltadxi) ...
+                            + permute(sum(bsxfun(@times,bsxfun(@times,ddphidbetaddelta,permute(dbetadxi,[3,1,2])),permute(ddeltadxi,[3,4,5,2,1])),2),[1,3,4,2]) ...
+                            + permute(sum(bsxfun(@times,bsxfun(@times,ddphidbetaddelta,permute(dbetadxi,[3,1,2])),permute(ddeltadxi,[3,4,5,2,1])),2),[1,4,3,2]);
+                    else
+                        ddphidxidxi = chainrule_dxdy_dydz(dphidbeta,ddbetadxidxi) + chainrule_ddxdydy_dydz(ddphidbetadbeta,dbetadxi) ...
+                            + chainrule_dxdy_dydz(dphiddelta,dddeltadxidxi) + chainrule_ddxdydy_dydz(ddphiddeltaddelta,ddeltadxi) ...
+                            + chainrule_ddxdydy_dydz_dydv(ddphidbetaddelta,dbetadxi,ddeltadxi) + permute(chainrule_ddxdydy_dydz_dydv(ddphidbetaddelta,dbetadxi,ddeltadxi),[1,3,2]);
+                    end
                     
                     ddJ_DdphidY = bsxfun(@times,ddJ_DdYdY,permute(dY_sidphi,[3,1,2])) + ...
                         bsxfun(@times,ddJ_DdYdSigma,permute(dSigma_noisedphi,[3,1,2]));
@@ -576,7 +583,7 @@ for s = 1:length(Data)
         end
         
         logL = logL + logL_D + logL_T + logL_b + logL_I;
-
+        
         if(Model.penalty)
             % parameter penalization terms
             % logL_s = log(p(mu_S,S_s|b_s,D))
@@ -1029,23 +1036,46 @@ if nargout>=2
         
         for j=1:length(bhat)
             for k = 1:length(bhat)
-            ddbhatdbetadbeta(j,:,:) = squeeze(ddbhatdbetadbeta(j,:,:)) - invG(j,k)*(...
-                squeeze(dddJdbdbetadbeta(k,:,:)) ...
-                + transpose(dbhatdbeta)*squeeze(pdGpdbeta(k,:,:)) ...
-                + transpose(transpose(dbhatdbeta)*squeeze(pdGpdbeta(k,:,:))) ...
-                + transpose(dbhatdbeta)*squeeze(dGdb(k,:,:))*dbhatdbeta);
-            
-            ddbhatdbetaddelta(j,:,:) = squeeze(ddbhatdbetaddelta(j,:,:)) - invG(j,k)*(...
-                squeeze(dddJdbdbetaddelta(k,:,:)) ...
-                + transpose(dbhatdbeta)*squeeze(pdGpddelta(k,:,:)) ...
-                + transpose(transpose(dbhatddelta)*squeeze(pdGpdbeta(k,:,:))) ...
-                + transpose(dbhatdbeta)*squeeze(dGdb(k,:,:))*dbhatddelta);
-            
-            ddbhatddeltaddelta(j,:,:) = squeeze(ddbhatddeltaddelta(j,:,:)) -invG(j,k)*(...
-                squeeze(dddJdbddeltaddelta(k,:,:)) ...
-                + transpose(dbhatddelta)*squeeze(pdGpddelta(k,:,:)) ...
-                + transpose(transpose(dbhatddelta)*squeeze(pdGpddelta(k,:,:))) ...
-                + transpose(dbhatddelta)*squeeze(dGdb(k,:,:))*dbhatddelta);
+                if length(bhat) == 1
+                    ddbhatdbetadbeta = squeeze(ddbhatdbetadbeta) - invG*(...
+                        squeeze(dddJdbdbetadbeta) ...
+                        + transpose(dbhatdbeta)*transpose(squeeze(pdGpdbeta(k,:,:))) ...
+                        + transpose(transpose(dbhatdbeta)*transpose(squeeze(pdGpdbeta(k,:,:)))) ...
+                        + transpose(dbhatdbeta)*squeeze(dGdb(k,:,:))*dbhatdbeta);
+                    ddbhatdbetadbeta = permute(ddbhatdbetadbeta,[3,1,2]);
+                    
+                    ddbhatdbetaddelta = transpose(squeeze(ddbhatdbetaddelta)) - invG*(...
+                        transpose(squeeze(dddJdbdbetaddelta)) ...
+                        + transpose(dbhatdbeta)*squeeze(pdGpddelta(k,:,:)) ...
+                        + transpose(dbhatddelta)*squeeze(pdGpdbeta(k,:,:)) ...
+                        + transpose(dbhatdbeta)*squeeze(dGdb(k,:,:))*dbhatddelta);
+                    ddbhatdbetaddelta = permute(ddbhatdbetaddelta,[3,1,2]);
+                    
+                    ddbhatddeltaddelta = squeeze(ddbhatddeltaddelta(j,:,:)) -invG(j,k)*(...
+                        squeeze(dddJdbddeltaddelta(k,:,:)) ...
+                        + transpose(dbhatddelta)*squeeze(pdGpddelta(k,:,:)) ...
+                        + transpose(transpose(dbhatddelta)*squeeze(pdGpddelta(k,:,:))) ...
+                        + transpose(dbhatddelta)*squeeze(dGdb(k,:,:))*dbhatddelta);
+                    ddbhatddeltaddelta = permute(ddbhatddeltaddelta,[3,1,2]);
+                else
+                    ddbhatdbetadbeta(j,:,:) = squeeze(ddbhatdbetadbeta(j,:,:)) - invG(j,k)*(...
+                        squeeze(dddJdbdbetadbeta(k,:,:)) ...
+                        + transpose(dbhatdbeta)*squeeze(pdGpdbeta(k,:,:)) ...
+                        + transpose(transpose(dbhatdbeta)*squeeze(pdGpdbeta(k,:,:))) ...
+                        + transpose(dbhatdbeta)*squeeze(dGdb(k,:,:))*dbhatdbeta);
+                    
+                    ddbhatdbetaddelta(j,:,:) = squeeze(ddbhatdbetaddelta(j,:,:)) - invG(j,k)*(...
+                        squeeze(dddJdbdbetaddelta(k,:,:)) ...
+                        + transpose(dbhatdbeta)*squeeze(pdGpddelta(k,:,:)) ...
+                        + transpose(transpose(dbhatddelta)*squeeze(pdGpdbeta(k,:,:))) ...
+                        + transpose(dbhatdbeta)*squeeze(dGdb(k,:,:))*dbhatddelta);
+                    
+                    ddbhatddeltaddelta(j,:,:) = squeeze(ddbhatddeltaddelta(j,:,:)) -invG(j,k)*(...
+                        squeeze(dddJdbddeltaddelta(k,:,:)) ...
+                        + transpose(dbhatddelta)*squeeze(pdGpddelta(k,:,:)) ...
+                        + transpose(transpose(dbhatddelta)*squeeze(pdGpddelta(k,:,:))) ...
+                        + transpose(dbhatddelta)*squeeze(dGdb(k,:,:))*dbhatddelta);
+                end
             end
         end
     end
@@ -1531,8 +1561,8 @@ if nargout >= 2
             
             % if size of b == 1 then we have to permute second term,
             if(numel(b) == 1)
-                ddJ_Ddbdbeta = permute(sum(bsxfun(@times,ddJ_Ddbdphi,permute(dphidbeta,[3,1,2])),2),[1,3,4,2]) + chainrule_dxdy_dydz(dJ_Ddphi,ddphidbdbeta);
-                ddJ_Tdbdbeta = permute(sum(bsxfun(@times,ddJ_Tdbdphi,permute(dphidbeta,[3,1,2])),2),[1,3,4,2]) + chainrule_dxdy_dydz(dJ_Tdphi,ddphidbdbeta);
+                ddJ_Ddbdbeta = permute(sum(bsxfun(@times,ddJ_Ddbdphi,permute(dphidbeta,[3,1,2])),2),[1,3,4,2]) + transpose(chainrule_dxdy_dydz(dJ_Ddphi,ddphidbdbeta));
+                ddJ_Tdbdbeta = permute(sum(bsxfun(@times,ddJ_Tdbdphi,permute(dphidbeta,[3,1,2])),2),[1,3,4,2]) + transpose(chainrule_dxdy_dydz(dJ_Tdphi,ddphidbdbeta));
             else
                 ddJ_Ddbdbeta = squeeze(sum(bsxfun(@times,ddJ_Ddbdphi,permute(dphidbeta,[3,1,2])),2)) + chainrule_dxdy_dydz(dJ_Ddphi,ddphidbdbeta);
                 ddJ_Tdbdbeta = squeeze(sum(bsxfun(@times,ddJ_Tdbdphi,permute(dphidbeta,[3,1,2])),2)) + chainrule_dxdy_dydz(dJ_Tdphi,ddphidbdbeta);
@@ -1555,7 +1585,8 @@ if nargout >= 2
             ddJ_Ddbetadphi = permute(sum(bsxfun(@times,ddJ_Ddphidphi,permute(dphidbeta,[3,1,2])),2),[3,2,1]);
             ddJ_Tdbetadphi = permute(sum(bsxfun(@times,ddJ_Tdphidphi,permute(dphidbeta,[3,1,2])),2),[3,2,1]);
             if(numel(b)==1)
-                
+                ddJ_Ddbetadbeta = squeeze(sum(bsxfun(@times,ddJ_Ddbetadphi,permute(dphidbeta,[3,1,2])),2)) + chainrule_dxdy_dydz(dJ_Ddphi,ddphidbetadbeta);
+                ddJ_Tdbetadbeta = squeeze(sum(bsxfun(@times,ddJ_Tdbetadphi,permute(dphidbeta,[3,1,2])),2)) + chainrule_dxdy_dydz(dJ_Tdphi,ddphidbetadbeta);
             else
                 ddJ_Ddbetadbeta = squeeze(sum(bsxfun(@times,ddJ_Ddbetadphi,permute(dphidbeta,[3,1,2])),2)) + chainrule_dxdy_dydz(dJ_Ddphi,ddphidbetadbeta);
                 ddJ_Tdbetadbeta = squeeze(sum(bsxfun(@times,ddJ_Tdbetadphi,permute(dphidbeta,[3,1,2])),2)) + chainrule_dxdy_dydz(dJ_Tdphi,ddphidbetadbeta);
@@ -2121,12 +2152,9 @@ function varargout = penal_param(b_s,delta,type_D)
 d_s = size(b_s,2);
 n_b = size(b_s,1);
 
-b_s = b_s + 1e-3*randn(size(b_s));
-
 mu_s = 1/d_s*(sum(b_s,2));
 
-S_s = b_s*(b_s)';
-% S_s = ((b_s-repmat(mu_s,[1,d_s]))*(b_s-repmat(mu_s,[1,d_s]))') + 1e-4;
+S_s = b_s*(b_s)' + 1e-6*diag(ones(n_b,1));
 
 
 
@@ -2194,7 +2222,11 @@ end
 if(numel(dxdy)>1)
     if(d1>1)
         if(and(d1==2,d2==2))
-            dxdz = dxdy*dydz;
+            if(size(dydz,1)==1)
+                dxdz = bsxfun(@times,dxdy,permute(dydz,[3,1,2]));
+            else
+                dxdz = dxdy*dydz;
+            end
         else
             dxdz = permute(sum(bsxfun(@times,dxdy,permute(dydz,[d2+(1:(d1-1)),1,2:d2])),d1),[1:(d1-1),(d1+1):(d1+d2-1),d1]);
         end
@@ -2223,11 +2255,15 @@ d2 = ndims(dydz);
 %                       <.,.>
 % [ 1 : d1 - 1        , d1     , d1 + 1 : d2-1 , d1 + d2 + 1:d2-1]
 if(d1>2)
-    ddxdzdy =         sum(bsxfun(@times,ddxdydy,permute(dydz,[d2+(1:(d1-2)),1,d2+d1-1,2:d2             ]     )),d1-1);
+    ddxdzdy =             sum(bsxfun(@times,ddxdydy,permute(dydz,[d2+(1:(d1-2)),1,d2+d1-1,2:d2             ]     )),d1-1);
 else
-    ddxdzdy =         sum(bsxfun(@times,ddxdydy,permute(dydz,[              1,d2+d1-1,2:d2             ]     )),d1-1);
+    if(size(dydz,1)==1)
+        ddxdzdy =         sum(bsxfun(@times,ddxdydy,permute(dydz,[                d2+d1-1,1:d2             ]     )),d1);
+    else
+        ddxdzdy =         sum(bsxfun(@times,ddxdydy,permute(dydz,[              1,d2+d1-1,2:d2             ]     )),d1-1);
+    end
 end
-ddxdzdz =     squeeze(sum(bsxfun(@times,ddxdzdy,permute(dydz,[d2+(1:(d1-1))  ,1      ,d2+(d1:(d1+d2-1)),2:d2])),d1));
+ddxdzdz =         squeeze(sum(bsxfun(@times,ddxdzdy,permute(dydz,[d2+(1:(d1-1))  ,1      ,d2+(d1:(d1+d2-1)),2:d2])),d1));
 
 end
 
@@ -2244,78 +2280,14 @@ d3 = ndims(dydv);
 %                       <.,.>
 % [ 1 : d1 - 1        , d1     , d1 + 1 : d2-1 , d1 + d2 + 1:d3-1]
 if(d1>2)
-    ddxdzdy =         sum(bsxfun(@times,ddxdydy,permute(dydz,[d2+(1:(d1-2)),1,d2+d1-1,2:d2             ]     )),d1-1);
+    ddxdzdy =             sum(bsxfun(@times,ddxdydy,permute(dydz,[d2+(1:(d1-2)),1,d2+d1-1,2:d2             ]     )),d1-1);
 else
-    ddxdzdy =         sum(bsxfun(@times,ddxdydy,permute(dydz,[              1,d2+d1-1,2:d2             ]     )),d1-1);
+    if(size(dydz,1)==1)
+        ddxdzdy =         sum(bsxfun(@times,ddxdydy,permute(dydz,[                d2+d1-1,1:d2             ]     )),d1);
+    else
+        ddxdzdy =         sum(bsxfun(@times,ddxdydy,permute(dydz,[              1,d2+d1-1,2:d2             ]     )),d1-1);
+    end
 end
-ddxdzdv =     squeeze(sum(bsxfun(@times,ddxdzdy,permute(dydv,[d3+(1:(d1-1))  ,1      ,d3+(d1:(d1+d2-1)),2:d3])),d1));
+ddxdzdv =         squeeze(sum(bsxfun(@times,ddxdzdy,permute(dydv,[d3+(1:(d1-1))  ,1      ,d3+(d1:(d1+d2-1)),2:d3])),d1));
 
 end
-
-% function dddxdzdzdz = chainrule_dddxdydydy_dydz(dddxdydydy,dydz)
-%     d1 = ndims(dddxdydydy);
-%     d2 = ndims(dydz);
-%     %      dx        dy      dy       dy
-%     % [ 1 : d1-3 , d1 - 2 , d1 - 1 ,  d1 ,  d1 + 1 : d2-1 , d1 + d2 + 1:d2-1, d1 + 2*d2 + 1:d2-1 ]
-%     %               <.,.>
-%     %   ********     dy    *************           dz
-%     % [ 1 : d1-3 , d1 - 2 , d1 - 1 ,  d1 ,  d1 + 1 : d2-1 , d1 + d2 + 1:d2-1, d1 + 2*d2 + 1:d2-1 ]
-%     %                        <.,.>
-%     %   ******************   dy    *********************         dz
-%     % [ 1 : d1-3 , d1 - 2 , d1 - 1 ,  d1 ,  d1 + 1 : d2-1 , d1 + d2 + 1:d2-1, d1 + 2*d2 + 1:d2-1 ]
-%         %                            <.,.>
-%     %   ***************************   dy    ********************************         dz
-%     % [ 1 : d1-3 , d1 - 2 , d1 - 1 ,  d1 ,  d1 + 1 : d2-1 , d1 + d2 + 1:d2-1, d1 + 2*d2 + 1:d2-1 ]
-%     if(d1>1)
-%         dddxdzdydy =         sum(bsxfun(@times,dddxdydydy,permute(dydz,[d2+(1:(d1-3)),1,d2+(d1-2:d1-1) ,2:d2 ]                   )),d1-2);
-%     else
-%         dddxdzdydy =         sum(bsxfun(@times,dddxdydydy,permute(dydz,[              1,d2+(d1-2:d1-1) ,2:d2 ]                   )),d1-2);
-%     end
-%     dddxdzdzdy =             sum(bsxfun(@times,dddxdzdydy,permute(dydz,[d2+(1:(d1-2))  ,1,d2+(d1-1:d2+(d1-1)),2:d2         ]     )),d1-1);
-%     dddxdzdzdz =     squeeze(sum(bsxfun(@times,dddxdzdzdy,permute(dydz,[d2+(1:(d1-1))    ,1            ,d2+(d1:2*d2+(d1-1)),2:d2])),d1));
-%
-% end
-
-% function dddxdzdzdv = chainrule_dddxdydydv_dydz_dydv(dddxdydydy,dydz,dydv)
-%     d1 = ndims(dddxdydydy);
-%     d2 = ndims(dydz);
-%     d3 = ndims(dydv);
-%     %      dx        dy      dy       dy
-%     % [ 1 : d1-3 , d1 - 2 , d1 - 1 ,  d1 ,  d1 + 1 : d2-1 , d1 + d2 + 1:d2-1, d1 + 2*d2 + 1:d3-1 ]
-%     %               <.,.>
-%     %   ********     dy    *************           dz
-%     % [ 1 : d1-3 , d1 - 2 , d1 - 1 ,  d1 ,  d1 + 1 : d2-1 , d1 + d2 + 1:d2-1, d1 + 2*d2 + 1:d3-1 ]
-%     %                        <.,.>
-%     %   ******************   dy    *********************         dz
-%     % [ 1 : d1-3 , d1 - 2 , d1 - 1 ,  d1 ,  d1 + 1 : d2-1 , d1 + d2 + 1:d2-1, d1 + 2*d2 + 1:d3-1 ]
-%         %                            <.,.>
-%     %   ***************************   dy    ********************************         dv
-%     % [ 1 : d1-3 , d1 - 2 , d1 - 1 ,  d1 ,  d1 + 1 : d2-1 , d1 + d2 + 1:d2-1, d1 + 2*d2 + 1:d3-1 ]
-%     if(d1>1)
-%         dddxdzdydy =     sum(bsxfun(@times,dddxdydydy,permute(dydz,[d2+(1:(d1-3)),1,d2+(d1-2:d1-1) ,2:d2 ]                   )),d1-2);
-%     else
-%         dddxdzdydy =     sum(bsxfun(@times,dddxdydydy,permute(dydz,[              1,d2+(d1-2:d1-1) ,2:d2 ]                   )),d1-2);
-%     end
-%     dddxdzdzdy =         sum(bsxfun(@times,dddxdzdydy,permute(dydz,[d2+(1:(d1-2))  ,1,d2+(d1-1:d2+(d1-1)),2:d2         ]     )),d1-1);
-%     dddxdzdzdv = squeeze(sum(bsxfun(@times,dddxdzdzdy,permute(dydv,[d3+(1:(d1-1))    ,1            ,d3+(d1:2*d2+(d1-1)),2:d3])),d1));
-%
-% end
-
-% function ddddxdzdzdzdz = chainrule_ddddxdydydydy_dydz(ddddxdydydydy,dydz)
-%     d1 = ndims(ddddxdydydydy);
-%     d2 = ndims(dydz);
-%
-%     if(d1>4)
-%         ddddxdzdydydy =     sum(bsxfun(@times,ddddxdydydydy,permute(dydz,[d2+(1:(d1-4)),1,d2+((d1-3):(d1-1)),2:d2]                      )),d1-3);
-%     else
-%         ddddxdzdydydy =     sum(bsxfun(@times,ddddxdydydydy,permute(dydz,[              1,d2+((d1-3):(d1-1)),2:d2]                      )),d1-3);
-%     end
-%     ddddxdzdzdydy =         sum(bsxfun(@times,ddddxdzdydydy,permute(dydz,[d2+(1:(d1-3))  ,1,d2+((d1-2):d2+(d1-1)),2:d2]                 )),d1-2);
-%     ddddxdzdzdzdy =         sum(bsxfun(@times,ddddxdzdzdydy,permute(dydz,[d2+(1:(d1-2))    ,1,d2+((d1-1):2*d2+(d1-1)) ,2:d2    ]        )),d1-1);
-%     ddddxdzdzdzdz = squeeze(sum(bsxfun(@times,ddddxdzdzdzdy,permute(dydz,[d2+(1:(d1-1))      ,1             ,d2+(d1:3*d2+(d1-1)),2:d2-1])),d1));
-%
-% end
-
-
-
-

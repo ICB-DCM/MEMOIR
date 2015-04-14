@@ -84,8 +84,8 @@ try
     f_exps = length(Model.exp)==length(expsyms);
     for s = 1:length(Model.exp)
         f_phiexp(s) = isequaln(Model.exp{s}.sym.phi,expsyms{s}.phi);
-        f_sigma_noiseexp(s) = isequaln(Model.exp{s}.sym.sigma,expsyms{s}.sigma_noise);
-        f_sigma_timeexp(s) = isequaln(Model.exp{s}.sym.sigma,expsyms{s}.sigma_time);
+        f_sigma_noiseexp(s) = isequaln(Model.exp{s}.sym.sigma_noise,expsyms{s}.sigma_noise);
+        f_sigma_timeexp(s) = isequaln(Model.exp{s}.sym.sigma_time,expsyms{s}.sigma_time);
     end
     if(all([f_xi,f_phi,f_beta,f_b,f_delta,f_exps,f_phiexp,f_sigma_noiseexp,f_sigma_timeexp]))
         if(Model.integration)
@@ -255,6 +255,9 @@ if(~loadold)
         end
         
         % sigma_time(phi)
+        if(~isfield(Model.exp{s}.sym,'sigma_time'))
+            Model.exp{s}.sym.sigma_time = sym.empty(0,1);
+        end
         mfun(Model.exp{s}.sym.sigma_time,'file',[mdir 'MEMfn/' filename '/MEMsigma_time_' num2str(S(s))],'vars',{phi});
         eval(['Model.exp{s}.sigma_time = @MEMsigma_time_' num2str(S(s)) ';']);
         
@@ -400,13 +403,22 @@ else
         eval(['Model.exp{s}.ddeltadxi = @MEMddeltadxi_' num2str(S(s)) ';']);
         eval(['Model.exp{s}.ddbetadxidxi = @MEMddbetadxidxi_' num2str(S(s)) ';']);
         eval(['Model.exp{s}.dddeltadxidxi = @MEMdddeltadxidxi_' num2str(S(s)) ';']);
-        eval(['Model.exp{s}.sigma = @MEMsigma_' num2str(S(s)) ';']);
-        eval(['Model.exp{s}.dsigmadphi = @MEMdsigmadphi_' num2str(S(s)) ';']);
-        eval(['Model.exp{s}.ddsigmadphidphi = @MEMddsigmadphidphi_' num2str(S(s)) ';']);
-        eval(['Model.exp{s}.dddsigmadphidphidphi = @MEMdddsigmadphidphidphi_' num2str(S(s)) ';']);
+        eval(['Model.exp{s}.sigma_noise = @MEMsigma_noise_' num2str(S(s)) ';']);
+        eval(['Model.exp{s}.dsigma_noisedphi = @MEMdsigma_noisedphi_' num2str(S(s)) ';']);
+        eval(['Model.exp{s}.ddsigma_noisedphidphi = @MEMddsigma_noisedphidphi_' num2str(S(s)) ';']);
+        eval(['Model.exp{s}.dddsigma_noisedphidphidphi = @MEMdddsigma_noisedphidphidphi_' num2str(S(s)) ';']);
         
         if(Model.integration)
-            eval(['Model.exp{s}.ddddsigmadphidphidphidphi = @MEMddddsigmadphidphidphidphi_' num2str(S(s)) ';']);
+            eval(['Model.exp{s}.ddddsigma_noisedphidphidphidphi = @MEMddddsigma_noisedphidphidphidphi_' num2str(S(s)) ';']);
+        end
+        
+        eval(['Model.exp{s}.sigma_time = @MEMsigma_time_' num2str(S(s)) ';']);
+        eval(['Model.exp{s}.dsigma_timedphi = @MEMdsigma_timedphi_' num2str(S(s)) ';']);
+        eval(['Model.exp{s}.ddsigma_timedphidphi = @MEMddsigma_timedphidphi_' num2str(S(s)) ';']);
+        eval(['Model.exp{s}.dddsigma_timedphidphidphi = @MEMdddsigma_timedphidphidphi_' num2str(S(s)) ';']);
+        
+        if(Model.integration)
+            eval(['Model.exp{s}.ddddsigma_timedphidphidphidphi = @MEMddddsigma_timedphidphidphidphi_' num2str(S(s)) ';']);
         end
         
         eval(['Model.exp{s}.phi = @MEMphi_' num2str(S(s)) ';']);
