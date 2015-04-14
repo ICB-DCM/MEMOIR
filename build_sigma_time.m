@@ -1,3 +1,28 @@
+% build_sigma_time is an auxiliary function for logL_CE_w_grad_2 to
+% construct the standard deviation matrix for events and adapt it to
+% the size of the observed events
+%
+% USAGE:
+% ======
+% [Sigma_time,dSigma_timedphi,ddSigma_timedphidphi,dddSigma_timedphidphidphi,ddddSigma_timedphidphidphidphi] = build_sigma_time(phi,Tm,s,Model,ind_t)
+%
+% INPUTS:
+% =======
+% phi ... mixed effect parameter
+% Tm ... observed events
+% Model ... model definition
+% s ... index of considered experiment
+% ind_t ... indexing of events
+%
+% Outputs:
+% ========
+% Sigma_time ... standard deviation matrix for observables
+% dSigma_timedphi ... gradient of standard deviation matrix for observables
+% ...
+%
+% 2015/04/14 Fabian Froehlich
+
+
 function [Sigma_time,dSigma_timedphi,ddSigma_timedphidphi,dddSigma_timedphidphidphi,ddddSigma_timedphidphidphidphi] = build_sigma_time(phi,Tm,s,Model,ind_t)
 sigma_time = Model.exp{s}.sigma_time(phi);
 
@@ -57,7 +82,7 @@ if nargout >= 2 % first order derivatives
         end
     end
     
-    if nargout >= 9 % third order derivatives
+    if nargout >= 4 % third order derivatives
         dddsigma_timedphidphidphi = Model.exp{s}.dddsigma_timedphidphidphi(phi);
         dddSigma_timedphidphidphi = zeros(length(ind_t),length(phi),length(phi),length(phi));
         if(size(dsigma_timedphi,1) == size(Tm,1))
@@ -75,7 +100,7 @@ if nargout >= 2 % first order derivatives
         end
     end
     
-    if nargout >= 15 % fourth order derivatives
+    if nargout >= 5 % fourth order derivatives
         ddddsigma_timedphidphidphidphi = Model.exp{s}.ddddsigma_timedphidphidphidphi(phi);
         ddddSigma_timedphidphidphidphi = zeros(length(ind_t),length(phi),length(phi),length(phi),length(phi));
         if(size(dsigma_timedphi,1) == size(Tm,1))
@@ -100,11 +125,11 @@ if nargout >= 2 % first order derivatives
             for l = 1:length(phi)
                 temp = ddSTdphidphi(:,:,k,l);
                 ddSigma_timedphidphi(:,k,l) = temp(ind_t);
-                if nargout >= 9 % third order derivatives
+                if nargout >= 4 % third order derivatives
                     for m = 1:length(phi)
                         temp = dddSTdphidphidphi(:,:,k,l,m);
                         dddSigma_timedphidphidphi(:,k,l,m) = temp(ind_t);
-                        if nargout >= 15 % fourth order derivatives
+                        if nargout >= 5 % fourth order derivatives
                             for n = 1:length(phi)
                                 temp = ddddSTdphidphidphidphi(:,:,k,l,m,n);
                                 ddddSigma_timedphidphidphidphi(:,k,l,m,n) = temp(ind_t);

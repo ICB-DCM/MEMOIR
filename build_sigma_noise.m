@@ -1,3 +1,28 @@
+% build_sigma_noise is an auxiliary function for logL_CE_w_grad_2 to
+% construct the standard deviation matrix for observables and adapt it to
+% the size of the measurements
+%
+% USAGE:
+% ======
+% [Sigma_noise,dSigma_noisedphi,ddSigma_noisedphidphi,dddSigma_noisedphidphidphi,ddddSigma_noisedphidphidphidphi] = build_sigma_noise(phi,Ym,s,Model,ind_y)
+%
+% INPUTS:
+% =======
+% phi ... mixed effect parameter
+% Ym ... measurements
+% Model ... model definition
+% s ... index of considered experiment
+% ind_y ... indexing of observables
+%
+% Outputs:
+% ========
+% Sigma_noise ... standard deviation matrix for observables
+% dSigma_noisedphi ... gradient of standard deviation matrix for observables
+% ...
+%
+% 2015/04/14 Fabian Froehlich
+
+
 function [Sigma_noise,dSigma_noisedphi,ddSigma_noisedphidphi,dddSigma_noisedphidphidphi,ddddSigma_noisedphidphidphidphi] = build_sigma_noise(phi,Ym,s,Model,ind_y)
 
 sigma_noise = Model.exp{s}.sigma_noise(phi);

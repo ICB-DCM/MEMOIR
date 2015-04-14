@@ -1,9 +1,53 @@
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% OBJECTIVE FUNCTION FOR OPTIMIZATION OF SINGLE CELL PARAMETERS %%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-% [~,~,G,ddJdbdbeta,ddJdbdelta,ddJdbetadbeta,ddJddeltaddelta,ddJdbetaddelta,Gdb,dGdsigma,ddGdbdb,ddGdbdsigma,ddGdsigmadsigma] = objective_SCTL_s1_full(Model,beta,bhat,kappa{s}.condition,invD,dinvDddelta,ddinvDddeltaddelta,t,Ym,Sigma,ind,s);
-% function varargout = objective_SCTL_s1(Model,beta,b,kappa,D,dDddelta,ddDddeltaddelta,invD,dinvDddelta,ddinvDddeltaddelta,t,Ym,ind,s)
+% objective_SCTL_s1 is an auxiliary function for logL_CE_w_grad_2 and
+% serves as objective function for the estimation of random effect
+% parameters
+%
+% USAGE:
+% ======
+% [J,dJdb,ddJdbdb,...] = objective_SCTL_s1(Model,beta,b,kappa,delta,type_D,t,Ym,Tm,ind_y,ind_t,s)
+%
+% INPUTS:
+% =======
+%
+% Model ... model definition
+% beta ... common effect parameter
+% b ... random effect parameter
+% kappa ... experimental condition
+% delta ... parametrisation of random effect covariance
+% type_D ... covariance parametrisation type
+% t ... time vector for simulation
+% Ym ... measurements
+% Tm ... observed event-times
+% ind_y ... indexing of measurements
+% ind_t ... indexing of events
+% s ... experimental index
+%
+% Outputs:
+% ========
+% objective function J and derivatives wrt to b, beta and delta, see file
+% for details, pd indicates that only the partial derivative is considered
+% J
+% dJdb
+% ddJdbdb = G
+% ddJdbdbeta
+% ddJdbddelta
+% ddJdbetadbeta
+% ddJddeltaddelta
+% ddJdbetaddelta
+% dGdb
+% pdGpdbeta
+% pdGpddelta
+% dddJdbdbetadbeta
+% dddJdbddeltaddelta
+% dddJdbdbetaddelta
+% ddGdbdb
+% pddGdbpdbeta
+% pdpdGpdbetapdbeta
+% pddGdbpddelta
+% pdpdGpddeltapddelta
+% pdpdGpdbetapddelta
+%
+% 2015/04/14 Fabian Froehlich
 
 function varargout = objective_SCTL_s1(Model,beta,b,kappa,delta,type_D,t,Ym,Tm,ind_y,ind_t,s)
 
@@ -12,6 +56,7 @@ function varargout = objective_SCTL_s1(Model,beta,b,kappa,delta,type_D,t,Ym,Tm,i
 % mixed effect parameter
 phi = Model.exp{s}.phi(beta,b);
 
+% build standard deviation matrices
 if(nargout<=1)
     [Sigma_noise] = build_sigma_noise(phi,Ym,s,Model,ind_y);
     [Sigma_time] = build_sigma_time(phi,Tm,s,Model,ind_t);
@@ -29,12 +74,13 @@ else
     [Sigma_time,dSigma_timedphi,ddSigma_timedphidphi,dddSigma_timedphidphidphi,ddddSigma_timedphidphidphidphi] = build_sigma_time(phi,Tm,s,Model,ind_t);
 end
 
+% simulate trajectory
 if(nargout == 1)
-    [Y,T,R] = simulate_trajectory(t,phi,Model,kappa,s,ind_t);
+    [Y,T,R] = simulate_trajectory(t,phi,Model,kappa,s,ind_t,ind_y);
 elseif(or(nargout == 2,nargout == 3))
-    [Y,T,R,dYdphi,dTdphi,dRdphi] = simulate_trajectory(t,phi,Model,kappa,s,ind_t);
+    [Y,T,R,dYdphi,dTdphi,dRdphi] = simulate_trajectory(t,phi,Model,kappa,s,ind_t,ind_y);
 else
-    [Y,T,R,dYdphi,dTdphi,dRdphi,ddYdphidphi,ddTdphidphi,ddRdphidphi] = simulate_trajectory(t,phi,Model,kappa,s,ind_t);
+    [Y,T,R,dYdphi,dTdphi,dRdphi,ddYdphidphi,ddTdphidphi,ddRdphidphi] = simulate_trajectory(t,phi,Model,kappa,s,ind_t,ind_y);
 end
 
 % noise model
@@ -61,9 +107,7 @@ switch(Model.exp{s}.noise_model)
                 dddJ_DdYdYdY,dddJ_DdYdYdSigma,dddJ_DdYdSigmadSigma,dddJ_DdSigmadSigmadSigma,...
                 ddddJ_DdYdYdYdY,ddddJ_DdYdYdYdSigma,ddddJ_DdYdYdSigmadSigma,ddddJ_DdYdSigmadSigmadSigma,ddddJ_DdSigmadSigmadSigmadSigma] = normal_noise(Y,Ym,Sigma_noise,ind_y);
         end
-        
     case 'lognormal'
-        
         if nargout <=1
             J_D = lognormal_noise(Y,Ym,Sigma_noise,ind_y);
         elseif nargout <=2 % first order derivatives
@@ -88,7 +132,7 @@ switch(Model.exp{s}.noise_model)
         
 end
 
-% time model
+% event model
 switch(Model.exp{s}.time_model)
     case 'normal'
         if nargout <= 1
@@ -119,7 +163,7 @@ switch(Model.exp{s}.time_model)
         
 end
 
-% parameter model
+% random effect model
 switch(Model.exp{s}.parameter_model)
     case 'normal'
         if nargout <=1
@@ -144,13 +188,13 @@ if nargout >= 2
     %% dJdb
     dphidb = Model.exp{s}.dphidb(beta,b);
     
-    dJ_Ddphi = chainrule_dxdy_dydz(dJ_DdY,dYdphi) + chainrule_dxdy_dydz(dJ_DdSigma,dSigma_noisedphi);
+    dJ_Ddphi = chainrule(dJ_DdY,dYdphi) + chainrule(dJ_DdSigma,dSigma_noisedphi);
     
-    dJ_Tdphi = chainrule_dxdy_dydz(dJ_TdT,dTdphi) + chainrule_dxdy_dydz(dJ_TdR,dRdphi) + chainrule_dxdy_dydz(dJ_TdSigma,dSigma_timedphi);
+    dJ_Tdphi = chainrule(dJ_TdT,dTdphi) + chainrule(dJ_TdR,dRdphi) + chainrule(dJ_TdSigma,dSigma_timedphi);
     
-    dJ_Ddb = chainrule_dxdy_dydz(dJ_Ddphi,dphidb);
+    dJ_Ddb = chainrule(dJ_Ddphi,dphidb);
     
-    dJ_Tdb = chainrule_dxdy_dydz(dJ_Tdphi,dphidb);
+    dJ_Tdb = chainrule(dJ_Tdphi,dphidb);
     
     dJdb = dJ_Ddb + dJ_Tdb + dJ_bdb;
     
@@ -166,7 +210,7 @@ if nargout >= 2
         ddphidbdb = Model.exp{s}.ddphidbdb(beta,b);
         
         ddJ_Ddbdphi = transpose(squeeze(sum(bsxfun(@times,ddJ_Ddphidphi,permute(dphidb,[3,1,2])),2)));
-        ddJ_Ddbdb = squeeze(sum(bsxfun(@times,ddJ_Ddbdphi,permute(dphidb,[3,1,2,4])),2)) + chainrule_dxdy_dydz(dJ_Ddphi,ddphidbdb);
+        ddJ_Ddbdb = squeeze(sum(bsxfun(@times,ddJ_Ddbdphi,permute(dphidb,[3,1,2,4])),2)) + chainrule(dJ_Ddphi,ddphidbdb);
         
         ddJ_TdphidT = bsxfun(@times,ddJ_TdTdT,permute(dTdphi,[3,1,2])) + bsxfun(@times,ddJ_TdTdR,permute(dRdphi,[3,1,2])) + bsxfun(@times,ddJ_TdTdSigma,permute(dSigma_timedphi,[3,1,2]));
         ddJ_TdphidR = bsxfun(@times,ddJ_TdTdR,permute(dTdphi,[3,1,2])) + bsxfun(@times,ddJ_TdRdR,permute(dRdphi,[3,1,2])) + bsxfun(@times,ddJ_TdRdSigma,permute(dSigma_timedphi,[3,1,2]));
@@ -176,7 +220,7 @@ if nargout >= 2
         ddphidbdb = Model.exp{s}.ddphidbdb(beta,b);
         
         ddJ_Tdbdphi = transpose(squeeze(sum(bsxfun(@times,ddJ_Tdphidphi,permute(dphidb,[3,1,2])),2)));
-        ddJ_Tdbdb = squeeze(sum(bsxfun(@times,ddJ_Tdbdphi,permute(dphidb,[3,1,2,4])),2)) + chainrule_dxdy_dydz(dJ_Tdphi,ddphidbdb);
+        ddJ_Tdbdb = squeeze(sum(bsxfun(@times,ddJ_Tdbdphi,permute(dphidb,[3,1,2,4])),2)) + chainrule(dJ_Tdphi,ddphidbdb);
         
         
         ddJdbdb = squeeze(ddJ_Ddbdb) + squeeze(ddJ_Tdbdb) + squeeze(ddJ_bdbdb) + diag(eps*ones(length(b),1));% regularization
@@ -191,11 +235,11 @@ if nargout >= 2
             
             % if size of b == 1 then we have to permute second term,
             if(numel(b) == 1)
-                ddJ_Ddbdbeta = permute(sum(bsxfun(@times,ddJ_Ddbdphi,permute(dphidbeta,[3,1,2])),2),[1,3,4,2]) + transpose(chainrule_dxdy_dydz(dJ_Ddphi,ddphidbdbeta));
-                ddJ_Tdbdbeta = permute(sum(bsxfun(@times,ddJ_Tdbdphi,permute(dphidbeta,[3,1,2])),2),[1,3,4,2]) + transpose(chainrule_dxdy_dydz(dJ_Tdphi,ddphidbdbeta));
+                ddJ_Ddbdbeta = permute(sum(bsxfun(@times,ddJ_Ddbdphi,permute(dphidbeta,[3,1,2])),2),[1,3,4,2]) + transpose(chainrule(dJ_Ddphi,ddphidbdbeta));
+                ddJ_Tdbdbeta = permute(sum(bsxfun(@times,ddJ_Tdbdphi,permute(dphidbeta,[3,1,2])),2),[1,3,4,2]) + transpose(chainrule(dJ_Tdphi,ddphidbdbeta));
             else
-                ddJ_Ddbdbeta = squeeze(sum(bsxfun(@times,ddJ_Ddbdphi,permute(dphidbeta,[3,1,2])),2)) + chainrule_dxdy_dydz(dJ_Ddphi,ddphidbdbeta);
-                ddJ_Tdbdbeta = squeeze(sum(bsxfun(@times,ddJ_Tdbdphi,permute(dphidbeta,[3,1,2])),2)) + chainrule_dxdy_dydz(dJ_Tdphi,ddphidbdbeta);
+                ddJ_Ddbdbeta = squeeze(sum(bsxfun(@times,ddJ_Ddbdphi,permute(dphidbeta,[3,1,2])),2)) + chainrule(dJ_Ddphi,ddphidbdbeta);
+                ddJ_Tdbdbeta = squeeze(sum(bsxfun(@times,ddJ_Tdbdphi,permute(dphidbeta,[3,1,2])),2)) + chainrule(dJ_Tdphi,ddphidbdbeta);
             end
             
             ddJdbdbeta = ddJ_Ddbdbeta + ddJ_Tdbdbeta;
@@ -215,11 +259,11 @@ if nargout >= 2
             ddJ_Ddbetadphi = permute(sum(bsxfun(@times,ddJ_Ddphidphi,permute(dphidbeta,[3,1,2])),2),[3,2,1]);
             ddJ_Tdbetadphi = permute(sum(bsxfun(@times,ddJ_Tdphidphi,permute(dphidbeta,[3,1,2])),2),[3,2,1]);
             if(numel(b)==1)
-                ddJ_Ddbetadbeta = squeeze(sum(bsxfun(@times,ddJ_Ddbetadphi,permute(dphidbeta,[3,1,2])),2)) + chainrule_dxdy_dydz(dJ_Ddphi,ddphidbetadbeta);
-                ddJ_Tdbetadbeta = squeeze(sum(bsxfun(@times,ddJ_Tdbetadphi,permute(dphidbeta,[3,1,2])),2)) + chainrule_dxdy_dydz(dJ_Tdphi,ddphidbetadbeta);
+                ddJ_Ddbetadbeta = squeeze(sum(bsxfun(@times,ddJ_Ddbetadphi,permute(dphidbeta,[3,1,2])),2)) + chainrule(dJ_Ddphi,ddphidbetadbeta);
+                ddJ_Tdbetadbeta = squeeze(sum(bsxfun(@times,ddJ_Tdbetadphi,permute(dphidbeta,[3,1,2])),2)) + chainrule(dJ_Tdphi,ddphidbetadbeta);
             else
-                ddJ_Ddbetadbeta = squeeze(sum(bsxfun(@times,ddJ_Ddbetadphi,permute(dphidbeta,[3,1,2])),2)) + chainrule_dxdy_dydz(dJ_Ddphi,ddphidbetadbeta);
-                ddJ_Tdbetadbeta = squeeze(sum(bsxfun(@times,ddJ_Tdbetadphi,permute(dphidbeta,[3,1,2])),2)) + chainrule_dxdy_dydz(dJ_Tdphi,ddphidbetadbeta);
+                ddJ_Ddbetadbeta = squeeze(sum(bsxfun(@times,ddJ_Ddbetadphi,permute(dphidbeta,[3,1,2])),2)) + chainrule(dJ_Ddphi,ddphidbetadbeta);
+                ddJ_Tdbetadbeta = squeeze(sum(bsxfun(@times,ddJ_Tdbetadphi,permute(dphidbeta,[3,1,2])),2)) + chainrule(dJ_Tdphi,ddphidbetadbeta);
             end
             
             ddJdbetadbeta = ddJ_Ddbetadbeta + ddJ_Tdbetadbeta;
@@ -245,7 +289,7 @@ if nargout >= 2
                 temp = squeeze(sum(bsxfun(@times,ddJ_DdphidY,permute(ddYdphidphi,[4,1,5,2,3])) ...
                     + bsxfun(@times,ddJ_DdphidSigma,permute(ddSigma_noisedphidphi,[4,1,5,2,3])),2));
                 
-                dddJ_Ddphidphidphi = chainrule_dxdy_dydz(dJ_DdSigma,dddSigma_noisedphidphidphi) ...
+                dddJ_Ddphidphidphi = chainrule(dJ_DdSigma,dddSigma_noisedphidphidphi) ...
                     + temp + permute(temp,[2,1,3]) + permute(temp,[2,3,1]);
                 
                 dddJ_DdphidYdY = bsxfun(@times,dddJ_DdYdYdY,permute(dYdphi,[3,1,2])) ...
@@ -266,13 +310,13 @@ if nargout >= 2
                 dddJ_Ddbdbdphi = permute(sum(bsxfun(@times,dddJ_Ddbdphidphi,permute(dphidb,[3,1,4,2])),2),[1,4,3,2]) ...
                     + permute(sum(bsxfun(@times,ddJ_Ddphidphi,permute(ddphidbdb,[1,4,2,3])),1),[3,4,2,1]);
                 dddJ_Ddbdbdb = permute(sum(bsxfun(@times,dddJ_Ddbdbdphi,permute(dphidb,[3,4,1,2])),3),[1,2,4,3]) ...
-                    + squeeze(chainrule_dxdy_dydz(ddJ_Ddbdphi,ddphidbdb));
+                    + squeeze(chainrule(ddJ_Ddbdphi,ddphidbdb));
                 
                 temp = squeeze(sum(bsxfun(@times,ddJ_TdphidT,permute(ddTdphidphi,[4,1,5,2,3])) ...
                     + bsxfun(@times,ddJ_TdphidR,permute(ddRdphidphi,[4,1,5,2,3])) ...
                     + bsxfun(@times,ddJ_TdphidSigma,permute(ddSigma_timedphidphi,[4,1,5,2,3])),2));
                 
-                dddJ_Tdphidphidphi = chainrule_dxdy_dydz(dJ_TdSigma,dddSigma_timedphidphidphi) ...
+                dddJ_Tdphidphidphi = chainrule(dJ_TdSigma,dddSigma_timedphidphidphi) ...
                     + temp + permute(temp,[2,1,3]) + permute(temp,[2,3,1]);
                 
                 dddJ_TdphidTdT = bsxfun(@times,dddJ_TdTdTdT,permute(dTdphi,[3,1,2])) ...
@@ -311,7 +355,7 @@ if nargout >= 2
                 dddJ_Tdbdbdphi = permute(sum(bsxfun(@times,dddJ_Tdbdphidphi,permute(dphidb,[3,1,4,2])),2),[1,4,3,2]) ...
                     + permute(sum(bsxfun(@times,ddJ_Tdphidphi,permute(ddphidbdb,[1,4,2,3])),1),[3,4,2,1]);
                 dddJ_Tdbdbdb = permute(sum(bsxfun(@times,dddJ_Tdbdbdphi,permute(dphidb,[3,4,1,2])),3),[1,2,4,3]) ...
-                    + squeeze(chainrule_dxdy_dydz(ddJ_Tdbdphi,ddphidbdb));
+                    + squeeze(chainrule(ddJ_Tdbdphi,ddphidbdb));
                 
                 dddJdbdbdb = dddJ_Ddbdbdb + dddJ_Tdbdbdb + squeeze(dddJ_bdbdbdb);
                 

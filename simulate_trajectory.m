@@ -3,7 +3,7 @@
 %
 % USAGE:
 % ======
-% [Y,T,R,dYdphi,dTdphi,dRdphi,ddYdphidphi,ddTdphidphi,ddRdphidphi] = simulate_trajectory(t,phi,Model,kappa,s,ind_t)
+% [Y,T,R,dYdphi,dTdphi,dRdphi,ddYdphidphi,ddTdphidphi,ddRdphidphi] = simulate_trajectory(t,phi,Model,kappa,s,ind_t,ind_y)
 %
 % INPUTS:
 % =======
@@ -13,7 +13,8 @@
 %     field is required
 % kappa ... experimental condition
 % s ... index of considered experiment
-% ind_t ... indexing of event
+% ind_t ... indexing of events
+% ind_y ... indexing of observables
 %
 % Outputs:
 % ========
@@ -31,20 +32,20 @@
 %
 % 2015/04/14 Fabian Froehlich
 
-function [ Y,T,R, dYdphi,dTdphi,dRdphi, ddYdphidphi,ddTdphidphi,ddRdphidphi ] = simulate_trajectory(t,phi,Model,kappa,s,ind_t)
+function [ Y,T,R, dYdphi,dTdphi,dRdphi, ddYdphidphi,ddTdphidphi,ddRdphidphi ] = simulate_trajectory(t,phi,Model,kappa,s,ind_t,ind_y)
 
 if nargout < 4
-    option_simu.sensi = 0; % number of requested sensitivities
-    sol = Model.exp{s}.model(t,phi,kappa,option_simu);
+    optionmu.sensi = 0; % number of requested sensitivities
+    sol = Model.exp{s}.model(t,phi,kappa,optionmu);
 elseif nargout < 7
-    option_simu.sensi = 1; % number of requested sensitivities
-    sol = Model.exp{s}.model(t,phi,kappa,option_simu);
+    optionmu.sensi = 1; % number of requested sensitivities
+    sol = Model.exp{s}.model(t,phi,kappa,optionmu);
     dYdphi = sol.sy;
     dTdphi = sol.sroot(ind_t,:,:);
     dRdphi = sol.srootval(ind_t,:,:);
 else
-    option_simu.sensi = 2; % number of requested sensitivities
-    sol = Model.exp{s}.model(t,phi,kappa,option_simu);
+    optionmu.sensi = 2; % number of requested sensitivities
+    sol = Model.exp{s}.model(t,phi,kappa,optionmu);
     dYdphi = sol.sy;
     dTdphi = sol.sroot(ind_t,:,:);
     dRdphi = sol.srootval(ind_t,:,:);
@@ -62,5 +63,28 @@ end
 Y = sol.y;
 T = sol.root;
 R = sol.rootval;
+
+% Apply indexing
+Y = Y(ind_y,:);
+T = T(ind_t,:);
+R = R(ind_t,:);
+            
+if nargout >=4
+    tempy = reshape(dYdphi,[size(dYdphi,1)*size(dYdphi,2),size(dYdphi,3)]);
+    dYdphi = tempy(ind_y,:);
+    tempt = reshape(dTdphi,[size(dTdphi,1)*size(dTdphi,2),size(dTdphi,3)]);
+    dTdphi = tempt(ind_t,:);
+    tempr = reshape(dRdphi,[size(dRdphi,1)*size(dRdphi,2),size(dRdphi,3)]);
+    dRdphi = tempr(ind_t,:);
+    if nargout >=7
+        tempy = reshape(ddYdphidphi,[size(ddYdphidphi,1)*size(ddYdphidphi,2),size(ddYdphidphi,3),size(ddYdphidphi,4)]);
+        ddYdphidphi = tempy(ind_y,:,:);
+        tempt = reshape(ddTdphidphi,[size(ddTdphidphi,1)*size(ddTdphidphi,2),size(ddTdphidphi,3),size(ddTdphidphi,4)]);
+        ddTdphidphi = tempt(ind_t,:,:);
+        tempr = reshape(ddRdphidphi,[size(ddRdphidphi,1)*size(ddRdphidphi,2),size(ddRdphidphi,3),size(ddRdphidphi,4)]);
+        ddRdphidphi = tempr(ind_t,:,:);
+    end
+end
+
 end
 

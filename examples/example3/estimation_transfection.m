@@ -129,6 +129,9 @@ Data = data_fun(Data,Model,xi,S,datafile);
 fh_sc = figure;
 hold on
 
+Model.prior{2}.mu = 2;
+Model.prior{2}.std = 0.1;
+
 %% Mixed Effects Optimization
 
 clc

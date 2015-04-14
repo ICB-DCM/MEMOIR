@@ -55,6 +55,8 @@
 %       only applicable for SCTL data.
 %   .exp ... cell array containing specific information about individual
 %       experiments. must have the following fields
+%       .PA_post_processing ... (optional, only for PA data) function
+%       handle for post-processing of PA for e.g. normalization
 %       .sigma_noise ... function of the mixed effect parameter yielding
 %           the standard deviation in measurements
 %       .sigma_time ... function of the mixed effect parameter yielding
@@ -136,6 +138,7 @@
 %      dlogLdxi ... gradient of logLikelihood
 %      ddlogLdxidxdi ... hessian of logLikelihood
 %  extract_flag == 1
+%      (SCTL)
 %      P ... cell array with field
 %          .SCTL if the corresponding Data cell had a .SCTL field. this has
 %          field has subfields
@@ -144,6 +147,8 @@
 %              parameter
 %              .ddbdxidxi hessian of random effect parameter wrt optimization
 %              parameter
+%      (otherwise)
+%      B_SP ... location of sigma-points
 % 
 % 2015/04/14 Fabian Froehlich
 
@@ -261,6 +266,7 @@ for s = 1:length(Data)
                 bhat_si0 = P_old{s}.SCTL.bhat(:,i);
             end
             
+            %% Estimation of single cell random effects
             % Higher order derivatives of the objective function for single cell parameters
             % here G is the Hessian of the objective function and bhat_si is the optimum of the objective function
             % with respect to b
@@ -325,41 +331,26 @@ for s = 1:length(Data)
             
             % Simulate model and compute derivatives
             if(nargout == 1)
-                [Y,T,R] = simulate_trajectory(t_s,phi_si,Model,Data,s,ind_t);
+                [Y_si,T_si,R_si] = simulate_trajectory(t_s,phi_si,Model,Data,s,ind_t,ind_y);
             elseif(and(nargout == 2,Model.integration == 0))
-                [Y,T,R,dYdphi,dTdphi,dRdphi] = simulate_trajectory(t_s,phi_si,Model,Data,s,ind_t);
+                [Y_si,T_si,R_si,dY_sidphi,dT_sidphi,dR_sidphi] = simulate_trajectory(t_s,phi_si,Model,Data,s,ind_t,ind_y);
             else
-                [Y,T,R,dYdphi,dTdphi,dRdphi,ddYdphidphi,ddTdphidphi,ddRdphidphi] = simulate_trajectory(t_s,phi_si,Model,Data,s,ind_t);
+                [Y_si,T_si,R_si,dY_sidphi,dT_sidphi,dR_sidphi,ddY_sidphidphi,ddT_sidphidphi,ddR_sidphidphi] = simulate_trajectory(t_s,phi_si,Model,Data,s,ind_t,ind_y);
             end
-            
-            Y_si = Y(ind_time,:);
-            T_si = T(ind_t,:);
-            R_si = R(ind_t,:);
-            
-            % Apply indexing to derivatives
-            if nargout >= 2
-                tempy = reshape(dYdphi,[size(dYdphi,1)*size(dYdphi,2),size(dYdphi,3)]);
-                dY_sidphi = tempy(ind_y,:);
-                tempt = reshape(dTdphi,[size(dTdphi,1)*size(dTdphi,2),size(dTdphi,3)]);
-                dT_sidphi = tempt(ind_t,:);
-                tempr = reshape(dRdphi,[size(dRdphi,1)*size(dRdphi,2),size(dRdphi,3)]);
-                dR_sidphi = tempr(ind_t,:);
-                if nargout >= 3
-                    tempy = reshape(ddYdphidphi,[size(ddYdphidphi,1)*size(ddYdphidphi,2),size(ddYdphidphi,3),size(ddYdphidphi,4)]);
-                    ddY_sidphidphi = tempy(ind_y,:,:);
-                    tempt = reshape(ddTdphidphi,[size(ddTdphidphi,1)*size(ddTdphidphi,2),size(ddTdphidphi,3),size(ddTdphidphi,4)]);
-                    ddT_sidphidphi = tempt(ind_t,:,:);
-                    tempr = reshape(ddRdphidphi,[size(ddRdphidphi,1)*size(ddRdphidphi,2),size(ddRdphidphi,3),size(ddRdphidphi,4)]);
-                    ddR_sidphidphi = tempr(ind_t,:,:);
-                end
-            end
-            
+
             % Construct sigma
-            [Sigma_noise_si,dSigma_noisedphi,ddSigma_noisedphidphi] = build_sigma_noise(phi_si,Ym_si,s,Model,ind_y);
-            [Sigma_time_si,dSigma_timedphi,ddSigma_timedphidphi] = build_sigma_noise(phi_si,Ym_si,s,Model,ind_y);
+            if(nargout<2)
+                [Sigma_noise_si] = build_sigma_noise(phi_si,Ym_si,s,Model,ind_y);
+                [Sigma_time_si] = build_sigma_time(phi_si,Tm_si,s,Model,ind_t);
+            elseif(nargout<3)
+                [Sigma_noise_si,dSigma_noisedphi] = build_sigma_noise(phi_si,Ym_si,s,Model,ind_y);
+                [Sigma_time_si,dSigma_timedphi] = build_sigma_time(phi_si,Tm_si,s,Model,ind_t);
+            else
+                [Sigma_noise_si,dSigma_noisedphi,ddSigma_noisedphidphi] = build_sigma_noise(phi_si,Ym_si,s,Model,ind_y);
+                [Sigma_time_si,dSigma_timedphi,ddSigma_timedphidphi] = build_sigma_time(phi_si,Tm_si,s,Model,ind_t);
+            end
             
-            
-            % Evaluation of likelihood and likelihood gradient
+            %% Evaluation of likelihood and likelihood gradient
             
             % this is part accounts for the noise model
             % J_D = log(p(Y(b,beta)|D))
@@ -389,7 +380,7 @@ for s = 1:length(Data)
                     end
             end
             
-            % this is part accounts for the time model
+            % this is part accounts for the event model
             % J_D = log(p(Y(b,beta)|D))
             switch(Model.exp{s}.noise_model)
                 case 'normal'
@@ -454,20 +445,20 @@ for s = 1:length(Data)
                 dphidb = Model.exp{s}.dphidb(beta,bhat_si);
                 pdphipdbeta  = Model.exp{s}.dphidbeta(beta,bhat_si);
                 
-                dphidbeta = chainrule_dxdy_dydz(dphidb,dbhat_sidbeta) + pdphipdbeta;
-                dphiddelta = chainrule_dxdy_dydz(dphidb,dbhat_siddelta);
-                dphidxi = chainrule_dxdy_dydz(dphidbeta,dbetadxi) + chainrule_dxdy_dydz(dphiddelta,ddeltadxi);
+                dphidbeta = chainrule(dphidb,dbhat_sidbeta) + pdphipdbeta;
+                dphiddelta = chainrule(dphidb,dbhat_siddelta);
+                dphidxi = chainrule(dphidbeta,dbetadxi) + chainrule(dphiddelta,ddeltadxi);
                 
-                dJ_Ddphi = chainrule_dxdy_dydz(dJ_DdY,dY_sidphi) + chainrule_dxdy_dydz(dJ_DdSigma,dSigma_noisedphi) ;
-                dJ_Ddxi = chainrule_dxdy_dydz(dJ_Ddphi,dphidxi);
+                dJ_Ddphi = chainrule(dJ_DdY,dY_sidphi) + chainrule(dJ_DdSigma,dSigma_noisedphi) ;
+                dJ_Ddxi = chainrule(dJ_Ddphi,dphidxi);
                 
-                dJ_Tdphi = chainrule_dxdy_dydz(dJ_TdT,dT_sidphi) + chainrule_dxdy_dydz(dJ_TdR,dR_sidphi) + chainrule_dxdy_dydz(dJ_TdSigma,dSigma_timedphi) ;
-                dJ_Tdxi = chainrule_dxdy_dydz(dJ_Tdphi,dphidxi);
+                dJ_Tdphi = chainrule(dJ_TdT,dT_sidphi) + chainrule(dJ_TdR,dR_sidphi) + chainrule(dJ_TdSigma,dSigma_timedphi) ;
+                dJ_Tdxi = chainrule(dJ_Tdphi,dphidxi);
                 
-                dbdxi = chainrule_dxdy_dydz(dbhat_sidbeta,dbetadxi) + chainrule_dxdy_dydz(dbhat_siddelta,ddeltadxi);
+                dbdxi = chainrule(dbhat_sidbeta,dbetadxi) + chainrule(dbhat_siddelta,ddeltadxi);
                 P{s}.SCTL.dbdxi(:,:,i) = dbdxi;
                 
-                dJ_bdxi = chainrule_dxdy_dydz(dJ_bdb,dbdxi) + chainrule_dxdy_dydz(pdJ_bpddelta,ddeltadxi);
+                dJ_bdxi = chainrule(dJ_bdb,dbdxi) + chainrule(pdJ_bpddelta,ddeltadxi);
                 
                 dlogLdxi = dlogLdxi - transpose(dJ_Ddxi) - transpose(dJ_Tdxi) - transpose(dJ_bdxi);
                 
@@ -480,11 +471,11 @@ for s = 1:length(Data)
                     if(numel(bhat_si)==1)
                         dGdbeta = pdGpdbeta + permute(dGdb*dbhat_sidbeta,[3,1,2]);
                         dGddelta = pdGpddelta + permute(dGdb*dbhat_siddelta,[3,1,2]);
-                        dGdxi = chainrule_dxdy_dydz(dGdbeta,dbetadxi) + chainrule_dxdy_dydz(dGddelta,ddeltadxi);
+                        dGdxi = chainrule(dGdbeta,dbetadxi) + chainrule(dGddelta,ddeltadxi);
                     else
-                        dGdbeta = pdGpdbeta + chainrule_dxdy_dydz(dGdb,dbhat_sidbeta);
-                        dGddelta = pdGpddelta + chainrule_dxdy_dydz(dGdb,dbhat_siddelta);
-                        dGdxi = chainrule_dxdy_dydz(dGdbeta,dbetadxi) + chainrule_dxdy_dydz(dGddelta,ddeltadxi);
+                        dGdbeta = pdGpdbeta + chainrule(dGdb,dbhat_sidbeta);
+                        dGddelta = pdGpddelta + chainrule(dGdb,dbhat_siddelta);
+                        dGdxi = chainrule(dGdbeta,dbetadxi) + chainrule(dGddelta,ddeltadxi);
                     end
                     
                     
@@ -501,19 +492,19 @@ for s = 1:length(Data)
                     ddphidbdb = Model.exp{s}.ddphidbdb(beta,bhat_si);
                     ddphidbdbeta = Model.exp{s}.ddphidbdbeta(beta,bhat_si);
                     
-                    ddphidbetadbeta = chainrule_dxdy_dydz(dphidb,ddbhat_sidbetadbeta) + chainrule_ddxdydy_dydz(ddphidbdb,dbhat_sidbeta) ...
-                        + permute(chainrule_dxdy_dydz(permute(ddphidbdbeta,[1,3,2]),dbhat_sidbeta),[1,3,2]);
-                    ddphidbetaddelta = chainrule_dxdy_dydz(dphidb,ddbhat_sidbetaddelta) + chainrule_ddxdydy_dydz_dydv(ddphidbdb,dbhat_sidbeta,dbhat_siddelta);
-                    ddphiddeltaddelta = chainrule_dxdy_dydz(dphidb,ddbhat_siddeltaddelta) + chainrule_ddxdydy_dydz(ddphidbdb,dbhat_siddelta);
+                    ddphidbetadbeta = chainrule(dphidb,ddbhat_sidbetadbeta) + chainrule_ddxdydy_dydz(ddphidbdb,dbhat_sidbeta) ...
+                        + permute(chainrule(permute(ddphidbdbeta,[1,3,2]),dbhat_sidbeta),[1,3,2]);
+                    ddphidbetaddelta = chainrule(dphidb,ddbhat_sidbetaddelta) + chainrule_ddxdydy_dydz_dydv(ddphidbdb,dbhat_sidbeta,dbhat_siddelta);
+                    ddphiddeltaddelta = chainrule(dphidb,ddbhat_siddeltaddelta) + chainrule_ddxdydy_dydz(ddphidbdb,dbhat_siddelta);
                     
                     if(numel(bhat_si)==1) % we have to do this manually here since 3rd order tensors with trailing 1 dimensional orders are not possible in matlab ...
-                        ddphidxidxi = chainrule_dxdy_dydz(dphidbeta,ddbetadxidxi) + chainrule_ddxdydy_dydz(ddphidbetadbeta,dbetadxi) ...
-                            + chainrule_dxdy_dydz(dphiddelta,dddeltadxidxi) + chainrule_ddxdydy_dydz(ddphiddeltaddelta,ddeltadxi) ...
+                        ddphidxidxi = chainrule(dphidbeta,ddbetadxidxi) + chainrule_ddxdydy_dydz(ddphidbetadbeta,dbetadxi) ...
+                            + chainrule(dphiddelta,dddeltadxidxi) + chainrule_ddxdydy_dydz(ddphiddeltaddelta,ddeltadxi) ...
                             + permute(sum(bsxfun(@times,bsxfun(@times,ddphidbetaddelta,permute(dbetadxi,[3,1,2])),permute(ddeltadxi,[3,4,5,2,1])),2),[1,3,4,2]) ...
                             + permute(sum(bsxfun(@times,bsxfun(@times,ddphidbetaddelta,permute(dbetadxi,[3,1,2])),permute(ddeltadxi,[3,4,5,2,1])),2),[1,4,3,2]);
                     else
-                        ddphidxidxi = chainrule_dxdy_dydz(dphidbeta,ddbetadxidxi) + chainrule_ddxdydy_dydz(ddphidbetadbeta,dbetadxi) ...
-                            + chainrule_dxdy_dydz(dphiddelta,dddeltadxidxi) + chainrule_ddxdydy_dydz(ddphiddeltaddelta,ddeltadxi) ...
+                        ddphidxidxi = chainrule(dphidbeta,ddbetadxidxi) + chainrule_ddxdydy_dydz(ddphidbetadbeta,dbetadxi) ...
+                            + chainrule(dphiddelta,dddeltadxidxi) + chainrule_ddxdydy_dydz(ddphiddeltaddelta,ddeltadxi) ...
                             + chainrule_ddxdydy_dydz_dydv(ddphidbetaddelta,dbetadxi,ddeltadxi) + permute(chainrule_ddxdydy_dydz_dydv(ddphidbetaddelta,dbetadxi,ddeltadxi),[1,3,2]);
                     end
                     
@@ -523,11 +514,11 @@ for s = 1:length(Data)
                     ddJ_DdphidSigma = bsxfun(@times,ddJ_DdYdSigma,permute(dY_sidphi,[3,1,2])) + ...
                         bsxfun(@times,ddJ_DdSigmadSigma,permute(dSigma_noisedphi,[3,1,2]));
                     
-                    ddJ_Ddphidphi = chainrule_dxdy_dydz(dJ_DdY,ddY_sidphidphi) ...
+                    ddJ_Ddphidphi = chainrule(dJ_DdY,ddY_sidphidphi) ...
                         + squeeze(sum(bsxfun(@times,ddJ_DdphidY,permute(dY_sidphi,[3,1,4,2])) ...
                         + bsxfun(@times,ddJ_DdphidSigma,permute(dSigma_noisedphi,[3,1,4,2])),2));
                     
-                    ddJ_Ddxidxi = chainrule_dxdy_dydz(dJ_Ddphi,ddphidxidxi) + chainrule_ddxdydy_dydz(ddJ_Ddphidphi,dphidxi);
+                    ddJ_Ddxidxi = chainrule(dJ_Ddphi,ddphidxidxi) + chainrule_ddxdydy_dydz(ddJ_Ddphidphi,dphidxi);
                     
                     ddJ_TdphidT = bsxfun(@times,ddJ_TdTdT,permute(dT_sidphi,[3,1,2])) + ...
                         bsxfun(@times,ddJ_TdTdR,permute(dR_sidphi,[3,1,2])) + ...
@@ -541,23 +532,23 @@ for s = 1:length(Data)
                         bsxfun(@times,ddJ_TdRdSigma,permute(dR_sidphi,[3,1,2])) + ...
                         bsxfun(@times,ddJ_TdSigmadSigma,permute(dSigma_timedphi,[3,1,2]));
                     
-                    ddJ_Tdphidphi = chainrule_dxdy_dydz(dJ_TdT,ddT_sidphidphi) ...
-                        + chainrule_dxdy_dydz(dJ_TdR,ddR_sidphidphi) ...
+                    ddJ_Tdphidphi = chainrule(dJ_TdT,ddT_sidphidphi) ...
+                        + chainrule(dJ_TdR,ddR_sidphidphi) ...
                         + squeeze(sum(bsxfun(@times,ddJ_TdphidT,permute(dT_sidphi,[3,1,4,2])) ...
                         + bsxfun(@times,ddJ_TdphidR,permute(dR_sidphi,[3,1,4,2])) ...
                         + bsxfun(@times,ddJ_TdphidSigma,permute(dSigma_timedphi,[3,1,4,2])),2));
                     
-                    ddJ_Tdxidxi = chainrule_dxdy_dydz(dJ_Tdphi,ddphidxidxi) + chainrule_ddxdydy_dydz(ddJ_Tdphidphi,dphidxi);
+                    ddJ_Tdxidxi = chainrule(dJ_Tdphi,ddphidxidxi) + chainrule_ddxdydy_dydz(ddJ_Tdphidphi,dphidxi);
                     
-                    ddbdxidxi = chainrule_dxdy_dydz(dbhat_sidbeta,ddbetadxidxi) + chainrule_ddxdydy_dydz(ddbhat_sidbetadbeta,dbetadxi) ...
-                        + chainrule_dxdy_dydz(dbhat_siddelta,dddeltadxidxi) + chainrule_ddxdydy_dydz(ddbhat_siddeltaddelta,ddeltadxi) ...
+                    ddbdxidxi = chainrule(dbhat_sidbeta,ddbetadxidxi) + chainrule_ddxdydy_dydz(ddbhat_sidbetadbeta,dbetadxi) ...
+                        + chainrule(dbhat_siddelta,dddeltadxidxi) + chainrule_ddxdydy_dydz(ddbhat_siddeltaddelta,ddeltadxi) ...
                         + chainrule_ddxdydy_dydz_dydv(ddbhat_sidbetaddelta,dbetadxi,ddeltadxi) ...
                         + chainrule_ddxdydy_dydz_dydv(permute(ddbhat_sidbetaddelta,[1,3,2]),ddeltadxi,dbetadxi);
                     
                     P{s}.SCTL.ddbdxidxi(:,:,:,i) = ddbdxidxi;
                     
-                    ddJ_bdxidxi = chainrule_dxdy_dydz(dJ_bdb,ddbdxidxi) + chainrule_ddxdydy_dydz(ddJ_bdbdb,dbdxi) ...
-                        + chainrule_dxdy_dydz(pdJ_bpddelta,dddeltadxidxi) + chainrule_ddxdydy_dydz(pdpdJ_bpddeltapddelta,ddeltadxi) ...
+                    ddJ_bdxidxi = chainrule(dJ_bdb,ddbdxidxi) + chainrule_ddxdydy_dydz(ddJ_bdbdb,dbdxi) ...
+                        + chainrule(pdJ_bpddelta,dddeltadxidxi) + chainrule_ddxdydy_dydz(pdpdJ_bpddeltapddelta,ddeltadxi) ...
                         + chainrule_ddxdydy_dydz_dydv(dpdJ_bdbpddelta,dbdxi,ddeltadxi) ...
                         + chainrule_ddxdydy_dydz_dydv(permute(dpdJ_bdbpddelta,[2,1]),ddeltadxi,dbdxi);
                     
@@ -566,19 +557,19 @@ for s = 1:length(Data)
                         % laplace approximation
                         invG = pinv(G);
                         
-                        ddGdbetadbeta = pdpdGpdbetapdbeta + 2*chainrule_dxdy_dydz(permute(pddGdbpdbeta,[1,2,4,3]),dbhat_sidbeta) ...
-                            + chainrule_ddxdydy_dydz(ddGdbdb,dbhat_sidbeta) + chainrule_dxdy_dydz(dGdb,ddbhat_sidbetadbeta);
+                        ddGdbetadbeta = pdpdGpdbetapdbeta + 2*chainrule(permute(pddGdbpdbeta,[1,2,4,3]),dbhat_sidbeta) ...
+                            + chainrule_ddxdydy_dydz(ddGdbdb,dbhat_sidbeta) + chainrule(dGdb,ddbhat_sidbetadbeta);
                         
-                        ddGddeltaddelta = pdpdGpddeltapddelta + 2*chainrule_dxdy_dydz(permute(pddGdbpddelta,[1,2,4,3]),dbhat_siddelta) ...
-                            + chainrule_ddxdydy_dydz(ddGdbdb,dbhat_siddelta) + chainrule_dxdy_dydz(dGdb,ddbhat_siddeltaddelta);
+                        ddGddeltaddelta = pdpdGpddeltapddelta + 2*chainrule(permute(pddGdbpddelta,[1,2,4,3]),dbhat_siddelta) ...
+                            + chainrule_ddxdydy_dydz(ddGdbdb,dbhat_siddelta) + chainrule(dGdb,ddbhat_siddeltaddelta);
                         
-                        ddGdbetaddelta = pdpdGpdbetapddelta + chainrule_dxdy_dydz(permute(pddGdbpdbeta,[1,2,4,3]),dbhat_siddelta) ...
-                            + permute(chainrule_dxdy_dydz(permute(pddGdbpddelta,[1,2,4,3]),dbhat_sidbeta),[1,2,4,3]) ...
+                        ddGdbetaddelta = pdpdGpdbetapddelta + chainrule(permute(pddGdbpdbeta,[1,2,4,3]),dbhat_siddelta) ...
+                            + permute(chainrule(permute(pddGdbpddelta,[1,2,4,3]),dbhat_sidbeta),[1,2,4,3]) ...
                             + chainrule_ddxdydy_dydz_dydv(ddGdbdb,dbhat_sidbeta,dbhat_siddelta) ...
-                            + chainrule_dxdy_dydz(dGdb,ddbhat_sidbetaddelta);
+                            + chainrule(dGdb,ddbhat_sidbetaddelta);
                         
-                        ddGdxidxi = chainrule_ddxdydy_dydz(ddGdbetadbeta,dbetadxi) + chainrule_dxdy_dydz(dGdbeta,ddbetadxidxi) ...
-                            + chainrule_ddxdydy_dydz(ddGddeltaddelta,ddeltadxi) + chainrule_dxdy_dydz(dGddelta,dddeltadxidxi) ...
+                        ddGdxidxi = chainrule_ddxdydy_dydz(ddGdbetadbeta,dbetadxi) + chainrule(dGdbeta,ddbetadxidxi) ...
+                            + chainrule_ddxdydy_dydz(ddGddeltaddelta,ddeltadxi) + chainrule(dGddelta,dddeltadxidxi) ...
                             + 2*chainrule_ddxdydy_dydz_dydv(ddGdbetaddelta,dbetadxi,ddeltadxi);
                         
                         dinvGdxi = squeeze(sum(bsxfun(@times,invG,permute(squeeze(sum(bsxfun(@times,permute(dGdxi,[4,1,2,3]),invG),2)),[4,1,2,3])),2));
@@ -591,10 +582,10 @@ for s = 1:length(Data)
                 
             end
             
-            % Assignment
-            Sim_SCTL.Y(:,:,i) = Y(ind_time,:);
-            Sim_SCTL.T(:,:,i) = T(ind_t,:);
-            Sim_SCTL.R(:,:,i) = R(ind_t,:);
+            % Assignment of simulation results
+            Sim_SCTL.Y(:,:,i) = Y_si;
+            Sim_SCTL.T(:,:,i) = T_si;
+            Sim_SCTL.R(:,:,i) = R_si;
         end
         
         logL = logL + logL_D + logL_T + logL_b + logL_I;
@@ -620,7 +611,7 @@ for s = 1:length(Data)
             logL = logL + logL_s;
             
             if nargout >= 2
-                dlogL_sdxi = squeeze(sum(sum(bsxfun(@times,dlogL_sdb_s,permute(P{s}.SCTL.dbdxi,[1,3,2])),1),2)) + transpose(chainrule_dxdy_dydz(dlogL_sddelta,ddeltadxi));
+                dlogL_sdxi = squeeze(sum(sum(bsxfun(@times,dlogL_sdb_s,permute(P{s}.SCTL.dbdxi,[1,3,2])),1),2)) + transpose(chainrule(dlogL_sddelta,ddeltadxi));
                 dlogLdxi = dlogLdxi + dlogL_sdxi;
                 if nargout >= 3
                     ddlogL_sdxidxi = squeeze(sum(sum(bsxfun(@times,bsxfun(@times,ddlogL_sdb_sdb_s,permute(P{s}.SCTL.dbdxi,[1,3,2])),permute(P{s}.SCTL.dbdxi,[1,3,4,2])),1),2)) ...
@@ -628,7 +619,7 @@ for s = 1:length(Data)
                         + squeeze(sum(sum(sum(bsxfun(@times,bsxfun(@times,ddlogL_sdb_sddelta,permute(P{s}.SCTL.dbdxi,[1,3,4,2])),permute(ddeltadxi,[3,4,1,5,2])),1),2),3)) ...
                         + transpose(squeeze(sum(sum(sum(bsxfun(@times,bsxfun(@times,ddlogL_sdb_sddelta,permute(P{s}.SCTL.dbdxi,[1,3,4,2])),permute(ddeltadxi,[3,4,1,5,2])),1),2),3))) ...
                         + chainrule_ddxdydy_dydz(ddlogL_sddeltaddelta,ddeltadxi) ...
-                        + chainrule_dxdy_dydz(dlogL_sddelta,dddeltadxidxi);
+                        + chainrule(dlogL_sddelta,dddeltadxidxi);
                     ddlogLdxidxi = ddlogLdxidxi + ddlogL_sdxidxi;
                 end
                 
@@ -645,7 +636,6 @@ for s = 1:length(Data)
             figure(Model.exp{s}.fp)
             clf
             b_s = P{s}.SCTL.bhat;
-            d_s = size(b_s,2);
             n_b = size(b_s,1);
             
             for j = 1:n_b
@@ -654,6 +644,7 @@ for s = 1:length(Data)
                 %nhist(P{s}.SCTL.bhat(j,:),'pdf','noerror');
                 hold on
                 plot(xx,normcdf(xx,0,sqrt(D(j,j))),'.-b','LineWidth',2)
+                ecdf = zeros(length(xx),1);
                 for k = 1:length(xx)
                     ecdf(k) = sum(b_s(j,:)<xx(k))/length(b_s(j,:));
                 end
@@ -672,7 +663,7 @@ for s = 1:length(Data)
             subplot(ceil(n_b+1/4),4,1,'Visible','off')
             hold on
             plot(xx,normcdf(xx,0,sqrt(D(j,j))),'.-b','Visible','off')
-            plot(xx,ecdf,'--r','LineWidth',2)
+            plot(xx,ecdf,'--r','LineWidth',2,'Visible','off')
             
             
             legend('cdf of single cell Parameters','cdf of populaton Parameters')
@@ -879,6 +870,38 @@ if extract_flag
     end
     return
 end
+
+%% Prior
+
+if isfield(Model,'prior')
+    if(iscell(Model.prior))
+        if(length(Model.prior) <= length(xi))
+            for ixi = 1:length(Model.prior)
+                if(isfield(Model.prior{ixi},'mu') && isfield(Model.prior{ixi},'std'))
+                    if nargout >= 1
+                        % One output
+                        logL =  logL + 0.5*((xi(ixi)-Model.prior{ixi}.mu)/Model.prior{ixi}.std)^2;
+                        if nargout >= 2
+                            % Two outputs
+                            dlogLdxi(ixi) =  dlogLdxi(ixi) + ((xi(ixi)-Model.prior{ixi}.mu)/Model.prior{ixi}.std^2);
+                            if nargout >= 3
+                                % Two outputs
+                                ddlogLdxidxi =  ddlogLdxidxi + 1/Model.prior{ixi}.std^2;
+                            end
+                        end
+                    end
+                end
+            end
+        else
+            error('length of Model.prior must agree with length of optimization parameter')
+        end
+    else
+        error('Model.prior must be a cell array')
+    end
+end
+
+
+%%
 
 if nargout >= 1
     % One output

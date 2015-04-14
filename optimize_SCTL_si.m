@@ -1,8 +1,42 @@
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% AUXILIARY FUNCTION FOR OPTIMIZATION OF SINGLE CELL PARAMETERS %%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% optimize_SCTL_si estimates the random effects parameters and computes
+% derivatives wrt beta and delta moreover some derivatives of the hessian
+% of the respective objective function are also returned as they are needed
+% for certain computations later on and computational complexity is rather
+% high
+%
+% USAGE:
+% ======
+% [...] = bhat_SCTL_si(Model,Data,bhat_0,beta,delta,type_D,t,Ym,Tm,ind_y,ind_t,F_diff,b_diff,s)
+%
+% INPUTS:
+% =======
+% Model ... model definition
+% Data ... data definition
+% bhat_0 ... previously estimated random effect parameters, these are used
+%     as initialistion to the next estimation
+% beta ... common effect parameter
+% delta ... parametrisation of random effect covariance
+% type_D ... covariance parametrisation type
+% t ... time vector for simulation
+% Ym ... measurements
+% Tm ... observed event-times
+% ind_y ... indexing of measurements
+% ind_t ... indexing of events
+% F_diff ... number of derivatives of the hessian matrix
+% b_diff ... number of derivatives of the estimated random effects
+% s ... experimental index
+%
+% Outputs:
+% ========
+% estimated random effects bhat and hessian G and derivatives wrt to 
+% beta and delta 
+% the ordering of the output will depend on F_diff and b_diff
+% see the file for details
+%
+% 2015/04/14 Fabian Froehlich
 
-% [bhat_si,dbhat_sidbeta,dbhat_siddelta,ddbhat_sidbetadbeta,ddbhat_sidbetaddelta,ddbhat_siddeltaddelta,dGdbeta,dGddelta,ddGdbetadbeta,ddGdbetaddelta,ddGddeltaddelta] = optimize_SCTL_si(Model,Data,beta,invD,t_s,Ym_si,Sigma_si,ind,n_b,n_xi,F_diff,b_diff);
+
+
 function varargout = optimize_SCTL_si(Model,Data,bhat_0,beta,delta,type_D,t,Ym,Tm,ind_y,ind_t,F_diff,b_diff,s)
 options_fmincon = optimset('algorithm','trust-region-reflective',...
     'display','off',...
@@ -109,7 +143,7 @@ switch(b_diff)
                     dGdb,pdGpdbeta,pdGpddelta,...
                     dddJdbdbetadbeta,dddJdbddeltaddelta,dddJdbdbetaddelta] = ...
                     objective_SCTL_s1(Model,beta,bhat,Data{s}.condition,delta,type_D,t,Ym,Tm,ind_y,ind_t,s);
-                % Gradient + Hessian of optimal point
+                % Gradient + Hessian of estimated random effects
                 [bhat,dbhatdbeta,dbhatddelta,ddbhatdbetadbeta,ddbhatdbetaddelta,ddbhatddeltaddelta] = bhat_SCTL_si(bhat,G,ddJdbdbeta,ddJdbddelta,ddJdbetadbeta,ddJddeltaddelta,ddJdbetaddelta,dGdb,pdGpdbeta,pdGpddelta,dddJdbdbetadbeta,dddJdbddeltaddelta,dddJdbdbetaddelta);
                 
                 varargout{1} = bhat;

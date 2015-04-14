@@ -1,8 +1,22 @@
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% AUXILIARY FUNCTION FOR DERIVATIVE OF OPTIMA W.R.T HYPERPARAMETERS %%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% objective_SCTL_s1 is an auxiliary function for logL_CE_w_grad_2 and
+% computes derivatives of the estimated random effect bhat wrt beta and
+% delta the employed formulas can be derived via the implicit function
+% theorem
+%
+% USAGE:
+% ======
+% [bhat,dbhatdbeta,dbhatddelta,...] = bhat_SCTL_si(bhat,G,ddJdbdbeta,ddJdbddelta,~,~,~,dGdb,pdGpdbeta,pdGpddelta,dddJdbdbetadbeta,dddJdbddeltaddelta,dddJdbdbetaddelta)
+%
+% INPUTS:
+% =======
+% notation according to outputs of objective_SCTL_s1
+%
+% Outputs:
+% ========
+% estimated parameters bhat and derivatives wrt to beta and delta
+%
+% 2015/04/14 Fabian Froehlich
 
-%function [bhat,dbhatdbeta,dbhatddelta,ddbhatdbetadbeta,ddbhatdbetaddelta,ddbhatddeltaddelta] = bhat_SCTL_si(bhat,G,pdGpdbeta,pdGpddelta);
 function varargout = bhat_SCTL_si(bhat,G,ddJdbdbeta,ddJdbddelta,~,~,~,dGdb,pdGpdbeta,pdGpddelta,dddJdbdbetadbeta,dddJdbddeltaddelta,dddJdbdbetaddelta)
 
 invG = pinv(G);
