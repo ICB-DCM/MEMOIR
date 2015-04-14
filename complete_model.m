@@ -9,28 +9,30 @@
 % INPUTS:
 % =======
 % Model ... model struct encapsulating the model definition for a MEM
+%   .sym ... contains symbolic definition of the overall model
+%       .xi ... are the parameter wich are optimised, this usually consist
+%       of common effects, the parametrisation of the random effects
+%       covariance matrix and the parametrisation of the noise parameters
+%       .phi ... is are the mixed effect parametrisation as function of
+%       common effects beta and random effects b
+%       .beta ...  is the parametrisation of common effects as function of
+%       xi
+%       .b ... is the parametrisation of random effects
+%       .delta ... is the parametrisation of the covariance matrix. this
+%       definition should be chosen in accordance to the definition of the
+%       respective parametrisation given in Model.type_D
 % problem
 %
 % Outputs:
 % ========
 % Model ... model struct encapsulating the model definition for a MEM
 % problem
-%   .sym ... contains symbolic definition of the overall model
-%       .xi ... are the parameter wich are optimised, this usually consist
-%       of fixed effects, the parametrisation of the random effects
-%       covariance matrix and the parametrisation of the noise parameters
-%       .phi ... is are the mixed effect parametrisation as function of
-%       fixed effects beta and random effects b
-%       .beta ...  is the parametrisation of fixed effects as function of
-%       xi
-%       .b ... is the parametrisation of random effects
-%       .delta ... is the parametrisation of the covariance matrix. this
-%       definition should be chosen in accordance to the definition of the
-%       respective parametrisation given in Model.type_D
 %   .exp{s} ... contains all information with respect to experiment number
 %   s
 %       .N ... number of single cells measured in the experiment
 %       .sigma_noise ... noise level in this experiment (used in data
+%       generation)
+%       .sigma_time ... noise level for event data (used in data
 %       generation)
 %       .sigma_on ... flag indicating whether noise should be added during
 %       data generation
@@ -53,7 +55,7 @@
 %       individual terms to the objective function value is plotted
 %       .plot ... function handle to function which generates the plot in
 %       the figure for figure handle fh
-% 2014/11/21 Fabian Froehlich
+% 2015/04/14 Fabian Froehlich
 
 
 function Model = complete_model(Model,S)
@@ -89,14 +91,16 @@ try
     end
     if(all([f_xi,f_phi,f_beta,f_b,f_delta,f_exps,f_phiexp,f_sigma_noiseexp,f_sigma_timeexp]))
         if(Model.integration)
-            if(exist([mdir 'MEMfn/' filename '/MEMddddsigmadphidphidphidphi.m'],'file'))
-            else
-            end
+            % TBD
         else
-        loadold = true;
+            % load old definition
+            loadold = true; 
+            disp(['Loading previous model definition files!'])
+            disp(['To regenerate model, abort and delete ' mdir 'MEMfn/' filename ]);
         end
     end
 catch
+    disp(['Generating new model definition files!'])
 end    
 
 if(~loadold)
@@ -228,7 +232,6 @@ if(~loadold)
         eval(['Model.exp{s}.ddsigma_noisedphidphi = @MEMddsigma_noisedphidphi_' num2str(S(s)) ';']);
         
         % dddsigma_noisedphidphidphi
-        
         Model.exp{s}.sym.dddsigma_noisedphidphidphi = sym(zeros(size(Model.exp{s}.sym.sigma_noise,1),size(Model.exp{s}.sym.sigma_noise,2),n_phi,n_phi,n_phi));
         for j = 1:size(Model.exp{s}.sym.sigma_noise,1)
             for k = 1:size(Model.exp{s}.sym.sigma_noise,2)
@@ -241,7 +244,8 @@ if(~loadold)
         eval(['Model.exp{s}.dddsigma_noisedphidphidphi = @MEMdddsigma_noisedphidphidphi_' num2str(S(s)) ';']);
         
         if(Model.integration)
-            % ddddsigma_noisedphidphidphidphi
+            % ddddsigma_noisedphidphidphidphi --- currently disabled due to
+            % high computational cost
             Model.exp{s}.sym.ddddsigma_noisedphidphidphidphi = sym(zeros(size(Model.exp{s}.sym.sigma_noise,1),size(Model.exp{s}.sym.sigma_noise,2),n_phi,n_phi,n_phi,n_phi));
 %             for j = 1:size(Model.exp{s}.sym.sigma_noise,1)
 %                 for k = 1:size(Model.exp{s}.sym.sigma_noise,2)
@@ -282,7 +286,6 @@ if(~loadold)
         eval(['Model.exp{s}.ddsigma_timedphidphi = @MEMddsigma_timedphidphi_' num2str(S(s)) ';']);
         
         % dddsigma_timedphidphidphi
-        
         Model.exp{s}.sym.dddsigma_timedphidphidphi = sym(zeros(size(Model.exp{s}.sym.sigma_time,1),size(Model.exp{s}.sym.sigma_time,2),n_phi,n_phi,n_phi));
         for j = 1:size(Model.exp{s}.sym.sigma_time,1)
             for k = 1:size(Model.exp{s}.sym.sigma_time,2)
@@ -295,7 +298,8 @@ if(~loadold)
         eval(['Model.exp{s}.dddsigma_timedphidphidphi = @MEMdddsigma_timedphidphidphi_' num2str(S(s)) ';']);
         
         if(Model.integration)
-            % ddddsigma_timedphidphidphidphi
+            % ddddsigma_timedphidphidphidphi --- currently disabled due to
+            % high computational cost
             Model.exp{s}.sym.ddddsigma_timedphidphidphidphi = sym(zeros(size(Model.exp{s}.sym.sigma_time,1),size(Model.exp{s}.sym.sigma_time,2),n_phi,n_phi,n_phi,n_phi));
 %             for j = 1:size(Model.exp{s}.sym.sigma_time,1)
 %                 for k = 1:size(Model.exp{s}.sym.sigma_time,2)
@@ -354,8 +358,14 @@ else
     % to the model struct
     
     % remove all other models from the path
-    while(~strcmp(which('MEMbeta_1'),''))
-        rmpath(genpath(strrep(which('MEMbeta_1'),'/MEMbeta_1.m','')));
+    for s=1:length(S)
+        if(~strcmp(which(['MEMbeta_' num2str(S(s))]),''))
+            if(ispc)
+                rmpath(strrep(which(['MEMbeta_' num2str(S(s))]),['\MEMbeta_' num2str(S(s)) '.m'],''));
+            else
+                rmpath(strrep(which(['MEMbeta_' num2str(S(s))]),['/MEMbeta_' num2str(S(s)) '.m'],''));
+            end
+        end
     end
     % add the new path
     addpath([mdir 'MEMfn/' filename ]);

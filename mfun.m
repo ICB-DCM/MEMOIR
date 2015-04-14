@@ -1,4 +1,6 @@
 function g = mfun(f,varargin)
+% adapted from matlabFunction, follows the same syntax, but supports
+% sparsity
 %matlabFunction Generate a MATLAB file or anonymous function from a sym
 %   G = matlabFunction(F) generates a MATLAB anonymous function from sym object
 %   F. The free variables of F become the inputs for the resulting function
