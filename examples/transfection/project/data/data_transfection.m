@@ -1,4 +1,4 @@
-function Data = data_transfection_red_diag(Data,Model,xi,S,datafile)
+function Data = data_transfection(Data,Model,xi,S,datafile)
     
     s = 0;
     % Transfection experiment: Single-cell time lapse

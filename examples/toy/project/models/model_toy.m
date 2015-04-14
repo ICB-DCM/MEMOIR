@@ -1,4 +1,4 @@
-function [Model,parameters] = model_exp_decay(logbeta,logD,logsigma)
+function [Model,parameters] = model_toy(logbeta,logD,logsigma)
     
     % Parameter struct (for optimization)
     parameters.min = [logbeta;logD;logsigma]-6;

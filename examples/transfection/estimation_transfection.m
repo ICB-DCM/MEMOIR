@@ -8,8 +8,7 @@ rng(0);
 
 % specify the model name you can add more in the switch definition to
 % easily switch between models
-model = 'decay_diag';
-% model = 'decay_full';
+model = 'transfection_diag';
 
 % specify the datafile here, this will be passed to your specified data_fun
 % as argument, this allows you to easily switch between different
@@ -18,28 +17,28 @@ datafile = 'synthetic';
 
 % specify the filename here, this will be used as a name to generate the
 % final results file
-filename = 'example_2';
+filename = 'example_3';
 
 switch(model)
     % diagonal covariance matrix random effect
-    case 'decay_diag'
+    case 'transfection_diag'
         % specify the model_fun here this. function should use the true
         % parameters or a guess to generate as basic Model struct aswell as
         % the parameters_MEM struct
-        model_fun = @(logbeta,logdelta,logsigma) model_decay_diag(logbeta,logdelta,logsigma);
+        model_fun = @(logbeta,logdelta,logsigma) model_transfection_diag(logbeta,logdelta,logsigma);
         % specify the experiment_fun here. this function fills the Model
         % struct with experiments. S is a vector containing the indexes of
         % experiments to consider
-        experiment_fun = @(Model,S) experiments_decay_diag(Model,S);
+        experiment_fun = @(Model,S) experiments_transfection(Model,S);
         % specify the data_fun here. this function generates the Data
         % struct by either loading experimental data from the datafile or
         % by generating synthetic data
-        data_fun = @(Data,Model,xi,S,datafile) data_decay(Data,Model,xi,S,datafile);
+        data_fun = @(Data,Model,xi,S,datafile) data_transfection(Data,Model,xi,S,datafile);
     % full covariance matrix for random effect
-    case 'decay_full'
-        model_fun = @(logbeta,logdelta,logsigma) model_decay_full(logbeta,logdelta,logsigma);
-        experiment_fun = @(Model,S) experiments_decay_full(Model,S);
-        data_fun = @(Data,Model,xi,S,datafile) data_decay(Data,Model,xi,S,datafile);
+    case 'transfection_full'
+        model_fun = @(logbeta,logdelta,logsigma) model_transfection_full(logbeta,logdelta,logsigma);
+        experiment_fun = @(Model,S) experiments_transfection(Model,S);
+        data_fun = @(Data,Model,xi,S,datafile) data_transfection(Data,Model,xi,S,datafile);
 end
 
 % check the date for indexing of results files
@@ -79,24 +78,27 @@ end
 %% Definition of mixed-effect model
 
 switch(model)
-    case 'decay_diag'
+    case 'transfection_diag'
         % specify the true/guessed parameters here
-        logbeta = log([1;3]);
-        logdelta = log([0.2;0.2]);
+        logbeta = log([2.5;100;0.5;0.1]);
+        logdelta = log([0.02;0.02;0.08]);
         logsigma = [];
-    case 'decay_full'
+    case 'transfection_full'
         % specify the true/guessed parameters here
-        logbeta = log([1;3]);
-        logdelta = log([0.2;0.2;0.5]);
+        logbeta = log([2.5;100;0.5;0.1]);
+        logdelta = log([0.02;0.001;0.001;0.02;0.001;0.08]);
         logsigma = [];
 end
 
 xi = [logbeta;logdelta;logsigma];
 
 % Index of experiments
-S = [1]; 
+S = [2]; 
 % exp_decay
-% 1 : Single-cell time lapse
+% 1 : Single-Cell Time Lapse   N=20  sigma_noise = 10
+% 2 : Populations Snapshot     N=100 sigma_noise = 10
+% 3 : Single-Cell Time Lapse   N=20  sigma_noise = 20
+% 4 : Populations Snapshot     N=100 sigma_noise = 20
 
 % generate the Model struct
 [Model,parameters_MEM] =  model_fun(logbeta,logdelta,logsigma);

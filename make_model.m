@@ -5,9 +5,10 @@ function [ Model ] = make_model( Model )
        error('Size of Model.param, Model.fixed_effect and Model.random_effect do not agree') 
     end
     
-    % strip parameters of whitespaces as this will cause problems with generation of symbolic variables
+    % strip parameters of bad characters as this will cause problems with generation of symbolic variables
     for j = 1:length(Model.param)
         Model.param{j} = strrep(Model.param{j},' ','_');
+        Model.param{j} = strrep(Model.param{j},'\','');
     end
     
     
@@ -30,21 +31,21 @@ function [ Model ] = make_model( Model )
             for j = 1:n;
                 if(Model.fixed_effect(j))
                     % construct variables corresponding to fixed effects
-                    eval(['syms m_' Model.param{j} ' beta_' Model.param{j} ';']);
-                    eval(['Model.sym.xi(k_f) = m_' Model.param{j} ';']);
-                    eval(['Model.sym.beta(k_f) = beta_' Model.param{j} ';']);
+                    eval(['syms M_' Model.param{j} ';']);
+                    eval(['Model.sym.xi(k_f) = M_' Model.param{j} ';']);
+                    eval(['Model.sym.beta(k_f) = M_' Model.param{j} ';']);
                     k_f = k_f + 1;
                 end
                 if(Model.random_effect(j))
                     % construct variables corresponding to radom effects
                     
                     eval(['syms b_' Model.param{j} ';']);
-                    ll = find(Model.random_effect(1:k_r+1));
+                    ll = find(Model.random_effect(1:k_r));
                     for l = 1:length(ll)
                         m = ll(l);
-                        eval(['syms C_' Model.param{j} '_' Model.param{m} ' delta_' Model.param{j} '_' Model.param{m} ';']);
+                        eval(['syms C_' Model.param{j} '_' Model.param{m} ';']);
                         eval(['Model.sym.xi(sum(Model.fixed_effect)+((k_r-1)^2+(k_r-1))/2+l) = C_' Model.param{j} '_' Model.param{m} ';']);
-                        eval(['Model.sym.delta(((k_r-1)^2+(k_r-1))/2+l) = delta_' Model.param{j} '_' Model.param{m} ';'])
+                        eval(['Model.sym.delta(((k_r-1)^2+(k_r-1))/2+l) = C_' Model.param{j} '_' Model.param{m} ';'])
                     end
                     eval(['Model.sym.b(k_r) = b_' Model.param{j} ';']);
                     

@@ -8,8 +8,7 @@ rng(0);
 
 % specify the model name you can add more in the switch definition to
 % easily switch between models
-model = 'decay_diag';
-% model = 'decay_full';
+model = 'toy';
 
 % specify the datafile here, this will be passed to your specified data_fun
 % as argument, this allows you to easily switch between different
@@ -18,28 +17,22 @@ datafile = 'synthetic';
 
 % specify the filename here, this will be used as a name to generate the
 % final results file
-filename = 'example_2';
+filename = 'example_1';
 
 switch(model)
-    % diagonal covariance matrix random effect
-    case 'decay_diag'
+    case 'toy'
         % specify the model_fun here this. function should use the true
         % parameters or a guess to generate as basic Model struct aswell as
         % the parameters_MEM struct
-        model_fun = @(logbeta,logdelta,logsigma) model_decay_diag(logbeta,logdelta,logsigma);
+        model_fun = @(logbeta,logdelta,logsigma) model_toy(logbeta,logdelta,logsigma);
         % specify the experiment_fun here. this function fills the Model
         % struct with experiments. S is a vector containing the indexes of
         % experiments to consider
-        experiment_fun = @(Model,S) experiments_decay_diag(Model,S);
+        experiment_fun = @(Model,S) experiments_toy(Model,S);
         % specify the data_fun here. this function generates the Data
         % struct by either loading experimental data from the datafile or
         % by generating synthetic data
-        data_fun = @(Data,Model,xi,S,datafile) data_decay(Data,Model,xi,S,datafile);
-    % full covariance matrix for random effect
-    case 'decay_full'
-        model_fun = @(logbeta,logdelta,logsigma) model_decay_full(logbeta,logdelta,logsigma);
-        experiment_fun = @(Model,S) experiments_decay_full(Model,S);
-        data_fun = @(Data,Model,xi,S,datafile) data_decay(Data,Model,xi,S,datafile);
+        data_fun = @(Data,Model,xi,S,datafile) data_toy(Data,Model,xi,S,datafile);
 end
 
 % check the date for indexing of results files
@@ -79,15 +72,10 @@ end
 %% Definition of mixed-effect model
 
 switch(model)
-    case 'decay_diag'
+    case 'toy'
         % specify the true/guessed parameters here
         logbeta = log([1;3]);
-        logdelta = log([0.2;0.2]);
-        logsigma = [];
-    case 'decay_full'
-        % specify the true/guessed parameters here
-        logbeta = log([1;3]);
-        logdelta = log([0.2;0.2;0.5]);
+        logdelta = log([0.7]);
         logsigma = [];
 end
 
@@ -135,8 +123,8 @@ clc
 options.fmincon = optimset('algorithm','trust-region-reflective',...
     'GradObj','on',...
     'MaxIter',1000,...
-    'TolFun',1e-6,...
-    'TolX',1e-8,...
+    'TolFun',1e-8,...
+    'TolX',1e-10,...
     'display','iter',... %        'display','final',...
     'MaxFunEvals',1000*parameters_MEM.number,...
     'Hessian','user-supplied');
