@@ -64,6 +64,8 @@ Y = sol.y;
 T = sol.root;
 R = sol.rootval;
 
+Y = Y(:);
+
 % Apply indexing
 Y = Y(ind_y,:);
 T = T(ind_t,:);

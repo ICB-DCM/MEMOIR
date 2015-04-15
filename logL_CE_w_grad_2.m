@@ -583,9 +583,15 @@ for s = 1:length(Data)
             end
             
             % Assignment of simulation results
-            Sim_SCTL.Y(:,:,i) = Y_si;
-            Sim_SCTL.T(:,:,i) = T_si;
-            Sim_SCTL.R(:,:,i) = R_si;
+            [I,J] = ind2sub([size(Sim_SCTL.Y,1),size(Sim_SCTL.Y,2)],ind_y);
+            for i_ind = 1:length(I)
+                Sim_SCTL.Y(I(i_ind),J(i_ind),i) = Y_si(i_ind);
+            end
+            [I,J] = ind2sub([size(Sim_SCTL.Y,1),size(Sim_SCTL.Y,2)],ind_t);
+            for i_ind = 1:length(I)
+                Sim_SCTL.T(I(i_ind),J(i_ind),i) = T_si(i_ind);
+                Sim_SCTL.R(I(i_ind),J(i_ind),i) = R_si(i_ind);
+            end
         end
         
         logL = logL + logL_D + logL_T + logL_b + logL_I;
