@@ -53,6 +53,13 @@
 %   .penaly ... flag indicating whether additional penalty terms for
 %       synchronisation of parameters across experiments should be applied.
 %       only applicable for SCTL data.
+%   .prior ... cell array containing prior information for the optimization
+%       parameters. the length of the cell array should not exceed the
+%       length of the optimization parameter. the prior is applied when
+%       there exist fields .mu and .std. these two parameters define a
+%       quadratic function centered around .mu multiplied with 1/(.std^2).
+%       in the case of logarithmic parametrisation this corresponds to a
+%       normal prior with mean .mu and variance (.std)^2.
 %   .exp ... cell array containing specific information about individual
 %       experiments. must have the following fields
 %       .PA_post_processing ... (optional, only for PA data) function
