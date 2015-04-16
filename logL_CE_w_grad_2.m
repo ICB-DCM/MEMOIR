@@ -343,11 +343,11 @@ for s = 1:length(Data)
             
             % Simulate model and compute derivatives
             if(nargout == 1)
-                [Y_si,T_si,R_si] = simulate_trajectory(t_s,phi_si,Model,Data,s,ind_t,ind_y);
+                [Y_si,T_si,R_si] = simulate_trajectory(t_s,phi_si,Model,Data{s}.condition,s,ind_t,ind_y);
             elseif(and(nargout == 2,Model.integration == 0))
-                [Y_si,T_si,R_si,dY_sidphi,dT_sidphi,dR_sidphi] = simulate_trajectory(t_s,phi_si,Model,Data,s,ind_t,ind_y);
+                [Y_si,T_si,R_si,dY_sidphi,dT_sidphi,dR_sidphi] = simulate_trajectory(t_s,phi_si,Model,Data{s}.condition,s,ind_t,ind_y);
             else
-                [Y_si,T_si,R_si,dY_sidphi,dT_sidphi,dR_sidphi,ddY_sidphidphi,ddT_sidphidphi,ddR_sidphidphi] = simulate_trajectory(t_s,phi_si,Model,Data,s,ind_t,ind_y);
+                [Y_si,T_si,R_si,dY_sidphi,dT_sidphi,dR_sidphi,ddY_sidphidphi,ddT_sidphidphi,ddR_sidphidphi] = simulate_trajectory(t_s,phi_si,Model,Data{s}.condition,s,ind_t,ind_y);
             end
 
             % Construct sigma
