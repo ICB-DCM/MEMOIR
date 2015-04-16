@@ -41,14 +41,24 @@ elseif nargout < 7
     optionmu.sensi = 1; % number of requested sensitivities
     sol = Model.exp{s}.model(t,phi,kappa,optionmu);
     dYdphi = sol.sy;
-    dTdphi = sol.sroot(ind_t,:,:);
-    dRdphi = sol.srootval(ind_t,:,:);
+    if(isfield(sol,'sroot'))
+        dTdphi = sol.sroot(ind_t,:,:);
+        dRdphi = sol.srootval(ind_t,:,:);
+    else
+        dTdphi = zeros(0,sum(ind_t),length(phi));
+        dRdphi = zeros(0,sum(ind_t),length(phi));
+    end
 else
     optionmu.sensi = 2; % number of requested sensitivities
     sol = Model.exp{s}.model(t,phi,kappa,optionmu);
     dYdphi = sol.sy;
-    dTdphi = sol.sroot(ind_t,:,:);
-    dRdphi = sol.srootval(ind_t,:,:);
+    if(isfield(sol,'sroot'))
+        dTdphi = sol.sroot(ind_t,:,:);
+        dRdphi = sol.srootval(ind_t,:,:);
+    else
+        dTdphi = zeros(0,sum(ind_t),length(phi));
+        dRdphi = zeros(0,sum(ind_t),length(phi));
+    end
     try
         ddYdphidphi = sol.s2y;
         ddTdphidphi = sol.s2root(ind_t,:,:,:);
@@ -56,13 +66,25 @@ else
     catch
         % fallback if no second order sensitivities are available
         ddYdphidphi = zeros(length(t),size(sol.sy,2),length(phi),length(phi));
-        ddTdphidphi = zeros(sum(ind_t),size(sol.sroot,2),length(phi),length(phi));
-        ddRdphidphi = zeros(sum(ind_t),size(sol.srootval,2),length(phi),length(phi));
+        if(isfield(sol,'sroot'))
+            ddTdphidphi = zeros(sum(ind_t),size(sol.sroot,2),length(phi),length(phi));
+            ddRdphidphi = zeros(sum(ind_t),size(sol.srootval,2),length(phi),length(phi));
+        else
+            ddTdphidphi = zeros(sum(ind_t),1,length(phi),length(phi));
+            ddRdphidphi = zeros(sum(ind_t),1,length(phi),length(phi));
+        end
+        
     end
 end
 Y = sol.y;
-T = sol.root;
-R = sol.rootval;
+if(isfield(sol,'root'))
+    T = sol.root;
+    R = sol.rootval;
+else
+    T = zeros(0,sum(ind_t));
+    R = zeros(0,sum(ind_t));
+end
+Y = Y(:);
 
 % Apply indexing
 Y = Y(ind_y,:);
