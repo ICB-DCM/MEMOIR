@@ -18,7 +18,7 @@
 %   .SCTL ... Single-Cell-Time-Lapse; must have the following subfields
 %       .time ... vector of time-points at which measurements were taken
 %       .Y ... measurements, 3rd order tensor [time,observable,cells]
-%       .T ... events, 3rd order tensor [time,event,cells]
+%       .T ... (optional) events, 3rd order tensor [time,event,cells]
 %   .SCTLstat ... Single-Cell-Time-Lapse-Statistics; must have the following subfields
 %       .time ... vector of time-points at which measurements were taken
 %       .mz ... full state vector of all observables at all times
@@ -76,22 +76,24 @@
 %               t ... time
 %               phi ... mixed effect parameter
 %               kappa ... experimental condtion
-%               option ... additional model-options
-%           which outputs a struct
+%               option_model ... struct which can carry additional options such
+%                   as the number of required sensitivities
+%           the function handle should return the following object
 %               sol ... solution struct with the following fields
-%                   options.sensi >= 0
+%                   (depending on the value of option_model.sensi)
+%                   for option_model.sensi >= 0
 %                   .status ... >= 0 for successful simulation
 %                   .y ... model output for observable, matrix [time,measurement]
-%                   .root ... model output for event, matrix [time,event]
-%                   .rootval ... model output for rootfunction, matrix [time,event]
-%                   options.sensi >= 1
+%                   .root ... (optional) model output for event, matrix [time,event]
+%                   .rootval ... (optional)  model output for rootfunction, matrix [time,event]
+%                   for option_model.sensi >= 1
 %                   .sy ... sensitivity for observable, matrix [time,measurement]
-%                   .sroot ... sensitivity for event, matrix [time,event]
-%                   .srootval ... sensitivity for rootfunction, matrix [time,event]
-%                   options.sensi >= 2 (optional)
+%                   .sroot ... (optional) sensitivity for event, matrix [time,event]
+%                   .srootval ... (optional) sensitivity for rootfunction, matrix [time,event]
+%                   for option_model.sensi >= 2 (optional)
 %                   .s2y ... second order sensitivity for observable, matrix [time,measurement]
-%                   .s2root ... second order sensitivity for event, matrix [time,event]
-%                   .s2rootval ... second order sensitivity for rootfunction, matrix [time,event]
+%                   .s2root ... (optional) second order sensitivity for event, matrix [time,event]
+%                   .s2rootval ... (optional) second order sensitivity for rootfunction, matrix [time,event]
 %      .fh ...figure handle for plotting of simulation
 %      .fp ...figure handle for plotting of random effect distribution
 %      .fl ...figure handle for plotting of likelihood contributions
@@ -254,6 +256,9 @@ for s = 1:length(Data)
         % measurements
         Sim_SCTL.Y = nan(size(Data{s}.SCTL.Y));
         % events
+        if(~isfield(Data{s}.SCTL,'T'))
+            Data{s}.SCTL.T = zeros(0,1,size(Data{s}.SCTL.Y,3));
+        end
         Sim_SCTL.T = nan(size(Data{s}.SCTL.T));
         Sim_SCTL.R = nan(size(Data{s}.SCTL.T));
         

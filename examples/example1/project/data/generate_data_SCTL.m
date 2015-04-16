@@ -24,8 +24,6 @@ function [Data] = generate_data_SCTL(Data,Model,s,xi,datafile)
                     Data{s}.SCTL.Y(:,:,i) = Y + Model.exp{s}.noise_on*Model.exp{s}.sigma_noise(phi_i)*randn(size(Y));
                     Data{s}.SCTL.Sigma_Y(:,:,i) = Model.exp{s}.sigma_noise(phi_i)*ones(size(Y));
                 end
-                Data{s}.SCTL.T(:,:,i) = sol.root(sol.root>0) + repmat(Model.exp{s}.sigma_time(phi_i),[sum(sol.root>0),1]);
-                Data{s}.SCTL.Sigma_T(:,:,i) = repmat(Model.exp{s}.sigma_time(phi_i),[sum(sol.root>0),1]);
             end
         otherwise
             num = xlsread(['./project/data/' datafile '.xls']);
