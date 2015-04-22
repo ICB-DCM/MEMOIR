@@ -904,7 +904,7 @@ if isfield(Model,'prior')
                             dlogLdxi(ixi) =  dlogLdxi(ixi) + ((xi(ixi)-Model.prior{ixi}.mu)/Model.prior{ixi}.std^2);
                             if nargout >= 3
                                 % Two outputs
-                                ddlogLdxidxi =  ddlogLdxidxi + 1/Model.prior{ixi}.std^2;
+                                ddlogLdxidxi(ixi,ixi) =  ddlogLdxidxi(ixi,ixi) + 1/Model.prior{ixi}.std^2;
                             end
                         end
                     end
