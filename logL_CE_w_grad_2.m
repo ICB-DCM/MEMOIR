@@ -732,9 +732,9 @@ for s = 1:length(Data)
         % Evaluation of likelihood, likelihood gradient and hessian
         
         % Mean
-        logL_mz = - 0.5*sum(sum(((Data{s}.SCTLstat.mz - mz_SP)./Data{s}.SCTLstat.Sigma_mz).^2,1),2);
+        logL_mz = - 0.5*sum(nansum(((Data{s}.SCTLstat.mz - mz_SP)./Data{s}.SCTLstat.Sigma_mz).^2,1),2);
         if nargout >= 2
-            dlogL_mzdxi = permute(sum(bsxfun(@times,(Data{s}.SCTLstat.mz - mz_SP)./Data{s}.SCTLstat.Sigma_mz.^2,dmz_SPdxi),1),[2,1]);
+            dlogL_mzdxi = permute(nansum(bsxfun(@times,(Data{s}.SCTLstat.mz - mz_SP)./Data{s}.SCTLstat.Sigma_mz.^2,dmz_SPdxi),1),[2,1]);
             if nargout >= 3
                 wdmz_SP = bsxfun(@times,1./Data{s}.SCTLstat.Sigma_mz,dmz_SPdxi);
                 %                     wdmz_SP = reshape(wdmz_SP,[numel(mz_SP),size(dmz_SPdxi,3)]);
@@ -744,9 +744,9 @@ for s = 1:length(Data)
         
         
         % Covariance
-        logL_Cz = - 0.5*sum(sum(sum(((Data{s}.SCTLstat.Cz - Cz_SP)./Data{s}.SCTLstat.Sigma_Cz).^2,1),2),3);
+        logL_Cz = - 0.5*sum(nansum(nansum(((Data{s}.SCTLstat.Cz - Cz_SP)./Data{s}.SCTLstat.Sigma_Cz).^2,1),2),3);
         if nargout >= 2
-            dlogL_Czdxi = squeeze(sum(sum(bsxfun(@times,(Data{s}.SCTLstat.Cz - Cz_SP)./Data{s}.SCTLstat.Sigma_Cz.^2,dCz_SPdxi),1),2));
+            dlogL_Czdxi = squeeze(nansum(nansum(bsxfun(@times,(Data{s}.SCTLstat.Cz - Cz_SP)./Data{s}.SCTLstat.Sigma_Cz.^2,dCz_SPdxi),1),2));
             if nargout >= 3
                 wdCz_SP = bsxfun(@times,1./Data{s}.SCTLstat.Sigma_Cz,dCz_SPdxi);
                 wdCz_SP = reshape(wdCz_SP,[numel(Cz_SP),size(dCz_SPdxi,3)]);
@@ -787,9 +787,9 @@ for s = 1:length(Data)
         
         % Evaluation of likelihood, likelihood gradient and hessian
         % Mean
-        logL_m = - 0.5*sum(sum(((Data{s}.SCSH.m - m_SP)./Data{s}.SCSH.Sigma_m).^2,1),2);
+        logL_m = - 0.5*nansum(nansum(((Data{s}.SCSH.m - m_SP)./Data{s}.SCSH.Sigma_m).^2,1),2);
         if nargout >= 2
-            dlogL_mdxi = squeeze(sum(sum(bsxfun(@times,(Data{s}.SCSH.m - m_SP)./Data{s}.SCSH.Sigma_m.^2,dm_SP),1),2));
+            dlogL_mdxi = squeeze(nansum(nansum(bsxfun(@times,(Data{s}.SCSH.m - m_SP)./Data{s}.SCSH.Sigma_m.^2,dm_SP),1),2));
             if nargout >= 3
                 wdm_SP = bsxfun(@times,1./Data{s}.SCSH.Sigma_m,dm_SP);
                 wdm_SP = reshape(wdm_SP,[numel(m_SP),size(dm_SP,3)]);
@@ -798,9 +798,9 @@ for s = 1:length(Data)
         end
         
         % Covariance
-        logL_C = - 0.5*sum(sum(sum(((Data{s}.SCSH.C - C_SP)./Data{s}.SCSH.Sigma_C).^2,1),2),3);
+        logL_C = - 0.5*sum(nansum(nansum(((Data{s}.SCSH.C - C_SP)./Data{s}.SCSH.Sigma_C).^2,1),2),3);
         if nargout >= 2
-            dlogL_Cdxi = squeeze(sum(sum(sum(bsxfun(@times,(Data{s}.SCSH.C - C_SP)./Data{s}.SCSH.Sigma_C.^2,dC_SP),1),2),3));
+            dlogL_Cdxi = squeeze(nansum(nansum(nansum(bsxfun(@times,(Data{s}.SCSH.C - C_SP)./Data{s}.SCSH.Sigma_C.^2,dC_SP),1),2),3));
             if nargout >= 3
                 wdC_SP = bsxfun(@times,1./Data{s}.SCSH.Sigma_C,dC_SP);
                 wdC_SP = reshape(wdC_SP,[numel(C_SP),size(dC_SP,4)]);
@@ -850,9 +850,9 @@ for s = 1:length(Data)
         
         
         % Evaluation of likelihood, likelihood gradient and hessian
-        logL_m = - 0.5*sum(sum(((Data{s}.PA.m - m_SP)./Data{s}.PA.Sigma_m).^2,1),2);
+        logL_m = - 0.5*nansum(nansum(((Data{s}.PA.m - m_SP)./Data{s}.PA.Sigma_m).^2,1),2);
         if nargout >= 2
-            dlogL_mdxi = squeeze(sum(sum(bsxfun(@times,(Data{s}.PA.m - m_SP)./Data{s}.PA.Sigma_m.^2,dm_SP),1),2));
+            dlogL_mdxi = squeeze(nansum(nansum(bsxfun(@times,(Data{s}.PA.m - m_SP)./Data{s}.PA.Sigma_m.^2,dm_SP),1),2));
             if nargout >= 3
                 wdm_SP = bsxfun(@times,1./Data{s}.PA.Sigma_m,dm_SP);
                 wdm_SP = reshape(wdm_SP,[numel(m_SP),size(dm_SP,3)]);

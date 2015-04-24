@@ -5,7 +5,7 @@
 function varargout = normal_time(T,Tm,R,Sigma,ind)
 if nargout >=1
     % J_T
-    varargout{1} = sum(0.5*((T(ind) - Tm(ind))./Sigma(ind)).^2 + 0.5*((R(ind))./Sigma(ind)).^2 + log(sqrt(2*pi)*Sigma(ind).^2));
+    varargout{1} = sum(0.5*((T(ind) - Tm(ind))./Sigma(ind)).^2 + 0.5*((R(ind))./Sigma(ind)).^2 + log(2*pi*Sigma(ind).^2));
     if nargout >= 2
         % dJ_TdT
         varargout{2} = transpose((T(ind) - Tm(ind))./(Sigma(ind).^2));
