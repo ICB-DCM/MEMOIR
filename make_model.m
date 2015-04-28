@@ -44,7 +44,7 @@ if(isfield(Model,'fixed_effect') && ~isfield(Model,'common_effect'))
 end
 
 if(any([length(Model.param)~=length(Model.common_effect),length(Model.param)~=length(Model.random_effect),length(Model.common_effect)~=length(Model.random_effect)]))
-    error('Size of Model.param, Model.common_effect and Model.random_effect do not agree')
+    error('Size of Model.param, Model.common_effect and Model.random_effect (Model.fixed_effect) do not agree')
 end
 
 % strip parameters of bad characters as this will cause problems with generation of symbolic variables

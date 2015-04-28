@@ -12,4 +12,9 @@ else
     varargout{2} = sol.sy;
 end
 
+if sol.status < 0
+    error('Integration error in simulateForSP.m.')
+end
+
+
 end

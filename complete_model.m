@@ -4,7 +4,7 @@
 % 
 % USAGE:
 % ======
-% MODEL = complete_model(MODEL)
+% MODEL = complete_model(MODEL,S)
 %
 % INPUTS:
 % =======
@@ -21,7 +21,7 @@
 %       .delta ... is the parametrisation of the covariance matrix. this
 %       definition should be chosen in accordance to the definition of the
 %       respective parametrisation given in Model.type_D
-% problem
+% S ... vector containing indexes of considered experiments
 %
 % Outputs:
 % ========
@@ -88,10 +88,38 @@ try
         f_phiexp(s) = isequaln(Model.exp{s}.sym.phi,expsyms{s}.phi);
         f_sigma_noiseexp(s) = isequaln(Model.exp{s}.sym.sigma_noise,expsyms{s}.sigma_noise);
         f_sigma_timeexp(s) = isequaln(Model.exp{s}.sym.sigma_time,expsyms{s}.sigma_time);
+        
+        f_files(s) = all([exist([mdir 'MEMfn/' filename '/MEMbeta_' num2str(S(s))],'file'),...
+        exist([mdir 'MEMfn/' filename '/MEMdelta_' num2str(S(s))],'file'),...
+        exist([mdir 'MEMfn/' filename '/MEMdbetadxi_' num2str(S(s))],'file'),...
+        exist([mdir 'MEMfn/' filename '/MEMddeltadxi_' num2str(S(s))],'file'),...
+        exist([mdir 'MEMfn/' filename '/MEMddbetadxidxi_' num2str(S(s))],'file'),...
+        exist([mdir 'MEMfn/' filename '/MEMdddeltadxidxi_' num2str(S(s))],'file'),...
+        exist([mdir 'MEMfn/' filename '/MEMsigma_noise_' num2str(S(s))],'file'),...
+        exist([mdir 'MEMfn/' filename '/MEMdsigma_noisedphi_' num2str(S(s))],'file'),...
+        exist([mdir 'MEMfn/' filename '/MEMddsigma_noisedphidphi_' num2str(S(s))],'file'),...
+        exist([mdir 'MEMfn/' filename '/MEMdddsigma_noisedphidphidphi_' num2str(S(s))],'file'),...
+        exist([mdir 'MEMfn/' filename '/MEMsigma_time_' num2str(S(s))],'file'),...
+        exist([mdir 'MEMfn/' filename '/MEMdsigma_timedphi_' num2str(S(s))],'file'),...
+        exist([mdir 'MEMfn/' filename '/MEMddsigma_timedphidphi_' num2str(S(s))],'file'),...
+        exist([mdir 'MEMfn/' filename '/MEMdddsigma_timedphidphidphi_' num2str(S(s))],'file'),...
+        exist([mdir 'MEMfn/' filename '/MEMphi_' num2str(S(s))],'file'),...
+        exist([mdir 'MEMfn/' filename '/MEMdphidbeta_' num2str(S(s))],'file'),...
+        exist([mdir 'MEMfn/' filename '/MEMdphidb_' num2str(S(s))],'file'),...
+        exist([mdir 'MEMfn/' filename '/MEMddphidbdb_' num2str(S(s))],'file'),...
+        exist([mdir 'MEMfn/' filename '/MEMddphidbetadbeta_' num2str(S(s))],'file'),...
+        exist([mdir 'MEMfn/' filename '/MEMddphidbdbeta_' num2str(S(s))],'file')]);
     end
-    if(all([f_xi,f_phi,f_beta,f_b,f_delta,f_exps,f_phiexp,f_sigma_noiseexp,f_sigma_timeexp]))
+        
+    if(all([f_xi,f_phi,f_beta,f_b,f_delta,f_exps,f_phiexp,f_sigma_noiseexp,f_sigma_timeexp,f_files]))
         if(Model.integration)
             % TBD
+            if(Model.integration)
+            eval(['Model.exp{s}.ddddsigma_timedphidphidphidphi = @MEMddddsigma_timedphidphidphidphi_' num2str(S(s)) ';']);
+            end
+            if(Model.integration)
+            eval(['Model.exp{s}.ddddsigma_noisedphidphidphidphi = @MEMddddsigma_noisedphidphidphidphi_' num2str(S(s)) ';']);
+            end
         else
             % load old definition
             loadold = true; 
@@ -100,12 +128,12 @@ try
         end
     end
 catch
-    disp(['Generating new model definition files!'])
+
 end    
 
 if(~loadold)
     % if we cannot load the old definition, we have to generate a new one
-
+    disp(['Generating new model definition files!'])
     % remove all other models from the path
     for s=1:length(S)
         if(~strcmp(which(['MEMbeta_' num2str(S(s))]),''))
@@ -159,7 +187,7 @@ if(~loadold)
         Model.exp{s}.sym.beta = Model.sym.beta(Model.exp{s}.ind_beta);
         Model.exp{s}.sym.b = Model.sym.b(Model.exp{s}.ind_b);
         Model.exp{s}.sym.delta = Model.sym.delta(Model.exp{s}.ind_delta);
-        phi = Model.sym.phi(Model.exp{s}.ind_phi);
+        phi = Model.sym.phi(1:length(Model.exp{s}.sym.phi));
         
         % compute parameter length
         n_beta = length(Model.exp{s}.sym.beta);
