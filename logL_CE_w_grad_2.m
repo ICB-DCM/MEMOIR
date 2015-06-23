@@ -271,16 +271,12 @@ for s = 1:length(Data)
         
         % Loop: Indiviudal cells
         
-        if nargout >= 2
-            dbetadxi = Model.exp{s}.dbetadxi(xi);
-            ddeltadxi = Model.exp{s}.ddeltadxi(xi);
-            if nargout >= 3
-                ddbetadxidxi = Model.exp{s}.ddbetadxidxi(xi);
-                dddeltadxidxi = Model.exp{s}.dddeltadxidxi(xi);
-            end
-        end
+        dbetadxi = Model.exp{s}.dbetadxi(xi);
+        ddeltadxi = Model.exp{s}.ddeltadxi(xi);
+        ddbetadxidxi = Model.exp{s}.ddbetadxidxi(xi);
+        dddeltadxidxi = Model.exp{s}.dddeltadxidxi(xi);
         
-        for i = 1:size(Data{s}.SCTL.Y,3)
+        parfor i = 1:size(Data{s}.SCTL.Y,3)
             % Load single-cell data
             Ym_si = Data{s}.SCTL.Y(ind_time,:,i);
             ind_y = find(~isnan(Ym_si));
