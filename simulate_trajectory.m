@@ -50,6 +50,7 @@ elseif nargout < 7
     end
 else
     optionmu.sensi = 2; % number of requested sensitivities
+    optionmu.linsol = 9;
     sol = Model.exp{s}.model(t,phi,kappa,optionmu);
     dYdphi = sol.sy;
     if(isfield(sol,'sroot'))

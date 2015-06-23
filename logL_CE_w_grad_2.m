@@ -50,7 +50,7 @@
 %   .integration ... flag indicating whether integration for classical
 %       mixed effect models via laplace approximation should be applied.
 %       only applicable for SCTL data.
-%   .penaly ... flag indicating whether additional penalty terms for
+%   .penalty ... flag indicating whether additional penalty terms for
 %       synchronisation of parameters across experiments should be applied.
 %       only applicable for SCTL data.
 %   .prior ... cell array containing prior information for the optimization
@@ -262,7 +262,24 @@ for s = 1:length(Data)
         Sim_SCTL.T = nan(size(Data{s}.SCTL.T));
         Sim_SCTL.R = nan(size(Data{s}.SCTL.T));
         
+        % load values from previous evaluation as initialisation
+        if logL_old == -inf
+            bhat_0 = zeros(length(Model.exp{s}.ind_b),size(Data{s}.SCTL.Y,3));
+        else
+            bhat_0 = P_old{s}.SCTL.bhat;
+        end
+        
         % Loop: Indiviudal cells
+        
+        if nargout >= 2
+            dbetadxi = Model.exp{s}.dbetadxi(xi);
+            ddeltadxi = Model.exp{s}.ddeltadxi(xi);
+            if nargout >= 3
+                ddbetadxidxi = Model.exp{s}.ddbetadxidxi(xi);
+                dddeltadxidxi = Model.exp{s}.dddeltadxidxi(xi);
+            end
+        end
+        
         for i = 1:size(Data{s}.SCTL.Y,3)
             % Load single-cell data
             Ym_si = Data{s}.SCTL.Y(ind_time,:,i);
@@ -271,12 +288,7 @@ for s = 1:length(Data)
             Tm_si = Data{s}.SCTL.T(:,:,i);
             ind_t = find(~isnan(Tm_si));
             
-            % load values from previous evaluation as initialisation
-            if logL_old == -inf
-                bhat_si0 = zeros(length(Model.exp{s}.ind_b),1);
-            else
-                bhat_si0 = P_old{s}.SCTL.bhat(:,i);
-            end
+            bhat_si0 = bhat_0(:,i);
             
             %% Estimation of single cell random effects
             % Higher order derivatives of the objective function for single cell parameters
@@ -336,7 +348,7 @@ for s = 1:length(Data)
             end
             
             % Store bhat
-            P{s}.SCTL.bhat(:,i) = bhat_si;
+            bhat(:,i) = bhat_si;
             
             % Construct single-cell parameter
             phi_si = Model.exp{s}.phi(beta,bhat_si);
@@ -452,8 +464,6 @@ for s = 1:length(Data)
             
             if nargout >= 2
                 % first order derivatives
-                dbetadxi = Model.exp{s}.dbetadxi(xi);
-                ddeltadxi = Model.exp{s}.ddeltadxi(xi);
                 dphidb = Model.exp{s}.dphidb(beta,bhat_si);
                 pdphipdbeta  = Model.exp{s}.dphidbeta(beta,bhat_si);
                 
@@ -468,7 +478,7 @@ for s = 1:length(Data)
                 dJ_Tdxi = chainrule(dJ_Tdphi,dphidxi);
                 
                 dbdxi = chainrule(dbhat_sidbeta,dbetadxi) + chainrule(dbhat_siddelta,ddeltadxi);
-                P{s}.SCTL.dbdxi(:,:,i) = dbdxi;
+                dbhatdxi(:,:,i) = dbdxi;
                 
                 dJ_bdxi = chainrule(dJ_bdb,dbdxi) + chainrule(pdJ_bpddelta,ddeltadxi);
                 
@@ -498,8 +508,6 @@ for s = 1:length(Data)
                 
                 if nargout >= 3
                     % second order derivatives
-                    ddbetadxidxi = Model.exp{s}.ddbetadxidxi(xi);
-                    dddeltadxidxi = Model.exp{s}.dddeltadxidxi(xi);
                     
                     ddphidbdb = Model.exp{s}.ddphidbdb(beta,bhat_si);
                     ddphidbdbeta = Model.exp{s}.ddphidbdbeta(beta,bhat_si);
@@ -557,7 +565,7 @@ for s = 1:length(Data)
                         + chainrule_ddxdydy_dydz_dydv(ddbhat_sidbetaddelta,dbetadxi,ddeltadxi) ...
                         + chainrule_ddxdydy_dydz_dydv(permute(ddbhat_sidbetaddelta,[1,3,2]),ddeltadxi,dbetadxi);
                     
-                    P{s}.SCTL.ddbdxidxi(:,:,:,i) = ddbdxidxi;
+                    ddbhatdxidxi(:,:,:,i) = ddbdxidxi;
                     
                     ddJ_bdxidxi = chainrule(dJ_bdb,ddbdxidxi) + chainrule_ddxdydy_dydz(ddJ_bdbdb,dbdxi) ...
                         + chainrule(pdJ_bpddelta,dddeltadxidxi) + chainrule_ddxdydy_dydz(pdpdJ_bpddeltapddelta,ddeltadxi) ...
@@ -594,15 +602,42 @@ for s = 1:length(Data)
                 
             end
             
+            Y_si_tmp{i} = Y_si;
+            T_si_tmp{i} = T_si;
+            R_si_tmp{i} = R_si;
+            
+        end
+        
+        for k = 1:size(Data{s}.SCTL.Y,3)
+            
+            Ym_si = Data{s}.SCTL.Y(ind_time,:,k);
+            idx_y = find(~isnan(Ym_si));
+            
+            Tm_si = Data{s}.SCTL.T(:,:,k);
+            idx_t = find(~isnan(Tm_si));
+            
             % Assignment of simulation results
-            [I,J] = ind2sub([size(Sim_SCTL.Y,1),size(Sim_SCTL.Y,2)],ind_y);
+            [I,J] = ind2sub([size(Sim_SCTL.Y,1),size(Sim_SCTL.Y,2)],idx_y);
             for i_ind = 1:length(I)
-                Sim_SCTL.Y(I(i_ind),J(i_ind),i) = Y_si(i_ind);
+                Y_si = Y_si_tmp{k};
+                Sim_SCTL.Y(I(i_ind),J(i_ind),k) = Y_si(i_ind);
             end
-            [I,J] = ind2sub([size(Sim_SCTL.Y,1),size(Sim_SCTL.Y,2)],ind_t);
+            [I,J] = ind2sub([size(Sim_SCTL.Y,1),size(Sim_SCTL.Y,2)],idx_t);
             for i_ind = 1:length(I)
-                Sim_SCTL.T(I(i_ind),J(i_ind),i) = T_si(i_ind);
-                Sim_SCTL.R(I(i_ind),J(i_ind),i) = R_si(i_ind);
+                T_si = T_si_tmp{k};
+                R_si = R_si_tmp{k};
+                Sim_SCTL.T(I(i_ind),J(i_ind),k) = T_si(i_ind);
+                Sim_SCTL.R(I(i_ind),J(i_ind),k) = R_si(i_ind);
+            end
+        end
+        
+        if nargout >= 1
+            P{s}.SCTL.bhat = bhat;
+            if nargout >= 2
+                P{s}.SCTL.dbdxi = dbhatdxi;
+                if nargout >= 3
+                    P{s}.SCTL.ddbdxidxi = ddbhatdxidxi;
+                end
             end
         end
         
@@ -611,7 +646,6 @@ for s = 1:length(Data)
         if(Model.penalty)
             % parameter penalization terms
             % logL_s = log(p(mu_S,S_s|b_s,D))
-            P{s}.SCTL.bhat(:,i) = bhat_si;
             if nargout<= 1
                 logL_s = penal_param(P{s}.SCTL.bhat,delta,type_D);
             elseif nargout<= 2

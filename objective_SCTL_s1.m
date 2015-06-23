@@ -75,11 +75,17 @@ else
 end
 
 % simulate trajectory
-if(nargout == 1)
+if(nargout == 1) 
     [Y,T,R] = simulate_trajectory(t,phi,Model,kappa,s,ind_t,ind_y);
 elseif(or(nargout == 2,nargout == 3))
+    % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(phi,@(phi)simulate_trajectory(t,phi,Model,kappa,s,ind_t,ind_y),1e-5,1,4)
+    % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(phi,@(phi)simulate_trajectory(t,phi,Model,kappa,s,ind_t,ind_y),1e-5,2,5)
+    % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(phi,@(phi)simulate_trajectory(t,phi,Model,kappa,s,ind_t,ind_y),1e-5,3,6)
     [Y,T,R,dYdphi,dTdphi,dRdphi] = simulate_trajectory(t,phi,Model,kappa,s,ind_t,ind_y);
 else
+    % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(phi,@(phi)simulate_trajectory(t,phi,Model,kappa,s,ind_t,ind_y),1e-5,4,7)
+    % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(phi,@(phi)simulate_trajectory(t,phi,Model,kappa,s,ind_t,ind_y),1e-5,5,8)
+    % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(phi,@(phi)simulate_trajectory(t,phi,Model,kappa,s,ind_t,ind_y),1e-5,6,9)
     [Y,T,R,dYdphi,dTdphi,dRdphi,ddYdphidphi,ddTdphidphi,ddRdphidphi] = simulate_trajectory(t,phi,Model,kappa,s,ind_t,ind_y);
 end
 
