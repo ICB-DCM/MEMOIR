@@ -657,7 +657,7 @@ for s = 1:length(Data)
         if nderiv > 1
             dlogLdxi = dlogLdxi + sum(dlogLi_Ddxi + dlogLi_Tdxi + dlogLi_bdxi + dlogLi_Idxi,2);
             if nderiv > 2
-                ddlogLdxidxi = ddlogLdxidxi + sum(ddlogLi_Ddxidxi + ddlogLi_Tdxidxi + ddlogLi_bdxidxi + ddlogLi_Idxidxi,2);
+                ddlogLdxidxi = ddlogLdxidxi + squeeze(sum(ddlogLi_Ddxidxi + ddlogLi_Tdxidxi + ddlogLi_bdxidxi + ddlogLi_Idxidxi,3));
             end
         end
         
