@@ -244,10 +244,6 @@ for s = 1:length(Data)
     %% Single cell time-lapse data - Individuals
     if isfield(Data{s},'SCTL')
         % Reset values of Data likelihood and parameter likelihood
-        logL_D = 0;
-        logL_T = 0;
-        logL_b = 0;
-        logL_I = 0;
         
         % Evaluation of time index set
         [~,ind_time] = ismember(Data{s}.SCTL.time,t_s);
@@ -276,7 +272,25 @@ for s = 1:length(Data)
         ddbetadxidxi = Model.exp{s}.ddbetadxidxi(xi);
         dddeltadxidxi = Model.exp{s}.dddeltadxidxi(xi);
         
+        logLi_D = zeros(1,size(Data{s}.SCTL.Y,3));
+        logLi_T = zeros(1,size(Data{s}.SCTL.Y,3));
+        logLi_b = zeros(1,size(Data{s}.SCTL.Y,3));
+        logLi_I = zeros(1,size(Data{s}.SCTL.Y,3));
+        if nargout > 1
+            dlogLi_Ddxi = zeros(length(xi),size(Data{s}.SCTL.Y,3));
+            dlogLi_Tdxi = zeros(length(xi),size(Data{s}.SCTL.Y,3));
+            dlogLi_bdxi = zeros(length(xi),size(Data{s}.SCTL.Y,3));
+            dlogLi_Idxi = zeros(length(xi),size(Data{s}.SCTL.Y,3));
+            if nargout > 2
+                ddlogLi_Ddxidxi = zeros(length(xi),length(xi),size(Data{s}.SCTL.Y,3));
+                ddlogLi_Tdxidxi = zeros(length(xi),length(xi),size(Data{s}.SCTL.Y,3));
+                ddlogLi_bdxidxi = zeros(length(xi),length(xi),size(Data{s}.SCTL.Y,3));
+                ddlogLi_Idxidxi = zeros(length(xi),length(xi),size(Data{s}.SCTL.Y,3));
+            end
+        end
+        
         parfor i = 1:size(Data{s}.SCTL.Y,3)
+        
             % Load single-cell data
             Ym_si = Data{s}.SCTL.Y(ind_time,:,i);
             ind_y = find(~isnan(Ym_si));
@@ -448,14 +462,13 @@ for s = 1:length(Data)
                     end
             end
             
-            logL_D = logL_D - J_D;
-            logL_T = logL_T - J_T;
-            logL_b = logL_b - J_b;
-            
+            logLi_D(1,i) =  - J_D;
+            logLi_T(1,i)  = - J_T;
+            logLi_b(1,i)  = - J_b;
             
             if(Model.integration)
                 % laplace approximation
-                logL_I = logL_I - 0.5*log(det(G));
+                logLi_I(1,i) = - 0.5*log(det(G));
             end
             
             if nargout >= 2
@@ -478,7 +491,9 @@ for s = 1:length(Data)
                 
                 dJ_bdxi = chainrule(dJ_bdb,dbdxi) + chainrule(pdJ_bpddelta,ddeltadxi);
                 
-                dlogLdxi = dlogLdxi - transpose(dJ_Ddxi) - transpose(dJ_Tdxi) - transpose(dJ_bdxi);
+                dlogLi_Ddxi(:,i) = - transpose(dJ_Ddxi);
+                dlogLi_Tdxi(:,i) = - transpose(dJ_Tdxi); 
+                dlogLi_bdxi(:,i) = - transpose(dJ_bdxi);
                 
                 if(Model.integration)
                     % laplace approximation
@@ -496,10 +511,7 @@ for s = 1:length(Data)
                         dGdxi = chainrule(dGdbeta,dbetadxi) + chainrule(dGddelta,ddeltadxi);
                     end
                     
-                    
-                    
-                    dlogLdxi = dlogLdxi ...
-                        - 0.5*squeeze(sum(sum(bsxfun(@times,squeeze(sum(bsxfun(@times,invG,permute(dGdxi,[4,1,2,3])),2)),eye(length(bhat_si))),1),2)); % 1/2*Tr(invG*dG)
+                    dlogLi_Idxi(:,i) = - 0.5*squeeze(sum(sum(bsxfun(@times,squeeze(sum(bsxfun(@times,invG,permute(dGdxi,[4,1,2,3])),2)),eye(length(bhat_si))),1),2)); % 1/2*Tr(invG*dG)
                 end
                 
                 if nargout >= 3
@@ -568,7 +580,10 @@ for s = 1:length(Data)
                         + chainrule_ddxdydy_dydz_dydv(dpdJ_bdbpddelta,dbdxi,ddeltadxi) ...
                         + chainrule_ddxdydy_dydz_dydv(permute(dpdJ_bdbpddelta,[2,1]),ddeltadxi,dbdxi);
                     
-                    ddlogLdxidxi = ddlogLdxidxi - ddJ_Ddxidxi  - ddJ_bdxidxi - ddJ_Tdxidxi;
+                    ddlogLi_Ddxidxi(:,:,i) = - ddJ_Ddxidxi;
+                    ddlogLi_Tdxidxi(:,:,i) = - ddJ_Tdxidxi;
+                    ddlogLi_bdxidxi(:,:,i) = - ddJ_bdxidxi;
+                    
                     if(Model.integration)
                         % laplace approximation
                         invG = pinv(G);
@@ -590,8 +605,7 @@ for s = 1:length(Data)
                         
                         dinvGdxi = squeeze(sum(bsxfun(@times,invG,permute(squeeze(sum(bsxfun(@times,permute(dGdxi,[4,1,2,3]),invG),2)),[4,1,2,3])),2));
                         
-                        ddlogLdxidxi = ddlogLdxidxi ...
-                            - 0.5*squeeze(sum(sum(squeeze(bsxfun(@times,sum(bsxfun(@times,permute(dinvGdxi,[1,2,4,3]),permute(dGdxi,[4,1,2,5,3])),2)+sum(bsxfun(@times,invG,permute(ddGdxidxi,[5,1,2,3,4])),2),permute(eye(length(bhat_si)),[1,3,2]))),1),2)); % 1/2*Tr(dinvG*dg + invG*ddG)
+                        ddlogLi_Idxidxi(:,:,i) = - 0.5*squeeze(sum(sum(squeeze(bsxfun(@times,sum(bsxfun(@times,permute(dinvGdxi,[1,2,4,3]),permute(dGdxi,[4,1,2,5,3])),2)+sum(bsxfun(@times,invG,permute(ddGdxidxi,[5,1,2,3,4])),2),permute(eye(length(bhat_si)),[1,3,2]))),1),2)); % 1/2*Tr(dinvG*dg + invG*ddG)
                     end
                     
                 end
@@ -637,7 +651,13 @@ for s = 1:length(Data)
             end
         end
         
-        logL = logL + logL_D + logL_T + logL_b + logL_I;
+        logL = logL + sum(logLi_D + logLi_T + logLi_b + logLi_I,2);
+        if nargout > 1
+            dlogLdxi = dlogLdxi + sum(dlogLi_Ddxi + dlogLi_Tdxi + dlogLi_bdxi + dlogLi_Idxi,2);
+            if nargout > 2
+                ddlogLdxidxi = ddlogLdxidxi + sum(ddlogLi_Ddxidxi + ddlogLi_Tdxidxi + ddlogLi_bdxidxi + ddlogLi_Idxidxi,2);
+            end
+        end
         
         if(Model.penalty)
             % parameter penalization terms
@@ -721,18 +741,18 @@ for s = 1:length(Data)
             figure(Model.exp{s}.fl)
             if(Model.penalty)
                 if(Model.integration)
-                    bar([logL_D,logL_T,logL_b,logL_I,logL_s])
+                    bar([logLi_D;logLi_T;logLi_b;logLi_I;repmat(logL_s,[1,size(Data{s}.SCTL.Y,3)])]','stacked')
                     set(gca,'XTickLabel',{'Data','Event','Par','Int','Pen'})
                 else
-                    bar([logL_D,logL_T,logL_b,logL_s])
+                    bar([logLi_D;logLi_T;logLi_b;repmat(logL_s,[1,size(Data{s}.SCTL.Y,3)])]','stacked')
                     set(gca,'XTickLabel',{'Data','Event','Par','Pen'})
                 end
             else
                 if(Model.integration)
-                    bar([logL_D,logL_T,logL_b,logL_I])
+                    bar([logLi_D;logLi_T;logLi_b;logLi_I]','stacked')
                     set(gca,'XTickLabel',{'Data','Event','Par','Int'})
                 else
-                    bar([logL_D,logL_T,logL_b])
+                    bar([logLi_D;logLi_T;logLi_b]','stacked')
                     set(gca,'XTickLabel',{'Data','Event','Par'})
                 end
             end
