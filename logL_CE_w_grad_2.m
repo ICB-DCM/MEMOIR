@@ -652,12 +652,12 @@ for s = 1:length(Data)
                 end
             end
         end
-        
-        logL = logL + sum(logLi_D + logLi_T + logLi_b + logLi_I,2);
+   
+        logL = logL + Model.SCTLscale*sum(logLi_D + logLi_T + logLi_b + logLi_I,2);
         if nderiv > 1
-            dlogLdxi = dlogLdxi + sum(dlogLi_Ddxi + dlogLi_Tdxi + dlogLi_bdxi + dlogLi_Idxi,2);
+            dlogLdxi = dlogLdxi + Model.SCTLscale*sum(dlogLi_Ddxi + dlogLi_Tdxi + dlogLi_bdxi + dlogLi_Idxi,2);
             if nderiv > 2
-                ddlogLdxidxi = ddlogLdxidxi + squeeze(sum(ddlogLi_Ddxidxi + ddlogLi_Tdxidxi + ddlogLi_bdxidxi + ddlogLi_Idxidxi,3));
+                ddlogLdxidxi = ddlogLdxidxi + Model.SCTLscale*squeeze(sum(ddlogLi_Ddxidxi + ddlogLi_Tdxidxi + ddlogLi_bdxidxi + ddlogLi_Idxidxi,3));
             end
         end
         
@@ -665,16 +665,16 @@ for s = 1:length(Data)
             % parameter penalization terms
             % logL_s = log(p(mu_S,S_s|b_s,D))
             if nderiv<= 1
-                logL_s = penal_param(P{s}.SCTL.bhat,delta,type_D);
+                logL_s = penal_param(P{s}.SCTL.bhat,delta,type_D,Model.penalty,Model.shr_fun);
             elseif nderiv<= 2
                 % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(P{s}.SCTL.bhat,@(x) penal_param(x,delta,type_D),1e-4,1,2)
                 % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(delta,@(x) penal_param(P{s}.SCTL.bhat,x,type_D),1e-4,1,3)
-                [logL_s,dlogL_sdb_s,dlogL_sddelta] = penal_param(P{s}.SCTL.bhat,delta,type_D);
+                [logL_s,dlogL_sdb_s,dlogL_sddelta] = penal_param(P{s}.SCTL.bhat,delta,type_D,Model.penalty,Model.shr_fun);
             elseif nderiv<= 3
                 % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(P{s}.SCTL.bhat,@(x) penal_param(x,delta,type_D),1e-4,2,4)
                 % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(delta,@(x) penal_param(P{s}.SCTL.bhat,x,type_D),1e-4,2,5)
                 % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(delta,@(x) penal_param(P{s}.SCTL.bhat,x,type_D),1e-4,3,6)
-                [logL_s,dlogL_sdb_s,dlogL_sddelta,ddlogL_sdb_sdb_s,ddlogL_sdb_sddelta,ddlogL_sddeltaddelta] = penal_param(P{s}.SCTL.bhat,delta,type_D);
+                [logL_s,dlogL_sdb_s,dlogL_sddelta,ddlogL_sdb_sdb_s,ddlogL_sdb_sddelta,ddlogL_sddeltaddelta] = penal_param(P{s}.SCTL.bhat,delta,type_D,Model.penalty,Model.shr_fun);
             end
             
             
