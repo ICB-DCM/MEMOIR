@@ -63,10 +63,10 @@ if(nargout<=1)
 elseif(nargout<=2)
     [Sigma_noise,dSigma_noisedphi] = build_sigma_noise(phi,Ym,s,Model,ind_y);
     [Sigma_time,dSigma_timedphi] = build_sigma_time(phi,Tm,s,Model,ind_t);
-elseif(nargout<=8)
+elseif(nargout<=9)
     [Sigma_noise,dSigma_noisedphi,ddSigma_noisedphidphi] = build_sigma_noise(phi,Ym,s,Model,ind_y);
     [Sigma_time,dSigma_timedphi,ddSigma_timedphidphi] = build_sigma_time(phi,Tm,s,Model,ind_t);
-elseif(nargout<=14)
+elseif(nargout<=15)
     [Sigma_noise,dSigma_noisedphi,ddSigma_noisedphidphi,dddSigma_noisedphidphidphi] = build_sigma_noise(phi,Ym,s,Model,ind_y);
     [Sigma_time,dSigma_timedphi,ddSigma_timedphidphi,dddSigma_timedphidphidphi] = build_sigma_time(phi,Tm,s,Model,ind_t);
 else
@@ -97,11 +97,11 @@ switch(Model.exp{s}.noise_model)
         elseif nargout <=2 % first order derivatives
             [J_D,...
                 dJ_DdY,dJ_DdSigma] = normal_noise(Y,Ym,Sigma_noise,ind_y);
-        elseif nargout <=8 % second order derivatives
+        elseif nargout <=9 % second order derivatives
             [J_D,...
                 dJ_DdY,dJ_DdSigma,...
                 ddJ_DdYdY,ddJ_DdYdSigma,ddJ_DdSigmadSigma] = normal_noise(Y,Ym,Sigma_noise,ind_y);
-        elseif nargout <=14 % third order derivatives
+        elseif nargout <=15 % third order derivatives
             [J_D,...
                 dJ_DdY,dJ_DdSigma,...
                 ddJ_DdYdY,ddJ_DdYdSigma,ddJ_DdSigmadSigma,...
@@ -119,11 +119,11 @@ switch(Model.exp{s}.noise_model)
         elseif nargout <=2 % first order derivatives
             [J_D,...
                 dJ_DdY,dJ_DdSigma] = lognormal_noise(Y,Ym,Sigma_noise,ind_y);
-        elseif nargout <=8 % second order derivatives
+        elseif nargout <=9 % second order derivatives
             [J_D,...
                 dJ_DdY,dJ_DdSigma,...
                 ddJ_DdYdY,ddJ_DdYdSigma,ddJ_DdSigmadSigma] = lognormal_noise(Y,Ym,Sigma_noise,ind_y);
-        elseif nargout <=14 % third order derivatives
+        elseif nargout <=15 % third order derivatives
             [J_D,...
                 dJ_DdY,dJ_DdSigma,...
                 ddJ_DdYdY,ddJ_DdYdSigma,ddJ_DdSigmadSigma,...
@@ -150,11 +150,11 @@ switch(Model.exp{s}.time_model)
             % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(T,@(T)normal_time(T,Tm,R,Sigma_time,ind_t),1e-5,2,5)
             [J_T,...
                 dJ_TdT,dJ_TdR,dJ_TdSigma] = normal_time(T,Tm,R,Sigma_time,ind_t);
-        elseif nargout <=8 % second order derivatives
+        elseif nargout <=9 % second order derivatives
             [J_T,...
                 dJ_TdT,dJ_TdR,dJ_TdSigma,...
                 ddJ_TdTdT,ddJ_TdTdR,ddJ_TdRdR,ddJ_TdTdSigma,ddJ_TdRdSigma,ddJ_TdSigmadSigma] = normal_time(T,Tm,R,Sigma_time,ind_t);
-        elseif nargout <=14 % third order derivatives
+        elseif nargout <=15 % third order derivatives
             [J_T,...
                 dJ_TdT,dJ_TdR,dJ_TdSigma,...
                 ddJ_TdTdT,ddJ_TdTdR,ddJ_TdRdR,ddJ_TdTdSigma,ddJ_TdRdSigma,ddJ_TdSigmadSigma,...
@@ -208,33 +208,73 @@ if nargout >= 2
     
     if nargout >= 3
         %% ddJdbdb
+        % we need to make two different computations here,
+        % one for the integration, in order to ensure that it is possible
+        % to compute derivatives by using second order sensitivities by
+        % using the FIM approximation and one that is used in the
+        % computation of implicit derivatives where the accuracy is more
+        % important
         
-        ddJ_DdphidY = bsxfun(@times,ddJ_DdYdY,permute(dYdphi,[3,1,2])) + bsxfun(@times,ddJ_DdYdSigma,permute(dSigma_noisedphi,[3,1,2]));
-        ddJ_DdphidSigma = bsxfun(@times,ddJ_DdYdSigma,permute(dYdphi,[3,1,2])) + bsxfun(@times,ddJ_DdSigmadSigma,permute(dSigma_noisedphi,[3,1,2]));
-        ddJ_Ddphidphi = squeeze(sum(bsxfun(@times,ddJ_DdphidY,permute(dYdphi,[3,1,4,2])) + bsxfun(@times,ddJ_DdphidSigma,permute(dSigma_noisedphi,[3,1,4,2])),2));
+        ddJ_DdphidY = bsxfun(@times,ddJ_DdYdY,permute(dYdphi,[3,1,2])) ...
+            + bsxfun(@times,ddJ_DdYdSigma,permute(dSigma_noisedphi,[3,1,2]));
+        ddJ_DdphidSigma = bsxfun(@times,ddJ_DdYdSigma,permute(dYdphi,[3,1,2])) ...
+            + bsxfun(@times,ddJ_DdSigmadSigma,permute(dSigma_noisedphi,[3,1,2]));
+        % approximate
+        ddJ_Dappdphidphi = permute(sum(bsxfun(@times,ddJ_DdphidY,permute(dYdphi,[3,1,4,2])) ...
+            + bsxfun(@times,ddJ_DdphidSigma,permute(dSigma_noisedphi,[3,1,4,2])),2),[3,4,1,2]);
+
         
         ddphidbdb = Model.exp{s}.ddphidbdb(beta,b);
         
-        ddJ_Ddbdphi = transpose(squeeze(sum(bsxfun(@times,ddJ_Ddphidphi,permute(dphidb,[3,1,2])),2)));
-        ddJ_Ddbdb = squeeze(sum(bsxfun(@times,ddJ_Ddbdphi,permute(dphidb,[3,1,2,4])),2)) + chainrule(dJ_Ddphi,ddphidbdb);
+        ddJ_Dappdbdphi = transpose(squeeze(sum(bsxfun(@times,ddJ_Dappdphidphi,permute(dphidb,[3,1,2])),2)));
+        ddJ_Dappdbdb = squeeze(sum(bsxfun(@times,ddJ_Dappdbdphi,permute(dphidb,[3,1,2,4])),2)) ...
+            + chainrule(dJ_Ddphi,ddphidbdb);
         
-        ddJ_TdphidT = bsxfun(@times,ddJ_TdTdT,permute(dTdphi,[3,1,2])) + bsxfun(@times,ddJ_TdTdR,permute(dRdphi,[3,1,2])) + bsxfun(@times,ddJ_TdTdSigma,permute(dSigma_timedphi,[3,1,2]));
-        ddJ_TdphidR = bsxfun(@times,ddJ_TdTdR,permute(dTdphi,[3,1,2])) + bsxfun(@times,ddJ_TdRdR,permute(dRdphi,[3,1,2])) + bsxfun(@times,ddJ_TdRdSigma,permute(dSigma_timedphi,[3,1,2]));
-        ddJ_TdphidSigma = bsxfun(@times,ddJ_TdTdSigma,permute(dTdphi,[3,1,2])) + bsxfun(@times,ddJ_TdRdSigma,permute(dRdphi,[3,1,2])) + bsxfun(@times,ddJ_TdSigmadSigma,permute(dSigma_timedphi,[3,1,2]));
-        ddJ_Tdphidphi = squeeze(sum(bsxfun(@times,ddJ_TdphidT,permute(dTdphi,[3,1,4,2])) + bsxfun(@times,ddJ_TdphidR,permute(dRdphi,[3,1,4,2])) + bsxfun(@times,ddJ_TdphidSigma,permute(dSigma_timedphi,[3,1,4,2])),2));
+        ddJ_TdphidT = bsxfun(@times,ddJ_TdTdT,permute(dTdphi,[3,1,2])) ...
+            + bsxfun(@times,ddJ_TdTdR,permute(dRdphi,[3,1,2])) ...
+            + bsxfun(@times,ddJ_TdTdSigma,permute(dSigma_timedphi,[3,1,2]));
+        ddJ_TdphidR = bsxfun(@times,ddJ_TdTdR,permute(dTdphi,[3,1,2])) ...
+            + bsxfun(@times,ddJ_TdRdR,permute(dRdphi,[3,1,2])) ...
+            + bsxfun(@times,ddJ_TdRdSigma,permute(dSigma_timedphi,[3,1,2]));
+        ddJ_TdphidSigma = bsxfun(@times,ddJ_TdTdSigma,permute(dTdphi,[3,1,2])) ...
+            + bsxfun(@times,ddJ_TdRdSigma,permute(dRdphi,[3,1,2])) ...
+            + bsxfun(@times,ddJ_TdSigmadSigma,permute(dSigma_timedphi,[3,1,2]));
+        ddJ_Tappdphidphi = permute(sum(bsxfun(@times,ddJ_TdphidT,permute(dTdphi,[3,1,4,2])) ...
+            + bsxfun(@times,ddJ_TdphidR,permute(dRdphi,[3,1,4,2])) ...
+            + bsxfun(@times,ddJ_TdphidSigma,permute(dSigma_timedphi,[3,1,4,2])),2),[3,4,1,2]);
         
         ddphidbdb = Model.exp{s}.ddphidbdb(beta,b);
         
-        ddJ_Tdbdphi = transpose(squeeze(sum(bsxfun(@times,ddJ_Tdphidphi,permute(dphidb,[3,1,2])),2)));
-        ddJ_Tdbdb = squeeze(sum(bsxfun(@times,ddJ_Tdbdphi,permute(dphidb,[3,1,2,4])),2)) + chainrule(dJ_Tdphi,ddphidbdb);
+        ddJ_Tappdbdphi = transpose(squeeze(sum(bsxfun(@times,ddJ_Tappdphidphi,permute(dphidb,[3,1,2])),2)));
+        ddJ_Tappdbdb = squeeze(sum(bsxfun(@times,ddJ_Tappdbdphi,permute(dphidb,[3,1,2,4])),2)) + chainrule(dJ_Tdphi,ddphidbdb);
+        
+        ddJappdbdb = squeeze(ddJ_Dappdbdb) + squeeze(ddJ_Tappdbdb) + squeeze(ddJ_bdbdb);
         
         
-        ddJdbdb = squeeze(ddJ_Ddbdb) + squeeze(ddJ_Tdbdb) + squeeze(ddJ_bdbdb) + diag(eps*ones(length(b),1));% regularization
-        
-        varargout{3} = ddJdbdb;
+        % FIM approximation
+        varargout{3} = ddJappdbdb;
         
         if nargout >= 4
+        
+            % exact
+            ddJ_Ddphidphi = ddJ_Dappdphidphi ...
+                + permute(sum(bsxfun(@times,dJ_DdY,permute(ddYdphidphi,[4,1,2,3])),2),[3,4,1,2]);
             
+            ddJ_Ddbdphi = transpose(squeeze(sum(bsxfun(@times,ddJ_Ddphidphi,permute(dphidb,[3,1,2])),2)));
+            ddJ_Ddbdb = squeeze(sum(bsxfun(@times,ddJ_Ddbdphi,permute(dphidb,[3,1,2,4])),2)) ...
+                + chainrule(dJ_Ddphi,ddphidbdb);
+            
+            ddJ_Tdphidphi = ddJ_Tappdphidphi ...
+                + permute(sum(bsxfun(@times,dJ_TdT,permute(ddTdphidphi,[4,1,2,3])),2),[3,4,1,2]);
+            
+            ddJ_Tdbdphi = transpose(squeeze(sum(bsxfun(@times,ddJ_Tdphidphi,permute(dphidb,[3,1,2])),2)));
+            ddJ_Tdbdb = squeeze(sum(bsxfun(@times,ddJ_Tdbdphi,permute(dphidb,[3,1,2,4])),2)) + chainrule(dJ_Tdphi,ddphidbdb);
+            
+            ddJdbdb = squeeze(ddJ_Ddbdb) + squeeze(ddJ_Tdbdb) + squeeze(ddJ_bdbdb);
+            
+            % exact
+            varargout{4} = ddJdbdb;
+        
             %% ddJdbdbeta
             dphidbeta = Model.exp{s}.dphidbeta(beta,b);
             ddphidbdbeta = Model.exp{s}.ddphidbdbeta(beta,b);
@@ -250,13 +290,13 @@ if nargout >= 2
             
             ddJdbdbeta = ddJ_Ddbdbeta + ddJ_Tdbdbeta;
             
-            varargout{4} = ddJdbdbeta;
+            varargout{5} = ddJdbdbeta;
             
             %% ddJdbdelta
             
             ddJdbddelta = ddJ_bdbddelta;
             
-            varargout{5} = ddJdbddelta;
+            varargout{6} = ddJdbddelta;
             
             %% ddJdbetadbeta
             
@@ -274,21 +314,21 @@ if nargout >= 2
             
             ddJdbetadbeta = ddJ_Ddbetadbeta + ddJ_Tdbetadbeta;
             
-            varargout{6} = ddJdbetadbeta;
+            varargout{7} = ddJdbetadbeta;
             
             %% ddJddeltaddelta
             
             ddJddeltaddelta = ddJ_bddeltaddelta;
             
-            varargout{7} = ddJddeltaddelta;
+            varargout{8} = ddJddeltaddelta;
             
             %% ddJdbetaddelta
             
             ddJdbetaddelta = zeros(length(beta),size(dDddelta,3));
             
-            varargout{8} = ddJdbetaddelta;
+            varargout{9} = ddJdbetaddelta;
             
-            if nargout >= 9
+            if nargout >= 10
                 
                 %% dddJdbdbdb
                 
@@ -296,7 +336,7 @@ if nargout >= 2
                     + bsxfun(@times,ddJ_DdphidSigma,permute(ddSigma_noisedphidphi,[4,1,5,2,3])),2));
                 
                 dddJ_Ddphidphidphi = chainrule(dJ_DdSigma,dddSigma_noisedphidphidphi) ...
-                    + temp + permute(temp,[2,1,3]) + permute(temp,[2,3,1]);
+                    + permute(temp,[2,1,3]) + permute(temp,[1,2,3]);
                 
                 dddJ_DdphidYdY = bsxfun(@times,dddJ_DdYdYdY,permute(dYdphi,[3,1,2])) ...
                     + bsxfun(@times,dddJ_DdYdYdSigma,permute(dSigma_noisedphi,[3,1,2]));
@@ -323,7 +363,7 @@ if nargout >= 2
                     + bsxfun(@times,ddJ_TdphidSigma,permute(ddSigma_timedphidphi,[4,1,5,2,3])),2));
                 
                 dddJ_Tdphidphidphi = chainrule(dJ_TdSigma,dddSigma_timedphidphidphi) ...
-                    + temp + permute(temp,[2,1,3]) + permute(temp,[2,3,1]);
+                    + permute(temp,[2,1,3]) + permute(temp,[1,2,3]);
                 
                 dddJ_TdphidTdT = bsxfun(@times,dddJ_TdTdTdT,permute(dTdphi,[3,1,2])) ...
                     + bsxfun(@times,dddJ_TdTdTdR,permute(dRdphi,[3,1,2])) ...
@@ -365,7 +405,7 @@ if nargout >= 2
                 
                 dddJdbdbdb = dddJ_Ddbdbdb + dddJ_Tdbdbdb + squeeze(dddJ_bdbdbdb);
                 
-                varargout{9} = dddJdbdbdb;
+                varargout{10} = dddJdbdbdb;
                 
                 %% dddJdbdbbeta
                 
@@ -375,13 +415,13 @@ if nargout >= 2
                 
                 dddJdbdbdbeta = dddJ_Ddbdbdbeta + dddJ_Tdbdbdbeta;
                 
-                varargout{10} = dddJdbdbdbeta;
+                varargout{11} = dddJdbdbdbeta;
                 
                 
                 %% dddJdbdbdelta
                 dddJdbdbddelta = dddJ_bdbdbddelta;
                 
-                varargout{11} = squeeze(dddJdbdbddelta);
+                varargout{12} = squeeze(dddJdbdbddelta);
                 
                 %% dddJdbdbetadbeta
                 
@@ -393,18 +433,18 @@ if nargout >= 2
                 
                 dddJdbdbetadbeta = dddJ_Ddbdbetadbeta + dddJ_Tdbdbetadbeta;
                 
-                varargout{12} = squeeze(dddJdbdbetadbeta);
+                varargout{13} = squeeze(dddJdbdbetadbeta);
                 
                 %% dddJdbddeltadelta
                 dddJdbddeltaddelta = dddJ_bdbddeltaddelta;
                 
-                varargout{13} = squeeze(dddJdbddeltaddelta);
+                varargout{14} = squeeze(dddJdbddeltaddelta);
                 
                 %% dddJdbdbetaddelta
                 
-                varargout{14} = zeros(length(b),length(beta),size(dDddelta,3));
+                varargout{15} = zeros(length(b),length(beta),size(dDddelta,3));
                 
-                if nargout >= 15
+                if nargout >= 16
                     
                     %% ddddJdbdbdbdb
                     
