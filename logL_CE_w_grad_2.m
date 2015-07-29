@@ -3,7 +3,7 @@
 % moment-approximation schemes to the solution of population balance
 % equations. The likelihood function allows for the parallel estimation of
 % parameters from multiple different experimental setups/conditions
-% 
+%
 % USAGE:
 % ======
 % [logL,dlogLdxi,ddlogLdxidxi = logL_CE_w_grad_2(xi,Data,Model,options)
@@ -44,7 +44,7 @@
 % Model ... model definition ideally generated via make_model and
 %   complete_model. must have the following fields
 %   .type_D ... string specifying the parametrisation of the covariance
-%       matrix for the random effects. either 
+%       matrix for the random effects. either
 %       'diag-matrix-logarithm' for diagonal matrix with log. paramet. or
 %       'matrix-logarithm' for full matrix with log. paramet. or
 %   .integration ... flag indicating whether integration for classical
@@ -127,9 +127,9 @@
 %      .dphidb
 %      .ddphidbetadbeta
 %      .ddphidbdbeta
-%      .ddphidbdb   
+%      .ddphidbdb
 %  options ... option struct with the following options
-%      .tau_update ... minimum number of second which must pass before the 
+%      .tau_update ... minimum number of second which must pass before the
 %      plots are updated
 %      .plot ... flag whether the function should plot either
 %          0 ... no plots
@@ -137,8 +137,8 @@
 %  extract_flag ... flag indicating whether the values of random effect
 %      parameters are to be extracted (only for SCTL data)
 %          0 ... no extraction (default)
-%          1 ... extraction 
-% 
+%          1 ... extraction
+%
 %
 % Outputs:
 % ========
@@ -158,7 +158,7 @@
 %              parameter
 %      (otherwise)
 %      B_SP ... location of sigma-points
-% 
+%
 % 2015/04/14 Fabian Froehlich
 
 function varargout = logL_CE_w_grad_2(varargin)
@@ -228,7 +228,7 @@ for s = 1:length(Data)
     
     [D,invD,dDddelta,dinvDddelta,ddDddeltaddelta,ddinvDddeltaddelta] = xi2D(delta,type_D);
     
-    % debugging: 
+    % debugging:
     % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(delta,@(x) xi2D(x,type_D),1e-4,1,3)
     % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(delta,@(x) xi2D(x,type_D),1e-4,3,5)
     % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(delta,@(x) xi2D(x,type_D),1e-4,2,4)
@@ -259,6 +259,11 @@ for s = 1:length(Data)
         end
         Sim_SCTL.T = nan(size(Data{s}.SCTL.T));
         Sim_SCTL.R = nan(size(Data{s}.SCTL.T));
+        
+        % set default scaling
+        if(~isfield(Model,'SCTLscale'))
+            Model.SCTLscale = 1;
+        end
         
         % load values from previous evaluation as initialisation
         if logL_old == -inf
@@ -292,7 +297,7 @@ for s = 1:length(Data)
         end
         
         parfor i = 1:size(Data{s}.SCTL.Y,3)
-        
+            
             % Load single-cell data
             Ym_si = Data{s}.SCTL.Y(ind_time,:,i);
             ind_y = find(~isnan(Ym_si));
@@ -374,7 +379,7 @@ for s = 1:length(Data)
             else
                 [Y_si,T_si,R_si,dY_sidphi,dT_sidphi,dR_sidphi,ddY_sidphidphi,ddT_sidphidphi,ddR_sidphidphi] = simulate_trajectory(t_s,phi_si,Model,Data{s}.condition,s,ind_t,ind_y);
             end
-
+            
             % Construct sigma
             if(nderiv<2)
                 [Sigma_noise_si] = build_sigma_noise(phi_si,Ym_si,s,Model,ind_y);
@@ -495,7 +500,7 @@ for s = 1:length(Data)
                 dJ_bdxi = chainrule(dJ_bdb,dbdxi) + chainrule(pdJ_bpddelta,ddeltadxi);
                 
                 dlogLi_Ddxi(:,i) = - transpose(dJ_Ddxi);
-                dlogLi_Tdxi(:,i) = - transpose(dJ_Tdxi); 
+                dlogLi_Tdxi(:,i) = - transpose(dJ_Tdxi);
                 dlogLi_bdxi(:,i) = - transpose(dJ_bdxi);
                 
                 if(Model.integration)
@@ -653,12 +658,20 @@ for s = 1:length(Data)
                 end
             end
         end
-   
+        
         logL = logL + Model.SCTLscale*sum(logLi_D + logLi_T + logLi_b + logLi_I,2);
         if nderiv > 1
             dlogLdxi = dlogLdxi + Model.SCTLscale*sum(dlogLi_Ddxi + dlogLi_Tdxi + dlogLi_bdxi + dlogLi_Idxi,2);
             if nderiv > 2
                 ddlogLdxidxi = ddlogLdxidxi + Model.SCTLscale*squeeze(sum(ddlogLi_Ddxidxi + ddlogLi_Tdxidxi + ddlogLi_bdxidxi + ddlogLi_Idxidxi,3));
+            end
+        end
+        
+        if(~isfield(Model,'shr_fun'))
+            if Model.penalty > 3
+                error('Shrinkage Function is missing! please provide Model.shr_fun')
+            else
+                Model.shr_fun = 0;
             end
         end
         

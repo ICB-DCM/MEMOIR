@@ -139,6 +139,10 @@ switch(Model.exp{s}.noise_model)
 end
 
 % event model
+if(~isfield(Model.exp{s},'time_model'))
+    Model.exp{s}.time_model = 'normal';
+end
+
 switch(Model.exp{s}.time_model)
     case 'normal'
         if nargout <= 1

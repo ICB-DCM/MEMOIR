@@ -67,17 +67,23 @@ loadold = false;
 filename = [Model.name '_' Model.type_D];
 
 % generate path
-mdir  = strrep(mfilename('fullpath'),mfilename('full'),'');
+[mdir,~,~]=fileparts(which(mfilename('full')));
 
 %check for existence of directory
-if(~exist([mdir 'MEMfn/' filename ],'dir'))
-    mkdir([mdir 'MEMfn/' filename ]);
+if(~exist(fullfile(mdir,'MEMfn',filename),'dir'))
+    mkdir(fullfile(mdir,'MEMfn',filename));
 end
+
+% remove old paths and add new paths
+warning('off','MATLAB:rmpath:DirNotFound')
+rmpath(genpath(fullfile(mdir,'MEMfn')));
+warning('on','MATLAB:rmpath:DirNotFound')
+addpath(fullfile(mdir,'MEMfn',filename));
 
 try 
     % check wheter the saved symbolic definition agrees with the current
     % one
-    load([mdir 'MEMfn/' filename '/syms.mat'])
+    load(fullfile(mdir,'MEMfn',filename,'syms.mat'))
     f_xi = isequaln(Model.sym.xi,syms.xi);
     f_phi = isequaln(Model.sym.phi,syms.phi);
     f_beta = isequaln(Model.sym.beta,syms.beta);
@@ -88,27 +94,27 @@ try
         f_phiexp(s) = isequaln(Model.exp{s}.sym.phi,expsyms{s}.phi);
         f_sigma_noiseexp(s) = isequaln(Model.exp{s}.sym.sigma_noise,expsyms{s}.sigma_noise);
         f_sigma_timeexp(s) = isequaln(Model.exp{s}.sym.sigma_time,expsyms{s}.sigma_time);
-        
-        f_files(s) = all([exist([mdir 'MEMfn/' filename '/MEMbeta_' num2str(S(s))],'file'),...
-        exist([mdir 'MEMfn/' filename '/MEMdelta_' num2str(S(s))],'file'),...
-        exist([mdir 'MEMfn/' filename '/MEMdbetadxi_' num2str(S(s))],'file'),...
-        exist([mdir 'MEMfn/' filename '/MEMddeltadxi_' num2str(S(s))],'file'),...
-        exist([mdir 'MEMfn/' filename '/MEMddbetadxidxi_' num2str(S(s))],'file'),...
-        exist([mdir 'MEMfn/' filename '/MEMdddeltadxidxi_' num2str(S(s))],'file'),...
-        exist([mdir 'MEMfn/' filename '/MEMsigma_noise_' num2str(S(s))],'file'),...
-        exist([mdir 'MEMfn/' filename '/MEMdsigma_noisedphi_' num2str(S(s))],'file'),...
-        exist([mdir 'MEMfn/' filename '/MEMddsigma_noisedphidphi_' num2str(S(s))],'file'),...
-        exist([mdir 'MEMfn/' filename '/MEMdddsigma_noisedphidphidphi_' num2str(S(s))],'file'),...
-        exist([mdir 'MEMfn/' filename '/MEMsigma_time_' num2str(S(s))],'file'),...
-        exist([mdir 'MEMfn/' filename '/MEMdsigma_timedphi_' num2str(S(s))],'file'),...
-        exist([mdir 'MEMfn/' filename '/MEMddsigma_timedphidphi_' num2str(S(s))],'file'),...
-        exist([mdir 'MEMfn/' filename '/MEMdddsigma_timedphidphidphi_' num2str(S(s))],'file'),...
-        exist([mdir 'MEMfn/' filename '/MEMphi_' num2str(S(s))],'file'),...
-        exist([mdir 'MEMfn/' filename '/MEMdphidbeta_' num2str(S(s))],'file'),...
-        exist([mdir 'MEMfn/' filename '/MEMdphidb_' num2str(S(s))],'file'),...
-        exist([mdir 'MEMfn/' filename '/MEMddphidbdb_' num2str(S(s))],'file'),...
-        exist([mdir 'MEMfn/' filename '/MEMddphidbetadbeta_' num2str(S(s))],'file'),...
-        exist([mdir 'MEMfn/' filename '/MEMddphidbdbeta_' num2str(S(s))],'file')]);
+      
+        f_files(s) = all([exist(fullfile(mdir,'MEMfn',filename,['MEMbeta_' num2str(S(s))]),'file'),...
+        exist(fullfile(mdir,'MEMfn',filename,['MEMdelta_' num2str(S(s))]),'file'),...
+        exist(fullfile(mdir,'MEMfn',filename,['MEMdbetadxi_' num2str(S(s))]),'file'),...
+        exist(fullfile(mdir,'MEMfn',filename,['MEMddeltadxi_' num2str(S(s))]),'file'),...
+        exist(fullfile(mdir,'MEMfn',filename,['MEMddbetadxidxi_' num2str(S(s))]),'file'),...
+        exist(fullfile(mdir,'MEMfn',filename,['MEMdddeltadxidxi_' num2str(S(s))]),'file'),...
+        exist(fullfile(mdir,'MEMfn',filename,['MEMsigma_noise_' num2str(S(s))]),'file'),...
+        exist(fullfile(mdir,'MEMfn',filename,['MEMdsigma_noisedphi_' num2str(S(s))]),'file'),...
+        exist(fullfile(mdir,'MEMfn',filename,['MEMddsigma_noisedphidphi_' num2str(S(s))]),'file'),...
+        exist(fullfile(mdir,'MEMfn',filename,['MEMdddsigma_noisedphidphidphi_' num2str(S(s))]),'file'),...
+        exist(fullfile(mdir,'MEMfn',filename,['MEMsigma_time_' num2str(S(s))]),'file'),...
+        exist(fullfile(mdir,'MEMfn',filename,['MEMdsigma_timedphi_' num2str(S(s))]),'file'),...
+        exist(fullfile(mdir,'MEMfn',filename,['MEMddsigma_timedphidphi_' num2str(S(s))]),'file'),...
+        exist(fullfile(mdir,'MEMfn',filename,['MEMdddsigma_timedphidphidphi_' num2str(S(s))]),'file'),...
+        exist(fullfile(mdir,'MEMfn',filename,['MEMphi_' num2str(S(s))]),'file'),...
+        exist(fullfile(mdir,'MEMfn',filename,['MEMdphidbeta_' num2str(S(s))]),'file'),...
+        exist(fullfile(mdir,'MEMfn',filename,['MEMdphidb_' num2str(S(s))]),'file'),...
+        exist(fullfile(mdir,'MEMfn',filename,['MEMddphidbdb_' num2str(S(s))]),'file'),...
+        exist(fullfile(mdir,'MEMfn',filename,['MEMddphidbetadbeta_' num2str(S(s))]),'file'),...
+        exist(fullfile(mdir,'MEMfn',filename,['MEMddphidbdbeta_' num2str(S(s))]),'file')]);
     end
         
     if(all([f_xi,f_phi,f_beta,f_b,f_delta,f_exps,f_phiexp,f_sigma_noiseexp,f_sigma_timeexp,f_files]))
@@ -134,25 +140,13 @@ end
 if(~loadold)
     % if we cannot load the old definition, we have to generate a new one
     disp(['Generating new model definition files!'])
-    % remove all other models from the path
-    for s=1:length(S)
-        if(~strcmp(which(['MEMbeta_' num2str(S(s))]),''))
-            if(ispc)
-                rmpath(strrep(which(['MEMbeta_' num2str(S(s))]),['\MEMbeta_' num2str(S(s)) '.m'],''));
-            else
-                rmpath(strrep(which(['MEMbeta_' num2str(S(s))]),['/MEMbeta_' num2str(S(s)) '.m'],''));
-            end
-        end
-    end
-    % add the new path
-    addpath([mdir 'MEMfn/' filename ]);
     
     % save the symbolic definition as future reference
     syms = Model.sym;
     for s = 1:length(Model.exp)
         expsyms{s} = Model.exp{s}.sym;
     end
-    save([mdir 'MEMfn/' filename '/syms.mat'],'syms','expsyms');
+    save(fullfile(mdir,'MEMfn',filename,'syms.mat'),'syms','expsyms');
     
     % compute number of elements of xi and b
     n_xi = length(Model.sym.xi);
@@ -203,19 +197,19 @@ if(~loadold)
         % computational complexity even for relatively small models.
         
         % beta(xi) delta(xi)
-        mfun(Model.exp{s}.sym.beta,'file',[mdir 'MEMfn/' filename '/MEMbeta_' num2str(S(s))],'vars',{Model.sym.xi});
+        mfun(Model.exp{s}.sym.beta,'file',fullfile(mdir,'MEMfn',filename,['MEMbeta_' num2str(S(s))]),'vars',{Model.sym.xi});
         eval(['Model.exp{s}.beta = @MEMbeta_' num2str(S(s)) ';']);
-        mfun(Model.exp{s}.sym.delta,'file',[mdir 'MEMfn/' filename '/MEMdelta_' num2str(S(s))],'vars',{Model.sym.xi});
+        mfun(Model.exp{s}.sym.delta,'file',fullfile(mdir,'MEMfn',filename,['MEMdelta_' num2str(S(s))]),'vars',{Model.sym.xi});
         eval(['Model.exp{s}.delta = @MEMdelta_' num2str(S(s)) ';']);
         
         % dbetadxi
         Model.exp{s}.sym.dbetadxi = simplify(jacobian(Model.exp{s}.sym.beta,Model.sym.xi));
-        mfun(Model.exp{s}.sym.dbetadxi,'file',[mdir 'MEMfn/' filename '/MEMdbetadxi_' num2str(S(s))],'vars',{Model.sym.xi});
+        mfun(Model.exp{s}.sym.dbetadxi,'file',fullfile(mdir,'MEMfn',filename,['MEMdbetadxi_' num2str(S(s))]),'vars',{Model.sym.xi});
         eval(['Model.exp{s}.dbetadxi = @MEMdbetadxi_' num2str(S(s)) ';']);
         
         % ddeltadxi
         Model.exp{s}.sym.ddeltadxi = simplify(jacobian(Model.exp{s}.sym.delta,Model.sym.xi));
-        mfun(Model.exp{s}.sym.ddeltadxi,'file',[mdir 'MEMfn/' filename '/MEMddeltadxi_' num2str(S(s))],'vars',{Model.sym.xi});
+        mfun(Model.exp{s}.sym.ddeltadxi,'file',fullfile(mdir,'MEMfn',filename,['MEMddeltadxi_' num2str(S(s))]),'vars',{Model.sym.xi});
         eval(['Model.exp{s}.ddeltadxi = @MEMddeltadxi_' num2str(S(s)) ';']);
         
         % ddbetadxidxi
@@ -223,7 +217,7 @@ if(~loadold)
         for j = 1:n_beta
             Model.exp{s}.sym.ddbetadxidxi(j,:,:) = simplify(hessian(Model.exp{s}.sym.beta(j),Model.sym.xi));
         end
-        mfun(Model.exp{s}.sym.ddbetadxidxi,'file',[mdir 'MEMfn/' filename '/MEMddbetadxidxi_' num2str(S(s))],'vars',{Model.sym.xi});
+        mfun(Model.exp{s}.sym.ddbetadxidxi,'file',fullfile(mdir,'MEMfn',filename,['MEMddbetadxidxi_' num2str(S(s))]),'vars',{Model.sym.xi});
         eval(['Model.exp{s}.ddbetadxidxi = @MEMddbetadxidxi_' num2str(S(s)) ';']);
         
         % ddeltadxidxi
@@ -231,12 +225,12 @@ if(~loadold)
         for j = 1:n_delta
             Model.exp{s}.sym.dddeltadxidxi(j,:,:) = simplify(hessian(Model.exp{s}.sym.delta(j),Model.sym.xi));
         end
-        mfun(Model.exp{s}.sym.dddeltadxidxi,'file',[mdir 'MEMfn/' filename '/MEMdddeltadxidxi_' num2str(S(s))],'vars',{Model.sym.xi});
+        mfun(Model.exp{s}.sym.dddeltadxidxi,'file',fullfile(mdir,'MEMfn',filename,['MEMdddeltadxidxi_' num2str(S(s))]),'vars',{Model.sym.xi});
         eval(['Model.exp{s}.dddeltadxidxi = @MEMdddeltadxidxi_' num2str(S(s)) ';']);
         
         
         % sigma_noise(phi)
-        mfun(Model.exp{s}.sym.sigma_noise,'file',[mdir 'MEMfn/' filename '/MEMsigma_noise_' num2str(S(s))],'vars',{phi});
+        mfun(Model.exp{s}.sym.sigma_noise,'file',fullfile(mdir,'MEMfn',filename,['MEMsigma_noise_' num2str(S(s))]),'vars',{phi});
         eval(['Model.exp{s}.sigma_noise = @MEMsigma_noise_' num2str(S(s)) ';']);
         
         % dsigma_noisedphi
@@ -246,7 +240,7 @@ if(~loadold)
                 Model.exp{s}.sym.dsigma_noisedphi(j,k,:) = jacobian(Model.exp{s}.sym.sigma_noise(j,k),phi);
             end
         end
-        mfun(Model.exp{s}.sym.dsigma_noisedphi,'file',[mdir 'MEMfn/' filename '/MEMdsigma_noisedphi_' num2str(S(s))],'vars',{phi});
+        mfun(Model.exp{s}.sym.dsigma_noisedphi,'file',fullfile(mdir,'MEMfn',filename,['MEMdsigma_noisedphi_' num2str(S(s))]),'vars',{phi});
         eval(['Model.exp{s}.dsigma_noisedphi = @MEMdsigma_noisedphi_' num2str(S(s)) ';']);
         
         % ddsigma_noisedphidphi
@@ -256,7 +250,7 @@ if(~loadold)
                 Model.exp{s}.sym.ddsigma_noisedphidphi(j,k,:,:) = hessian(Model.exp{s}.sym.sigma_noise(j,k),phi);
             end
         end
-        mfun(Model.exp{s}.sym.ddsigma_noisedphidphi,'file',[mdir 'MEMfn/' filename '/MEMddsigma_noisedphidphi_' num2str(S(s))],'vars',{phi});
+        mfun(Model.exp{s}.sym.ddsigma_noisedphidphi,'file',fullfile(mdir,'MEMfn',filename,['MEMddsigma_noisedphidphi_' num2str(S(s))]),'vars',{phi});
         eval(['Model.exp{s}.ddsigma_noisedphidphi = @MEMddsigma_noisedphidphi_' num2str(S(s)) ';']);
         
         % dddsigma_noisedphidphidphi
@@ -268,7 +262,7 @@ if(~loadold)
                 end
             end
         end
-        mfun(Model.exp{s}.sym.dddsigma_noisedphidphidphi,'file',[mdir 'MEMfn/' filename '/MEMdddsigma_noisedphidphidphi_' num2str(S(s))],'vars',{phi});
+        mfun(Model.exp{s}.sym.dddsigma_noisedphidphidphi,'file',fullfile(mdir,'MEMfn',filename,['MEMdddsigma_noisedphidphidphi_' num2str(S(s))]),'vars',{phi});
         eval(['Model.exp{s}.dddsigma_noisedphidphidphi = @MEMdddsigma_noisedphidphidphi_' num2str(S(s)) ';']);
         
         if(Model.integration)
@@ -282,7 +276,7 @@ if(~loadold)
 %                     end
 %                 end
 %             end
-            mfun(Model.exp{s}.sym.ddddsigma_noisedphidphidphidphi,'file',[mdir 'MEMfn/' filename '/MEMddddsigma_noisedphidphidphidphi_' num2str(S(s))],'vars',{phi});
+            mfun(Model.exp{s}.sym.ddddsigma_noisedphidphidphidphi,'file',fullfile(mdir,'MEMfn',filename,['MEMddddsigma_noisedphidphidphidphi_' num2str(S(s))]),'vars',{phi});
             eval(['Model.exp{s}.ddddsigma_noisedphidphidphidphi = @MEMddddsigma_noisedphidphidphidphi_' num2str(S(s)) ';']);
         end
         
@@ -290,7 +284,7 @@ if(~loadold)
         if(~isfield(Model.exp{s}.sym,'sigma_time'))
             Model.exp{s}.sym.sigma_time = sym.empty(0,1);
         end
-        mfun(Model.exp{s}.sym.sigma_time,'file',[mdir 'MEMfn/' filename '/MEMsigma_time_' num2str(S(s))],'vars',{phi});
+        mfun(Model.exp{s}.sym.sigma_time,'file',fullfile(mdir,'MEMfn',filename,['MEMsigma_time_' num2str(S(s))]),'vars',{phi});
         eval(['Model.exp{s}.sigma_time = @MEMsigma_time_' num2str(S(s)) ';']);
         
         % dsigma_timedphi
@@ -300,7 +294,7 @@ if(~loadold)
                 Model.exp{s}.sym.dsigma_timedphi(j,k,:) = jacobian(Model.exp{s}.sym.sigma_time(j,k),phi);
             end
         end
-        mfun(Model.exp{s}.sym.dsigma_timedphi,'file',[mdir 'MEMfn/' filename '/MEMdsigma_timedphi_' num2str(S(s))],'vars',{phi});
+        mfun(Model.exp{s}.sym.dsigma_timedphi,'file',fullfile(mdir,'MEMfn',filename,['MEMdsigma_timedphi_' num2str(S(s))]),'vars',{phi});
         eval(['Model.exp{s}.dsigma_timedphi = @MEMdsigma_timedphi_' num2str(S(s)) ';']);
         
         % ddsigma_timedphidphi
@@ -310,7 +304,7 @@ if(~loadold)
                 Model.exp{s}.sym.ddsigma_timedphidphi(j,k,:,:) = hessian(Model.exp{s}.sym.sigma_time(j,k),phi);
             end
         end
-        mfun(Model.exp{s}.sym.ddsigma_timedphidphi,'file',[mdir 'MEMfn/' filename '/MEMddsigma_timedphidphi_' num2str(S(s))],'vars',{phi});
+        mfun(Model.exp{s}.sym.ddsigma_timedphidphi,'file',fullfile(mdir,'MEMfn',filename,['MEMddsigma_timedphidphi_' num2str(S(s))]),'vars',{phi});
         eval(['Model.exp{s}.ddsigma_timedphidphi = @MEMddsigma_timedphidphi_' num2str(S(s)) ';']);
         
         % dddsigma_timedphidphidphi
@@ -322,7 +316,7 @@ if(~loadold)
                 end
             end
         end
-        mfun(Model.exp{s}.sym.dddsigma_timedphidphidphi,'file',[mdir 'MEMfn/' filename '/MEMdddsigma_timedphidphidphi_' num2str(S(s))],'vars',{phi});
+        mfun(Model.exp{s}.sym.dddsigma_timedphidphidphi,'file',fullfile(mdir,'MEMfn',filename,['MEMdddsigma_timedphidphidphi_' num2str(S(s))]),'vars',{phi});
         eval(['Model.exp{s}.dddsigma_timedphidphidphi = @MEMdddsigma_timedphidphidphi_' num2str(S(s)) ';']);
         
         if(Model.integration)
@@ -336,22 +330,22 @@ if(~loadold)
 %                     end
 %                 end
 %             end
-            mfun(Model.exp{s}.sym.ddddsigma_timedphidphidphidphi,'file',[mdir 'MEMfn/' filename '/MEMddddsigma_timedphidphidphidphi_' num2str(S(s))],'vars',{phi});
+            mfun(Model.exp{s}.sym.ddddsigma_timedphidphidphidphi,'file',fullfile(mdir,'MEMfn',filename,['MEMddddsigma_timedphidphidphidphi_' num2str(S(s))]),'vars',{phi});
             eval(['Model.exp{s}.ddddsigma_timedphidphidphidphi = @MEMddddsigma_timedphidphidphidphi_' num2str(S(s)) ';']);
         end
         
         % phi
-        mfun(Model.exp{s}.sym.phi,'file',[mdir 'MEMfn/' filename '/MEMphi_' num2str(S(s))],'vars',{Model.exp{s}.sym.beta,Model.exp{s}.sym.b});
+        mfun(Model.exp{s}.sym.phi,'file',fullfile(mdir,'MEMfn',filename,['MEMphi_' num2str(S(s))]),'vars',{Model.exp{s}.sym.beta,Model.exp{s}.sym.b});
         eval(['Model.exp{s}.phi = @MEMphi_' num2str(S(s)) ';']);
         
         % dphidbeta
         Model.exp{s}.sym.dphidbeta = simplify(jacobian(Model.exp{s}.sym.phi,Model.exp{s}.sym.beta));
-        mfun(Model.exp{s}.sym.dphidbeta,'file',[mdir 'MEMfn/' filename '/MEMdphidbeta_' num2str(S(s))],'vars',{Model.exp{s}.sym.beta,Model.exp{s}.sym.b});
+        mfun(Model.exp{s}.sym.dphidbeta,'file',fullfile(mdir,'MEMfn',filename,['MEMdphidbeta_' num2str(S(s))]),'vars',{Model.exp{s}.sym.beta,Model.exp{s}.sym.b});
         eval(['Model.exp{s}.dphidbeta = @MEMdphidbeta_' num2str(S(s)) ';']);
         
         % dphidb
         Model.exp{s}.sym.dphidb = simplify(jacobian(Model.exp{s}.sym.phi,Model.exp{s}.sym.b));
-        mfun(Model.exp{s}.sym.dphidb,'file',[mdir 'MEMfn/' filename '/MEMdphidb_' num2str(S(s))],'vars',{Model.exp{s}.sym.beta,Model.exp{s}.sym.b});
+        mfun(Model.exp{s}.sym.dphidb,'file',fullfile(mdir,'MEMfn',filename,['MEMdphidb_' num2str(S(s))]),'vars',{Model.exp{s}.sym.beta,Model.exp{s}.sym.b});
         eval(['Model.exp{s}.dphidb = @MEMdphidb_' num2str(S(s)) ';']);
         
         
@@ -360,7 +354,7 @@ if(~loadold)
         for j = 1:n_phi
             Model.exp{s}.sym.ddphidbdb(j,:,:) = simplify(hessian(Model.exp{s}.sym.phi(j),Model.exp{s}.sym.b));
         end
-        mfun(Model.exp{s}.sym.ddphidbdb,'file',[mdir 'MEMfn/' filename '/MEMddphidbdb_' num2str(S(s))],'vars',{Model.exp{s}.sym.beta,Model.exp{s}.sym.b});
+        mfun(Model.exp{s}.sym.ddphidbdb,'file',fullfile(mdir,'MEMfn',filename,['MEMddphidbdb_' num2str(S(s))]),'vars',{Model.exp{s}.sym.beta,Model.exp{s}.sym.b});
         eval(['Model.exp{s}.ddphidbdb = @MEMddphidbdb_' num2str(S(s)) ';']);
         
         % dphidbetadbeta
@@ -368,7 +362,7 @@ if(~loadold)
         for j = 1:n_phi
             Model.exp{s}.sym.ddphidbetadbeta(j,:,:) = simplify(hessian(Model.exp{s}.sym.phi(j),Model.exp{s}.sym.beta));
         end
-        mfun(Model.exp{s}.sym.ddphidbetadbeta,'file',[mdir 'MEMfn/' filename '/MEMddphidbetadbeta_' num2str(S(s))],'vars',{Model.exp{s}.sym.beta,Model.exp{s}.sym.b});
+        mfun(Model.exp{s}.sym.ddphidbetadbeta,'file',fullfile(mdir,'MEMfn',filename,['MEMddphidbetadbeta_' num2str(S(s))]),'vars',{Model.exp{s}.sym.beta,Model.exp{s}.sym.b});
         eval(['Model.exp{s}.ddphidbetadbeta = @MEMddphidbetadbeta_' num2str(S(s)) ';']);
         
         % dphidbdbeta
@@ -376,7 +370,7 @@ if(~loadold)
         for j = 1:n_phi
             Model.exp{s}.sym.ddphidbdbeta(j,:,:) = simplify(jacobian(jacobian(Model.exp{s}.sym.phi(j),Model.exp{s}.sym.b),Model.exp{s}.sym.beta));
         end
-        mfun(Model.exp{s}.sym.ddphidbdbeta,'file',[mdir 'MEMfn/' filename '/MEMddphidbdbeta_' num2str(S(s))],'vars',{Model.exp{s}.sym.beta,Model.exp{s}.sym.b});
+        mfun(Model.exp{s}.sym.ddphidbdbeta,'file',fullfile(mdir,'MEMfn',filename,['MEMddphidbdbeta_' num2str(S(s))]),'vars',{Model.exp{s}.sym.beta,Model.exp{s}.sym.b});
         eval(['Model.exp{s}.ddphidbdbeta = @MEMddphidbdbeta_' num2str(S(s)) ';']);
         
     end
@@ -385,21 +379,9 @@ else
     % if we can load the old definition, we just have to attach the m-files
     % to the model struct
     
-    % remove all other models from the path
-    for s=1:length(S)
-        if(~strcmp(which(['MEMbeta_' num2str(S(s))]),''))
-            if(ispc)
-                rmpath(strrep(which(['MEMbeta_' num2str(S(s))]),['\MEMbeta_' num2str(S(s)) '.m'],''));
-            else
-                rmpath(strrep(which(['MEMbeta_' num2str(S(s))]),['/MEMbeta_' num2str(S(s)) '.m'],''));
-            end
-        end
-    end
-    % add the new path
-    addpath([mdir 'MEMfn/' filename ]);
     
     % save the symbolic definition as future reference
-    syms = load([mdir 'MEMfn/' filename '/syms.mat']);
+    syms = load(fullfile(mdir,'MEMfn',filename,'syms.mat'));
     Model.sym = syms.syms;
     
     % compute number of elements of xi and b
