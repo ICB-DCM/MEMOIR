@@ -3,7 +3,7 @@
 % moment-approximation schemes to the solution of population balance
 % equations. The likelihood function allows for the parallel estimation of
 % parameters from multiple different experimental setups/conditions
-% 
+%
 % USAGE:
 % ======
 % [logL,dlogLdxi,ddlogLdxidxi = logL_CE_w_grad_2(xi,Data,Model,options)
@@ -44,13 +44,13 @@
 % Model ... model definition ideally generated via make_model and
 %   complete_model. must have the following fields
 %   .type_D ... string specifying the parametrisation of the covariance
-%       matrix for the random effects. either 
+%       matrix for the random effects. either
 %       'diag-matrix-logarithm' for diagonal matrix with log. paramet. or
 %       'matrix-logarithm' for full matrix with log. paramet. or
 %   .integration ... flag indicating whether integration for classical
 %       mixed effect models via laplace approximation should be applied.
 %       only applicable for SCTL data.
-%   .penaly ... flag indicating whether additional penalty terms for
+%   .penalty ... flag indicating whether additional penalty terms for
 %       synchronisation of parameters across experiments should be applied.
 %       only applicable for SCTL data.
 %   .prior ... cell array containing prior information for the optimization
@@ -127,9 +127,9 @@
 %      .dphidb
 %      .ddphidbetadbeta
 %      .ddphidbdbeta
-%      .ddphidbdb   
+%      .ddphidbdb
 %  options ... option struct with the following options
-%      .tau_update ... minimum number of second which must pass before the 
+%      .tau_update ... minimum number of second which must pass before the
 %      plots are updated
 %      .plot ... flag whether the function should plot either
 %          0 ... no plots
@@ -137,8 +137,8 @@
 %  extract_flag ... flag indicating whether the values of random effect
 %      parameters are to be extracted (only for SCTL data)
 %          0 ... no extraction (default)
-%          1 ... extraction 
-% 
+%          1 ... extraction
+%
 %
 % Outputs:
 % ========
@@ -158,7 +158,7 @@
 %              parameter
 %      (otherwise)
 %      B_SP ... location of sigma-points
-% 
+%
 % 2015/04/14 Fabian Froehlich
 
 function varargout = logL_CE_w_grad_2(varargin)
@@ -193,6 +193,8 @@ else
     extract_flag = false;
 end
 
+nderiv = nargout;
+
 % Plot options
 if (etime(clock,tau) > options.tau_update) && (options.plot == 1)
     options.plot = 30;
@@ -204,9 +206,9 @@ end
 %% Evaluation of likelihood function
 % Initialization
 logL = 0;
-if nargout >= 2
+if nderiv >= 2
     dlogLdxi = zeros(length(xi),1);
-    if nargout >= 3
+    if nderiv >= 3
         ddlogLdxidxi = zeros(length(xi));
     end
 end
@@ -226,7 +228,7 @@ for s = 1:length(Data)
     
     [D,invD,dDddelta,dinvDddelta,ddDddeltaddelta,ddinvDddeltaddelta] = xi2D(delta,type_D);
     
-    % debugging: 
+    % debugging:
     % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(delta,@(x) xi2D(x,type_D),1e-4,1,3)
     % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(delta,@(x) xi2D(x,type_D),1e-4,3,5)
     % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(delta,@(x) xi2D(x,type_D),1e-4,2,4)
@@ -244,10 +246,6 @@ for s = 1:length(Data)
     %% Single cell time-lapse data - Individuals
     if isfield(Data{s},'SCTL')
         % Reset values of Data likelihood and parameter likelihood
-        logL_D = 0;
-        logL_T = 0;
-        logL_b = 0;
-        logL_I = 0;
         
         % Evaluation of time index set
         [~,ind_time] = ismember(Data{s}.SCTL.time,t_s);
@@ -262,8 +260,44 @@ for s = 1:length(Data)
         Sim_SCTL.T = nan(size(Data{s}.SCTL.T));
         Sim_SCTL.R = nan(size(Data{s}.SCTL.T));
         
+        % set default scaling
+        if(~isfield(Model,'SCTLscale'))
+            Model.SCTLscale = 1;
+        end
+        
+        % load values from previous evaluation as initialisation
+        if logL_old == -inf
+            bhat_0 = zeros(length(Model.exp{s}.ind_b),size(Data{s}.SCTL.Y,3));
+        else
+            bhat_0 = P_old{s}.SCTL.bhat;
+        end
+        
         % Loop: Indiviudal cells
-        for i = 1:size(Data{s}.SCTL.Y,3)
+        
+        dbetadxi = Model.exp{s}.dbetadxi(xi);
+        ddeltadxi = Model.exp{s}.ddeltadxi(xi);
+        ddbetadxidxi = Model.exp{s}.ddbetadxidxi(xi);
+        dddeltadxidxi = Model.exp{s}.dddeltadxidxi(xi);
+        
+        logLi_D = zeros(1,size(Data{s}.SCTL.Y,3));
+        logLi_T = zeros(1,size(Data{s}.SCTL.Y,3));
+        logLi_b = zeros(1,size(Data{s}.SCTL.Y,3));
+        logLi_I = zeros(1,size(Data{s}.SCTL.Y,3));
+        if nderiv > 1
+            dlogLi_Ddxi = zeros(length(xi),size(Data{s}.SCTL.Y,3));
+            dlogLi_Tdxi = zeros(length(xi),size(Data{s}.SCTL.Y,3));
+            dlogLi_bdxi = zeros(length(xi),size(Data{s}.SCTL.Y,3));
+            dlogLi_Idxi = zeros(length(xi),size(Data{s}.SCTL.Y,3));
+            if nderiv > 2
+                ddlogLi_Ddxidxi = zeros(length(xi),length(xi),size(Data{s}.SCTL.Y,3));
+                ddlogLi_Tdxidxi = zeros(length(xi),length(xi),size(Data{s}.SCTL.Y,3));
+                ddlogLi_bdxidxi = zeros(length(xi),length(xi),size(Data{s}.SCTL.Y,3));
+                ddlogLi_Idxidxi = zeros(length(xi),length(xi),size(Data{s}.SCTL.Y,3));
+            end
+        end
+        
+        parfor i = 1:size(Data{s}.SCTL.Y,3)
+            
             % Load single-cell data
             Ym_si = Data{s}.SCTL.Y(ind_time,:,i);
             ind_y = find(~isnan(Ym_si));
@@ -271,12 +305,7 @@ for s = 1:length(Data)
             Tm_si = Data{s}.SCTL.T(:,:,i);
             ind_t = find(~isnan(Tm_si));
             
-            % load values from previous evaluation as initialisation
-            if logL_old == -inf
-                bhat_si0 = zeros(length(Model.exp{s}.ind_b),1);
-            else
-                bhat_si0 = P_old{s}.SCTL.bhat(:,i);
-            end
+            bhat_si0 = bhat_0(:,i);
             
             %% Estimation of single cell random effects
             % Higher order derivatives of the objective function for single cell parameters
@@ -284,7 +313,7 @@ for s = 1:length(Data)
             % with respect to b
             % F_diff and b_diff determine how many derivatives of the objective function and of the optimum need to
             % be computed
-            switch(nargout)
+            switch(nderiv)
                 case 0
                     F_diff = 0;
                     b_diff = 0;
@@ -304,6 +333,7 @@ for s = 1:length(Data)
                             G,dGdb,pdGpdbeta,pdGpddelta] ...
                             = optimize_SCTL_si(Model,Data,bhat_si0,beta,delta,type_D,t_s,Ym_si,Tm_si,ind_y,ind_t,F_diff,b_diff,s);
                         % [g,g_fd_f,g_fd_b,g_fd_c]=testGradient(beta,@(beta)optimize_SCTL_si(Model,Data,bhat_si0,beta,delta,type_D,t_s,Ym_si,Tm_si,ind_y,ind_t,F_diff,b_diff,s),1e-4,1,2)
+                        % [g,g_fd_f,g_fd_b,g_fd_c]=testGradient(delta,@(delta)optimize_SCTL_si(Model,Data,bhat_si0,beta,delta,type_D,t_s,Ym_si,Tm_si,ind_y,ind_t,F_diff,b_diff,s),1e-4,1,3)
                     else
                         F_diff = 2;
                         [bhat_si,dbhat_sidbeta,dbhat_siddelta,...
@@ -336,25 +366,25 @@ for s = 1:length(Data)
             end
             
             % Store bhat
-            P{s}.SCTL.bhat(:,i) = bhat_si;
+            bhat(:,i) = bhat_si;
             
             % Construct single-cell parameter
             phi_si = Model.exp{s}.phi(beta,bhat_si);
             
             % Simulate model and compute derivatives
-            if(nargout == 1)
-                [Y_si,T_si,R_si] = simulate_trajectory(t_s,phi_si,Model,Data,s,ind_t,ind_y);
-            elseif(and(nargout == 2,Model.integration == 0))
-                [Y_si,T_si,R_si,dY_sidphi,dT_sidphi,dR_sidphi] = simulate_trajectory(t_s,phi_si,Model,Data,s,ind_t,ind_y);
+            if(nderiv == 1)
+                [Y_si,T_si,R_si] = simulate_trajectory(t_s,phi_si,Model,Data{s}.condition,s,ind_t,ind_y);
+            elseif(and(nderiv == 2,Model.integration == 0))
+                [Y_si,T_si,R_si,dY_sidphi,dT_sidphi,dR_sidphi] = simulate_trajectory(t_s,phi_si,Model,Data{s}.condition,s,ind_t,ind_y);
             else
-                [Y_si,T_si,R_si,dY_sidphi,dT_sidphi,dR_sidphi,ddY_sidphidphi,ddT_sidphidphi,ddR_sidphidphi] = simulate_trajectory(t_s,phi_si,Model,Data,s,ind_t,ind_y);
+                [Y_si,T_si,R_si,dY_sidphi,dT_sidphi,dR_sidphi,ddY_sidphidphi,ddT_sidphidphi,ddR_sidphidphi] = simulate_trajectory(t_s,phi_si,Model,Data{s}.condition,s,ind_t,ind_y);
             end
-
+            
             % Construct sigma
-            if(nargout<2)
+            if(nderiv<2)
                 [Sigma_noise_si] = build_sigma_noise(phi_si,Ym_si,s,Model,ind_y);
                 [Sigma_time_si] = build_sigma_time(phi_si,Tm_si,s,Model,ind_t);
-            elseif(nargout<3)
+            elseif(nderiv<3)
                 [Sigma_noise_si,dSigma_noisedphi] = build_sigma_noise(phi_si,Ym_si,s,Model,ind_y);
                 [Sigma_time_si,dSigma_timedphi] = build_sigma_time(phi_si,Tm_si,s,Model,ind_t);
             else
@@ -368,7 +398,7 @@ for s = 1:length(Data)
             % J_D = log(p(Y(b,beta)|D))
             switch(Model.exp{s}.noise_model)
                 case 'normal'
-                    switch(nargout)
+                    switch(nderiv)
                         case 0
                             J_D = normal_noise(Y_si,Ym_si,Sigma_noise_si,ind_y);
                         case 1
@@ -380,7 +410,7 @@ for s = 1:length(Data)
                     end
                     
                 case 'lognormal'
-                    switch(nargout)
+                    switch(nderiv)
                         case 0
                             J_D = lognormal_noise(Y_si,Ym_si,Sigma_noise_si,ind_y);
                         case 1
@@ -396,7 +426,7 @@ for s = 1:length(Data)
             % J_D = log(p(Y(b,beta)|D))
             switch(Model.exp{s}.noise_model)
                 case 'normal'
-                    switch(nargout)
+                    switch(nderiv)
                         case 0
                             J_T = normal_time(T_si,Tm_si,R_si,Sigma_time_si,ind_t);
                         case 1
@@ -412,7 +442,7 @@ for s = 1:length(Data)
             % J_b = log(p(b_si|delta))
             switch(Model.exp{s}.parameter_model)
                 case 'normal'
-                    switch(nargout)
+                    switch(nderiv)
                         case 0
                             J_b = normal_param(bhat_si,delta,type_D);
                         case 1
@@ -428,7 +458,7 @@ for s = 1:length(Data)
                             [J_b,dJ_bdb,pdJ_bpddelta,ddJ_bdbdb,dpdJ_bdbpddelta,pdpdJ_bpddeltapddelta]= normal_param(bhat_si,delta,type_D);
                     end
                 case 'lognormal'
-                    switch(nargout)
+                    switch(nderiv)
                         case 0
                             J_b = lognormal_param(bhat_si,delta,type_D);
                         case 1
@@ -440,20 +470,17 @@ for s = 1:length(Data)
                     end
             end
             
-            logL_D = logL_D - J_D;
-            logL_T = logL_T - J_T;
-            logL_b = logL_b - J_b;
-            
+            logLi_D(1,i) =  - J_D;
+            logLi_T(1,i)  = - J_T;
+            logLi_b(1,i)  = - J_b;
             
             if(Model.integration)
                 % laplace approximation
-                logL_I = logL_I - 0.5*log(det(G));
+                logLi_I(1,i) = - 0.5*log(det(G));
             end
             
-            if nargout >= 2
+            if nderiv >= 2
                 % first order derivatives
-                dbetadxi = Model.exp{s}.dbetadxi(xi);
-                ddeltadxi = Model.exp{s}.ddeltadxi(xi);
                 dphidb = Model.exp{s}.dphidb(beta,bhat_si);
                 pdphipdbeta  = Model.exp{s}.dphidbeta(beta,bhat_si);
                 
@@ -468,11 +495,13 @@ for s = 1:length(Data)
                 dJ_Tdxi = chainrule(dJ_Tdphi,dphidxi);
                 
                 dbdxi = chainrule(dbhat_sidbeta,dbetadxi) + chainrule(dbhat_siddelta,ddeltadxi);
-                P{s}.SCTL.dbdxi(:,:,i) = dbdxi;
+                dbhatdxi(:,:,i) = dbdxi;
                 
                 dJ_bdxi = chainrule(dJ_bdb,dbdxi) + chainrule(pdJ_bpddelta,ddeltadxi);
                 
-                dlogLdxi = dlogLdxi - transpose(dJ_Ddxi) - transpose(dJ_Tdxi) - transpose(dJ_bdxi);
+                dlogLi_Ddxi(:,i) = - transpose(dJ_Ddxi);
+                dlogLi_Tdxi(:,i) = - transpose(dJ_Tdxi);
+                dlogLi_bdxi(:,i) = - transpose(dJ_bdxi);
                 
                 if(Model.integration)
                     % laplace approximation
@@ -490,16 +519,11 @@ for s = 1:length(Data)
                         dGdxi = chainrule(dGdbeta,dbetadxi) + chainrule(dGddelta,ddeltadxi);
                     end
                     
-                    
-                    
-                    dlogLdxi = dlogLdxi ...
-                        - 0.5*squeeze(sum(sum(bsxfun(@times,squeeze(sum(bsxfun(@times,invG,permute(dGdxi,[4,1,2,3])),2)),eye(length(bhat_si))),1),2)); % 1/2*Tr(invG*dG)
+                    dlogLi_Idxi(:,i) = - 0.5*squeeze(sum(sum(bsxfun(@times,squeeze(sum(bsxfun(@times,invG,permute(dGdxi,[4,1,2,3])),2)),eye(length(bhat_si))),1),2)); % 1/2*Tr(invG*dG)
                 end
                 
-                if nargout >= 3
+                if nderiv >= 3
                     % second order derivatives
-                    ddbetadxidxi = Model.exp{s}.ddbetadxidxi(xi);
-                    dddeltadxidxi = Model.exp{s}.dddeltadxidxi(xi);
                     
                     ddphidbdb = Model.exp{s}.ddphidbdb(beta,bhat_si);
                     ddphidbdbeta = Model.exp{s}.ddphidbdbeta(beta,bhat_si);
@@ -557,14 +581,17 @@ for s = 1:length(Data)
                         + chainrule_ddxdydy_dydz_dydv(ddbhat_sidbetaddelta,dbetadxi,ddeltadxi) ...
                         + chainrule_ddxdydy_dydz_dydv(permute(ddbhat_sidbetaddelta,[1,3,2]),ddeltadxi,dbetadxi);
                     
-                    P{s}.SCTL.ddbdxidxi(:,:,:,i) = ddbdxidxi;
+                    ddbhatdxidxi(:,:,:,i) = ddbdxidxi;
                     
                     ddJ_bdxidxi = chainrule(dJ_bdb,ddbdxidxi) + chainrule_ddxdydy_dydz(ddJ_bdbdb,dbdxi) ...
                         + chainrule(pdJ_bpddelta,dddeltadxidxi) + chainrule_ddxdydy_dydz(pdpdJ_bpddeltapddelta,ddeltadxi) ...
                         + chainrule_ddxdydy_dydz_dydv(dpdJ_bdbpddelta,dbdxi,ddeltadxi) ...
                         + chainrule_ddxdydy_dydz_dydv(permute(dpdJ_bdbpddelta,[2,1]),ddeltadxi,dbdxi);
                     
-                    ddlogLdxidxi = ddlogLdxidxi - ddJ_Ddxidxi  - ddJ_bdxidxi - ddJ_Tdxidxi;
+                    ddlogLi_Ddxidxi(:,:,i) = - ddJ_Ddxidxi;
+                    ddlogLi_Tdxidxi(:,:,i) = - ddJ_Tdxidxi;
+                    ddlogLi_bdxidxi(:,:,i) = - ddJ_bdxidxi;
+                    
                     if(Model.integration)
                         % laplace approximation
                         invG = pinv(G);
@@ -586,52 +613,91 @@ for s = 1:length(Data)
                         
                         dinvGdxi = squeeze(sum(bsxfun(@times,invG,permute(squeeze(sum(bsxfun(@times,permute(dGdxi,[4,1,2,3]),invG),2)),[4,1,2,3])),2));
                         
-                        ddlogLdxidxi = ddlogLdxidxi ...
-                            - 0.5*squeeze(sum(sum(squeeze(bsxfun(@times,sum(bsxfun(@times,permute(dinvGdxi,[1,2,4,3]),permute(dGdxi,[4,1,2,5,3])),2)+sum(bsxfun(@times,invG,permute(ddGdxidxi,[5,1,2,3,4])),2),permute(eye(length(bhat_si)),[1,3,2]))),1),2)); % 1/2*Tr(dinvG*dg + invG*ddG)
+                        ddlogLi_Idxidxi(:,:,i) = - 0.5*squeeze(sum(sum(squeeze(bsxfun(@times,sum(bsxfun(@times,permute(dinvGdxi,[1,2,4,3]),permute(dGdxi,[4,1,2,5,3])),2)+sum(bsxfun(@times,invG,permute(ddGdxidxi,[5,1,2,3,4])),2),permute(eye(length(bhat_si)),[1,3,2]))),1),2)); % 1/2*Tr(dinvG*dg + invG*ddG)
                     end
                     
                 end
                 
             end
             
+            Y_si_tmp{i} = Y_si;
+            T_si_tmp{i} = T_si;
+            R_si_tmp{i} = R_si;
+            
+        end
+        
+        for k = 1:size(Data{s}.SCTL.Y,3)
+            
+            Ym_si = Data{s}.SCTL.Y(ind_time,:,k);
+            idx_y = find(~isnan(Ym_si));
+            
+            Tm_si = Data{s}.SCTL.T(:,:,k);
+            idx_t = find(~isnan(Tm_si));
+            
             % Assignment of simulation results
-            [I,J] = ind2sub([size(Sim_SCTL.Y,1),size(Sim_SCTL.Y,2)],ind_y);
+            [I,J] = ind2sub([size(Sim_SCTL.Y,1),size(Sim_SCTL.Y,2)],idx_y);
             for i_ind = 1:length(I)
-                Sim_SCTL.Y(I(i_ind),J(i_ind),i) = Y_si(i_ind);
+                Y_si = Y_si_tmp{k};
+                Sim_SCTL.Y(I(i_ind),J(i_ind),k) = Y_si(i_ind);
             end
-            [I,J] = ind2sub([size(Sim_SCTL.Y,1),size(Sim_SCTL.Y,2)],ind_t);
+            [I,J] = ind2sub([size(Sim_SCTL.Y,1),size(Sim_SCTL.Y,2)],idx_t);
             for i_ind = 1:length(I)
-                Sim_SCTL.T(I(i_ind),J(i_ind),i) = T_si(i_ind);
-                Sim_SCTL.R(I(i_ind),J(i_ind),i) = R_si(i_ind);
+                T_si = T_si_tmp{k};
+                R_si = R_si_tmp{k};
+                Sim_SCTL.T(I(i_ind),J(i_ind),k) = T_si(i_ind);
+                Sim_SCTL.R(I(i_ind),J(i_ind),k) = R_si(i_ind);
             end
         end
         
-        logL = logL + logL_D + logL_T + logL_b + logL_I;
+        if nderiv >= 1
+            P{s}.SCTL.bhat = bhat;
+            if nderiv >= 2
+                P{s}.SCTL.dbdxi = dbhatdxi;
+                if nderiv >= 3
+                    P{s}.SCTL.ddbdxidxi = ddbhatdxidxi;
+                end
+            end
+        end
+        
+        logL = logL + Model.SCTLscale*sum(logLi_D + logLi_T + logLi_b + logLi_I,2);
+        if nderiv > 1
+            dlogLdxi = dlogLdxi + Model.SCTLscale*sum(dlogLi_Ddxi + dlogLi_Tdxi + dlogLi_bdxi + dlogLi_Idxi,2);
+            if nderiv > 2
+                ddlogLdxidxi = ddlogLdxidxi + Model.SCTLscale*squeeze(sum(ddlogLi_Ddxidxi + ddlogLi_Tdxidxi + ddlogLi_bdxidxi + ddlogLi_Idxidxi,3));
+            end
+        end
+        
+        if(~isfield(Model,'shr_fun'))
+            if Model.penalty > 3
+                error('Shrinkage Function is missing! please provide Model.shr_fun')
+            else
+                Model.shr_fun = 0;
+            end
+        end
         
         if(Model.penalty)
             % parameter penalization terms
             % logL_s = log(p(mu_S,S_s|b_s,D))
-            P{s}.SCTL.bhat(:,i) = bhat_si;
-            if nargout<= 1
-                logL_s = penal_param(P{s}.SCTL.bhat,delta,type_D);
-            elseif nargout<= 2
+            if nderiv<= 1
+                logL_s = penal_param(P{s}.SCTL.bhat,delta,type_D,Model.penalty,Model.shr_fun);
+            elseif nderiv<= 2
                 % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(P{s}.SCTL.bhat,@(x) penal_param(x,delta,type_D),1e-4,1,2)
                 % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(delta,@(x) penal_param(P{s}.SCTL.bhat,x,type_D),1e-4,1,3)
-                [logL_s,dlogL_sdb_s,dlogL_sddelta] = penal_param(P{s}.SCTL.bhat,delta,type_D);
-            elseif nargout<= 3
+                [logL_s,dlogL_sdb_s,dlogL_sddelta] = penal_param(P{s}.SCTL.bhat,delta,type_D,Model.penalty,Model.shr_fun);
+            elseif nderiv<= 3
                 % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(P{s}.SCTL.bhat,@(x) penal_param(x,delta,type_D),1e-4,2,4)
                 % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(delta,@(x) penal_param(P{s}.SCTL.bhat,x,type_D),1e-4,2,5)
                 % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(delta,@(x) penal_param(P{s}.SCTL.bhat,x,type_D),1e-4,3,6)
-                [logL_s,dlogL_sdb_s,dlogL_sddelta,ddlogL_sdb_sdb_s,ddlogL_sdb_sddelta,ddlogL_sddeltaddelta] = penal_param(P{s}.SCTL.bhat,delta,type_D);
+                [logL_s,dlogL_sdb_s,dlogL_sddelta,ddlogL_sdb_sdb_s,ddlogL_sdb_sddelta,ddlogL_sddeltaddelta] = penal_param(P{s}.SCTL.bhat,delta,type_D,Model.penalty,Model.shr_fun);
             end
             
             
             logL = logL + logL_s;
             
-            if nargout >= 2
+            if nderiv >= 2
                 dlogL_sdxi = squeeze(sum(sum(bsxfun(@times,dlogL_sdb_s,permute(P{s}.SCTL.dbdxi,[1,3,2])),1),2)) + transpose(chainrule(dlogL_sddelta,ddeltadxi));
                 dlogLdxi = dlogLdxi + dlogL_sdxi;
-                if nargout >= 3
+                if nderiv >= 3
                     ddlogL_sdxidxi = squeeze(sum(sum(bsxfun(@times,bsxfun(@times,ddlogL_sdb_sdb_s,permute(P{s}.SCTL.dbdxi,[1,3,2])),permute(P{s}.SCTL.dbdxi,[1,3,4,2])),1),2)) ...
                         + squeeze(sum(sum(bsxfun(@times,dlogL_sdb_s,permute(P{s}.SCTL.ddbdxidxi,[1,4,2,3])),1),2)) ...
                         + squeeze(sum(sum(sum(bsxfun(@times,bsxfun(@times,ddlogL_sdb_sddelta,permute(P{s}.SCTL.dbdxi,[1,3,4,2])),permute(ddeltadxi,[3,4,1,5,2])),1),2),3)) ...
@@ -691,18 +757,18 @@ for s = 1:length(Data)
             figure(Model.exp{s}.fl)
             if(Model.penalty)
                 if(Model.integration)
-                    bar([logL_D,logL_T,logL_b,logL_I,logL_s])
+                    bar([logLi_D;logLi_T;logLi_b;logLi_I;repmat(logL_s,[1,size(Data{s}.SCTL.Y,3)])],'stacked')
                     set(gca,'XTickLabel',{'Data','Event','Par','Int','Pen'})
                 else
-                    bar([logL_D,logL_T,logL_b,logL_s])
+                    bar([logLi_D;logLi_T;logLi_b;repmat(logL_s,[1,size(Data{s}.SCTL.Y,3)])],'stacked')
                     set(gca,'XTickLabel',{'Data','Event','Par','Pen'})
                 end
             else
                 if(Model.integration)
-                    bar([logL_D,logL_T,logL_b,logL_I])
+                    bar([logLi_D;logLi_T;logLi_b;logLi_I],'stacked')
                     set(gca,'XTickLabel',{'Data','Event','Par','Int'})
                 else
-                    bar([logL_D,logL_T,logL_b])
+                    bar([logLi_D;logLi_T;logLi_b],'stacked')
                     set(gca,'XTickLabel',{'Data','Event','Par'})
                 end
             end
@@ -719,7 +785,7 @@ for s = 1:length(Data)
     %% Single cell time-lapse data - Statistics
     if isfield(Data{s},'SCTLstat')
         % Simulation using sigma points
-        if nargout == 1
+        if nderiv == 1
             [~,~,~,mz_SP,Cz_SP,B_SP,~] = ...
                 getSigmaPointApp(@(phi) simulateForSP(Model.exp{s}.model,Data{s}.SCTLstat.time,phi,Data{s}.condition),beta,D,Model.exp{s});
         else
@@ -732,10 +798,10 @@ for s = 1:length(Data)
         % Evaluation of likelihood, likelihood gradient and hessian
         
         % Mean
-        logL_mz = - 0.5*sum(sum(((Data{s}.SCTLstat.mz - mz_SP)./Data{s}.SCTLstat.Sigma_mz).^2,1),2);
-        if nargout >= 2
-            dlogL_mzdxi = permute(sum(bsxfun(@times,(Data{s}.SCTLstat.mz - mz_SP)./Data{s}.SCTLstat.Sigma_mz.^2,dmz_SPdxi),1),[2,1]);
-            if nargout >= 3
+        logL_mz = - 0.5*sum(nansum(((Data{s}.SCTLstat.mz - mz_SP)./Data{s}.SCTLstat.Sigma_mz).^2,1),2);
+        if nderiv >= 2
+            dlogL_mzdxi = permute(nansum(bsxfun(@times,(Data{s}.SCTLstat.mz - mz_SP)./Data{s}.SCTLstat.Sigma_mz.^2,dmz_SPdxi),1),[2,1]);
+            if nderiv >= 3
                 wdmz_SP = bsxfun(@times,1./Data{s}.SCTLstat.Sigma_mz,dmz_SPdxi);
                 %                     wdmz_SP = reshape(wdmz_SP,[numel(mz_SP),size(dmz_SPdxi,3)]);
                 ddlogL_mzdxi2 = -wdmz_SP'*wdmz_SP;
@@ -744,10 +810,10 @@ for s = 1:length(Data)
         
         
         % Covariance
-        logL_Cz = - 0.5*sum(sum(sum(((Data{s}.SCTLstat.Cz - Cz_SP)./Data{s}.SCTLstat.Sigma_Cz).^2,1),2),3);
-        if nargout >= 2
-            dlogL_Czdxi = squeeze(sum(sum(bsxfun(@times,(Data{s}.SCTLstat.Cz - Cz_SP)./Data{s}.SCTLstat.Sigma_Cz.^2,dCz_SPdxi),1),2));
-            if nargout >= 3
+        logL_Cz = - 0.5*sum(nansum(nansum(((Data{s}.SCTLstat.Cz - Cz_SP)./Data{s}.SCTLstat.Sigma_Cz).^2,1),2),3);
+        if nderiv >= 2
+            dlogL_Czdxi = squeeze(nansum(nansum(bsxfun(@times,(Data{s}.SCTLstat.Cz - Cz_SP)./Data{s}.SCTLstat.Sigma_Cz.^2,dCz_SPdxi),1),2));
+            if nderiv >= 3
                 wdCz_SP = bsxfun(@times,1./Data{s}.SCTLstat.Sigma_Cz,dCz_SPdxi);
                 wdCz_SP = reshape(wdCz_SP,[numel(Cz_SP),size(dCz_SPdxi,3)]);
                 ddlogL_Czdxi2 = -wdCz_SP'*wdCz_SP;
@@ -756,9 +822,9 @@ for s = 1:length(Data)
         
         % Summation
         logL = logL + logL_mz + logL_Cz;
-        if nargout >=2
+        if nderiv >=2
             dlogLdxi = dlogLdxi + dlogL_mzdxi + dlogL_Czdxi;
-            if nargout >=3
+            if nderiv >=3
                 ddlogLdxidxi = ddlogLdxidxi + ddlogL_mzdxi2 + ddlogL_Czdxi2;
             end
         end
@@ -775,7 +841,7 @@ for s = 1:length(Data)
     %% Single cell snapshot data
     if isfield(Data{s},'SCSH')
         % Simulation using sigma points
-        if nargout == 1
+        if nderiv == 1
             [m_SP,C_SP,~,~,~,B_SP,~] = ...
                 getSigmaPointApp(@(phi) simulateForSP(Model.exp{s}.model,Data{s}.SCSH.time,phi,Data{s}.condition),beta,D,Model.exp{s});
         else
@@ -787,10 +853,10 @@ for s = 1:length(Data)
         
         % Evaluation of likelihood, likelihood gradient and hessian
         % Mean
-        logL_m = - 0.5*sum(sum(((Data{s}.SCSH.m - m_SP)./Data{s}.SCSH.Sigma_m).^2,1),2);
-        if nargout >= 2
-            dlogL_mdxi = squeeze(sum(sum(bsxfun(@times,(Data{s}.SCSH.m - m_SP)./Data{s}.SCSH.Sigma_m.^2,dm_SP),1),2));
-            if nargout >= 3
+        logL_m = - 0.5*nansum(nansum(((Data{s}.SCSH.m - m_SP)./Data{s}.SCSH.Sigma_m).^2,1),2);
+        if nderiv >= 2
+            dlogL_mdxi = squeeze(nansum(nansum(bsxfun(@times,(Data{s}.SCSH.m - m_SP)./Data{s}.SCSH.Sigma_m.^2,dm_SP),1),2));
+            if nderiv >= 3
                 wdm_SP = bsxfun(@times,1./Data{s}.SCSH.Sigma_m,dm_SP);
                 wdm_SP = reshape(wdm_SP,[numel(m_SP),size(dm_SP,3)]);
                 ddlogL_mdxi2 = -wdm_SP'*wdm_SP;
@@ -798,10 +864,10 @@ for s = 1:length(Data)
         end
         
         % Covariance
-        logL_C = - 0.5*sum(sum(sum(((Data{s}.SCSH.C - C_SP)./Data{s}.SCSH.Sigma_C).^2,1),2),3);
-        if nargout >= 2
-            dlogL_Cdxi = squeeze(sum(sum(sum(bsxfun(@times,(Data{s}.SCSH.C - C_SP)./Data{s}.SCSH.Sigma_C.^2,dC_SP),1),2),3));
-            if nargout >= 3
+        logL_C = - 0.5*sum(nansum(nansum(((Data{s}.SCSH.C - C_SP)./Data{s}.SCSH.Sigma_C).^2,1),2),3);
+        if nderiv >= 2
+            dlogL_Cdxi = squeeze(nansum(nansum(nansum(bsxfun(@times,(Data{s}.SCSH.C - C_SP)./Data{s}.SCSH.Sigma_C.^2,dC_SP),1),2),3));
+            if nderiv >= 3
                 wdC_SP = bsxfun(@times,1./Data{s}.SCSH.Sigma_C,dC_SP);
                 wdC_SP = reshape(wdC_SP,[numel(C_SP),size(dC_SP,4)]);
                 ddlogL_Cdxi2 = -wdC_SP'*wdC_SP;
@@ -810,9 +876,9 @@ for s = 1:length(Data)
         
         % Summation
         logL = logL + logL_m + logL_C;
-        if nargout >= 2
+        if nderiv >= 2
             dlogLdxi = dlogLdxi + dlogL_mdxi + dlogL_Cdxi;
-            if nargout >= 3
+            if nderiv >= 3
                 ddlogLdxidxi = ddlogLdxidxi + ddlogL_mdxi2 + ddlogL_Cdxi2;
             end
         end
@@ -830,7 +896,7 @@ for s = 1:length(Data)
     if isfield(Data{s},'PA')
         
         % Simulation using sigma points
-        if nargout == 1
+        if nderiv == 1
             [m_SP,~,~,~,~,B_SP,~] = ...
                 getSigmaPointApp(@(phi) simulateForSP(Model.exp{s}.model,Data{s}.PA.time,phi,Data{s}.condition),beta,D,Model.exp{s});
         else
@@ -842,7 +908,7 @@ for s = 1:length(Data)
         
         % Post-processing of population average data
         if isfield(Model.exp{s},'PA_post_processing')
-            if(nargout==1)
+            if(nderiv==1)
                 dm_SP = zeros([size(m_SP) size(xi,1)]);
             end
             [m_SP,dm_SP] = Model.exp{s}.PA_post_processing(m_SP,dm_SP);
@@ -850,10 +916,10 @@ for s = 1:length(Data)
         
         
         % Evaluation of likelihood, likelihood gradient and hessian
-        logL_m = - 0.5*sum(sum(((Data{s}.PA.m - m_SP)./Data{s}.PA.Sigma_m).^2,1),2);
-        if nargout >= 2
-            dlogL_mdxi = squeeze(sum(sum(bsxfun(@times,(Data{s}.PA.m - m_SP)./Data{s}.PA.Sigma_m.^2,dm_SP),1),2));
-            if nargout >= 3
+        logL_m = - 0.5*nansum(nansum(((Data{s}.PA.m - m_SP)./Data{s}.PA.Sigma_m).^2,1),2);
+        if nderiv >= 2
+            dlogL_mdxi = squeeze(nansum(nansum(bsxfun(@times,(Data{s}.PA.m - m_SP)./Data{s}.PA.Sigma_m.^2,dm_SP),1),2));
+            if nderiv >= 3
                 wdm_SP = bsxfun(@times,1./Data{s}.PA.Sigma_m,dm_SP);
                 wdm_SP = reshape(wdm_SP,[numel(m_SP),size(dm_SP,3)]);
                 ddlogL_mdxi2 = -wdm_SP'*wdm_SP;
@@ -862,9 +928,9 @@ for s = 1:length(Data)
         
         % Summation
         logL = logL + logL_m;
-        if nargout >= 2
+        if nderiv >= 2
             dlogLdxi = dlogLdxi + dlogL_mdxi;
-            if nargout >= 3
+            if nderiv >= 3
                 ddlogLdxidxi = ddlogLdxidxi + ddlogL_mdxi2;
             end
         end
@@ -896,15 +962,15 @@ if isfield(Model,'prior')
         if(length(Model.prior) <= length(xi))
             for ixi = 1:length(Model.prior)
                 if(isfield(Model.prior{ixi},'mu') && isfield(Model.prior{ixi},'std'))
-                    if nargout >= 1
+                    if nderiv >= 1
                         % One output
                         logL =  logL + 0.5*((xi(ixi)-Model.prior{ixi}.mu)/Model.prior{ixi}.std)^2;
-                        if nargout >= 2
+                        if nderiv >= 2
                             % Two outputs
                             dlogLdxi(ixi) =  dlogLdxi(ixi) + ((xi(ixi)-Model.prior{ixi}.mu)/Model.prior{ixi}.std^2);
-                            if nargout >= 3
+                            if nderiv >= 3
                                 % Two outputs
-                                ddlogLdxidxi =  ddlogLdxidxi + 1/Model.prior{ixi}.std^2;
+                                ddlogLdxidxi(ixi,ixi) =  ddlogLdxidxi(ixi,ixi) + 1/Model.prior{ixi}.std^2;
                             end
                         end
                     end
@@ -921,13 +987,13 @@ end
 
 %%
 
-if nargout >= 1
+if nderiv >= 1
     % One output
     varargout{1} =  logL;
-    if nargout >= 2
+    if nderiv >= 2
         % Two outputs
         varargout{2} =  dlogLdxi;
-        if nargout >= 3
+        if nderiv >= 3
             % Two outputs
             varargout{3} =  ddlogLdxidxi;
         end

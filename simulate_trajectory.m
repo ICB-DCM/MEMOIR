@@ -34,6 +34,9 @@
 
 function [ Y,T,R, dYdphi,dTdphi,dRdphi, ddYdphidphi,ddTdphidphi,ddRdphidphi ] = simulate_trajectory(t,phi,Model,kappa,s,ind_t,ind_y)
 
+optionmu.atol = 1e-12;
+optionmu.rtol = 1e-12;
+
 if nargout < 4
     optionmu.sensi = 0; % number of requested sensitivities
     sol = Model.exp{s}.model(t,phi,kappa,optionmu);
@@ -50,6 +53,7 @@ elseif nargout < 7
     end
 else
     optionmu.sensi = 2; % number of requested sensitivities
+    optionmu.linsol = 9;
     sol = Model.exp{s}.model(t,phi,kappa,optionmu);
     dYdphi = sol.sy;
     if(isfield(sol,'sroot'))

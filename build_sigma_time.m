@@ -26,17 +26,21 @@
 function [Sigma_time,dSigma_timedphi,ddSigma_timedphidphi,dddSigma_timedphidphidphi,ddddSigma_timedphidphidphidphi] = build_sigma_time(phi,Tm,s,Model,ind_t)
 sigma_time = Model.exp{s}.sigma_time(phi);
 
-if(size(sigma_time,1) == size(Tm,1))
+np = length(phi);
+nt = size(Tm,1);
+nr = size(Tm,2);
+
+if(size(sigma_time,1) == nt)
     if(size(sigma_time,2) == 1)
-        Sigma_time = repmat(sigma_time,[1,size(Tm,2)]);
-    elseif(size(sigma,2) == size(Tm,2))
+        Sigma_time = repmat(sigma_time,[1,nr]);
+    elseif(size(sigma,2) == nr)
         Sigma_time = sigma_time;
     else
         error('Incompatible size of sigma_time parametrisation!')
     end
-elseif(size(sigma_time,2) == size(Tm,2))
+elseif(size(sigma_time,2) == nr)
     if(size(sigma_time,1) == 1)
-        Sigma_time = repmat(sigma_time,[size(Tm,1),1]);
+        Sigma_time = repmat(sigma_time,[nt,1]);
     else
         error('Incompatible size of sigma_time parametrisation!')
     end
@@ -48,17 +52,17 @@ end
 
 if nargout >= 2 % first order derivatives
     dsigma_timedphi = Model.exp{s}.dsigma_timedphi(phi);
-    dSigma_timedphi = zeros(length(ind_t),length(phi));
+    dSigma_timedphi = zeros(length(ind_t),np);
     
-    if(size(dsigma_timedphi,1) == size(Tm,1))
+    if(size(dsigma_timedphi,1) == nt)
         if(size(dsigma_timedphi,2) == 1)
-            dSTdphi = repmat(dsigma_timedphi,[1,size(Tm,2),1]);
-        elseif(size(dsigma_timedphi,2) == size(Tm,2))
+            dSTdphi = repmat(dsigma_timedphi,[1,nr,1]);
+        elseif(size(dsigma_timedphi,2) == nr)
             dSTdphi = dsigma_timedphi;
         end
-    elseif(size(dsigma_timedphi,2) == size(Tm,2))
+    elseif(size(dsigma_timedphi,2) == nr)
         if(size(dsigma_timedphi,1) == 1)
-            dSTdphi = repmat(dsigma_timedphi,[size(Tm,1),1,1]);
+            dSTdphi = repmat(dsigma_timedphi,[nt,1,1]);
         end
     elseif(and(size(dsigma_timedphi,1)==1,size(dsigma_timedphi,2)==1))
         dSTdphi = repmat(dsigma_timedphi,[size(Tm),1]);
@@ -66,16 +70,16 @@ if nargout >= 2 % first order derivatives
     
     if nargout >= 3 % second order derivatives
         ddsigma_timedphidphi = Model.exp{s}.ddsigma_timedphidphi(phi);
-        ddSigma_timedphidphi = zeros(length(ind_t),length(phi),length(phi));
-        if(size(dsigma_timedphi,1) == size(Tm,1))
+        ddSigma_timedphidphi = zeros(length(ind_t),np,np);
+        if(size(dsigma_timedphi,1) == nt)
             if(size(dsigma_timedphi,2) == 1)
-                ddSTdphidphi = repmat(ddsigma_timedphidphi,[1,size(Tm,2),1,1]);
-            elseif(size(dsigma_timedphi,2) == size(Tm,2))
+                ddSTdphidphi = repmat(ddsigma_timedphidphi,[1,nr,1,1]);
+            elseif(size(dsigma_timedphi,2) == nr)
                 ddSTdphidphi = ddsigma_timedphidphi ;
             end
-        elseif(size(dsigma_timedphi,2) == size(Tm,2))
+        elseif(size(dsigma_timedphi,2) == nr)
             if(size(dsigma_timedphi,1) == 1)
-                ddSTdphidphi = repmat(ddsigma_timedphidphi,[size(Tm,1),1,1]);
+                ddSTdphidphi = repmat(ddsigma_timedphidphi,[nt,1,1]);
             end
         elseif(and(size(dsigma_timedphi,1)==1,size(dsigma_timedphi,2)==1))
             ddSTdphidphi = repmat(ddsigma_timedphidphi,[size(Tm),1,1]);
@@ -84,16 +88,16 @@ if nargout >= 2 % first order derivatives
     
     if nargout >= 4 % third order derivatives
         dddsigma_timedphidphidphi = Model.exp{s}.dddsigma_timedphidphidphi(phi);
-        dddSigma_timedphidphidphi = zeros(length(ind_t),length(phi),length(phi),length(phi));
-        if(size(dsigma_timedphi,1) == size(Tm,1))
+        dddSigma_timedphidphidphi = zeros(length(ind_t),np,np,np);
+        if(size(dsigma_timedphi,1) == nt)
             if(size(dsigma_timedphi,2) == 1)
-                dddSTdphidphidphi = repmat(dddsigma_timedphidphidphi,[1,size(Tm,2),1,1,1]);
-            elseif(size(dsigma_timedphi,2) == size(Tm,2))
+                dddSTdphidphidphi = repmat(dddsigma_timedphidphidphi,[1,nr,1,1,1]);
+            elseif(size(dsigma_timedphi,2) == nr)
                 dddSTdphidphidphi = dddsigma_timedphidphidphi;
             end
-        elseif(size(dsigma_timedphi,2) == size(Tm,2))
+        elseif(size(dsigma_timedphi,2) == nr)
             if(size(dsigma_timedphi,1) == 1)
-                dddSTdphidphidphi = repmat(dddsigma_timedphidphidphi,[size(Tm,1),1,1,1]);
+                dddSTdphidphidphi = repmat(dddsigma_timedphidphidphi,[nt,1,1,1]);
             end
         elseif(and(size(dsigma_timedphi,1)==1,size(dsigma_timedphi,2)==1))
             dddSTdphidphidphi = repmat(dddsigma_timedphidphidphi,[size(Tm),1,1,1]);
@@ -102,42 +106,41 @@ if nargout >= 2 % first order derivatives
     
     if nargout >= 5 % fourth order derivatives
         ddddsigma_timedphidphidphidphi = Model.exp{s}.ddddsigma_timedphidphidphidphi(phi);
-        ddddSigma_timedphidphidphidphi = zeros(length(ind_t),length(phi),length(phi),length(phi),length(phi));
-        if(size(dsigma_timedphi,1) == size(Tm,1))
+        ddddSigma_timedphidphidphidphi = zeros(length(ind_t),np,np,np,np);
+        if(size(dsigma_timedphi,1) == nt)
             if(size(dsigma_timedphi,2) == 1)
-                ddddSTdphidphidphidphi = repmat(ddddsigma_timedphidphidphidphi,[1,size(Tm,2),1,1,1]);
-            elseif(size(dsigma_timedphi,2) == size(Tm,2))
+                ddddSTdphidphidphidphi = repmat(ddddsigma_timedphidphidphidphi,[1,nr,1,1,1]);
+            elseif(size(dsigma_timedphi,2) == nr)
                 ddddSTdphidphidphidphi = ddddsigma_timedphidphidphidphi;
             end
-        elseif(size(dsigma_timedphi,2) == size(Tm,2))
+        elseif(size(dsigma_timedphi,2) == nr)
             if(size(dsigma_timedphi,1) == 1)
-                ddddSTdphidphidphidphi = repmat(ddddsigma_timedphidphidphidphi,[size(Tm,1),1,1,1]);
+                ddddSTdphidphidphidphi = repmat(ddddsigma_timedphidphidphidphi,[nt,1,1,1]);
             end
         elseif(and(size(dsigma_timedphi,1)==1,size(dsigma_timedphi,2)==1))
             ddddSTdphidphidphidphi = repmat(ddddsigma_timedphidphidphidphi,[size(Tm),1,1,1]);
         end
     end
     
-    for k = 1:length(phi) % first order derivatives
-        temp = dSTdphi(:,:,k);
-        dSigma_timedphi(:,k) = temp(ind_t);
+    if nargout >= 2 % first order derivatives
+        I = ((1:np)-1)*numel(Tm);
+        ind_1 = bsxfun(@plus,ind_t,I);
+        dSigma_timedphi = reshape(dSTdphi(ind_1(:)),[numel(ind_t),np]);
         if nargout >= 3 % second order derivatives
-            for l = 1:length(phi)
-                temp = ddSTdphidphi(:,:,k,l);
-                ddSigma_timedphidphi(:,k,l) = temp(ind_t);
-                if nargout >= 4 % third order derivatives
-                    for m = 1:length(phi)
-                        temp = dddSTdphidphidphi(:,:,k,l,m);
-                        dddSigma_timedphidphidphi(:,k,l,m) = temp(ind_t);
-                        if nargout >= 5 % fourth order derivatives
-                            for n = 1:length(phi)
-                                temp = ddddSTdphidphidphidphi(:,:,k,l,m,n);
-                                ddddSigma_timedphidphidphidphi(:,k,l,m,n) = temp(ind_t);
-                            end
-                        end
-                    end
+            II = bsxfun(@plus,I,permute(I*np,[1,3,2]));
+            ind_2 = bsxfun(@plus,ind_t,II);
+            ddSigma_timedphidphi = reshape(ddSTdphidphi(ind_2(:)),[numel(ind_t),np,np]);
+            if nargout >= 4 % third order derivatives
+                III = bsxfun(@plus,II,permute(I*np^2,[1,3,4,2]));
+                ind_3 = bsxfun(@plus,ind_t,III);
+                dddSigma_timedphidphidphi = reshape(dddSTdphidphidphi(ind_3(:)),[numel(ind_t),np,np,np]);
+                if nargout >= 5 % fourth order derivatives
+                    IIII = bsxfun(@plus,III,permute(I*np^3,[1,3,4,5,2]));
+                    ind_4 = bsxfun(@plus,ind_t,IIII);
+                    ddddSigma_timedphidphidphidphi = reshape(ddddSTdphidphidphidphi(ind_4(:)),[numel(ind_t),np,np,np,np]);
                 end
             end
         end
     end
+    
 end
