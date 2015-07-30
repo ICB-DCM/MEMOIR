@@ -569,7 +569,7 @@ if nargout >= 2
                     
                     ddddJdbdbdbdb = ddddJ_Ddbdbdbdb + ddddJ_Tdbdbdbdb + squeeze(ddddJ_bdbdbdbdb);
                     
-                    varargout{15} = ddddJdbdbdbdb;
+                    varargout{16} = ddddJdbdbdbdb;
                     
                     %% ddddJdbdbdbdbeta
                     
@@ -581,7 +581,7 @@ if nargout >= 2
                     
                     ddddJdbdbdbdbeta = ddddJ_Ddbdbdbdbeta + ddddJ_Tdbdbdbdbeta;
                     
-                    varargout{16} = ddddJdbdbdbdbeta;
+                    varargout{17} = ddddJdbdbdbdbeta;
                     
                     %% ddddJdbdbdbetadbeta
                     
@@ -597,22 +597,22 @@ if nargout >= 2
                     
                     ddddJdbdbdbetadbeta = ddddJ_Ddbdbdbetadbeta + ddddJ_Tdbdbdbetadbeta;
                     
-                    varargout{17} = ddddJdbdbdbetadbeta;
+                    varargout{18} = ddddJdbdbdbetadbeta;
                     
                     %% ddddJdbdbdbddelta
                     
                     ddddJdbdbdbddelta = ddddJ_bdbdbdbddelta;
                     
-                    varargout{18} = ddddJdbdbdbddelta;
+                    varargout{19} = ddddJdbdbdbddelta;
                     
                     %% ddddJdbdbddeltaddelta
                     
                     ddddJdbdbddeltaddelta = ddddJ_bdbdbddeltaddelta;
                     
-                    varargout{19} = ddddJdbdbddeltaddelta;
+                    varargout{20} = ddddJdbdbddeltaddelta;
                     
                     %% dddddJdbdbdbetaddelta
-                    varargout{20} = zeros(length(b),length(b),length(beta),length(b));
+                    varargout{21} = zeros(length(b),length(b),length(beta),length(b));
                     
                     
                 end

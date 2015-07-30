@@ -89,7 +89,6 @@ try
     f_beta = isequaln(Model.sym.beta,syms.beta);
     f_b = isequaln(Model.sym.b,syms.b);
     f_delta = isequaln(Model.sym.delta,syms.delta);
-    f_exps = length(Model.exp)==length(expsyms);
     for s = 1:length(Model.exp)
         f_phiexp(s) = isequaln(Model.exp{s}.sym.phi,expsyms{s}.phi);
         f_sigma_noiseexp(s) = isequaln(Model.exp{s}.sym.sigma_noise,expsyms{s}.sigma_noise);
@@ -117,7 +116,7 @@ try
         exist(fullfile(mdir,'MEMfn',filename,['MEMddphidbdbeta_' num2str(S(s))]),'file')]);
     end
         
-    if(all([f_xi,f_phi,f_beta,f_b,f_delta,f_exps,f_phiexp,f_sigma_noiseexp,f_sigma_timeexp,f_files]))
+    if(all([f_xi,f_phi,f_beta,f_b,f_delta,f_phiexp,f_sigma_noiseexp,f_sigma_timeexp,f_files]))
             if(Model.integration)
             eval(['Model.exp{s}.ddddsigma_timedphidphidphidphi = @MEMddddsigma_timedphidphidphidphi_' num2str(S(s)) ';']);
             end
