@@ -118,20 +118,15 @@ try
     end
         
     if(all([f_xi,f_phi,f_beta,f_b,f_delta,f_exps,f_phiexp,f_sigma_noiseexp,f_sigma_timeexp,f_files]))
-        if(Model.integration)
-            % TBD
             if(Model.integration)
             eval(['Model.exp{s}.ddddsigma_timedphidphidphidphi = @MEMddddsigma_timedphidphidphidphi_' num2str(S(s)) ';']);
             end
             if(Model.integration)
             eval(['Model.exp{s}.ddddsigma_noisedphidphidphidphi = @MEMddddsigma_noisedphidphidphidphi_' num2str(S(s)) ';']);
             end
-        else
-            % load old definition
             loadold = true; 
             disp(['Loading previous model definition files!'])
             disp(['To regenerate model, abort and delete ' mdir 'MEMfn/' filename ]);
-        end
     end
 catch
 
