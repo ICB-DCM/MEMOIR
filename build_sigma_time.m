@@ -123,21 +123,17 @@ if nargout >= 2 % first order derivatives
     end
     
     if nargout >= 2 % first order derivatives
-        I = ((1:np)-1)*numel(Tm);
-        ind_1 = bsxfun(@plus,ind_t,I);
-        dSigma_timedphi = reshape(dSTdphi(ind_1(:)),[numel(ind_t),np]);
+        tmp = reshape(dSTdphi,[numel(Tm),np]);
+        dSigma_timedphi = tmp(ind_t,:);
         if nargout >= 3 % second order derivatives
-            II = bsxfun(@plus,I,permute(I*np,[1,3,2]));
-            ind_2 = bsxfun(@plus,ind_t,II);
-            ddSigma_timedphidphi = reshape(ddSTdphidphi(ind_2(:)),[numel(ind_t),np,np]);
+            tmp = reshape(ddSTdphidphi,[numel(Tm),np,np]);
+            ddSigma_timedphidphi = tmp(ind_t,:,:);
             if nargout >= 4 % third order derivatives
-                III = bsxfun(@plus,II,permute(I*np^2,[1,3,4,2]));
-                ind_3 = bsxfun(@plus,ind_t,III);
-                dddSigma_timedphidphidphi = reshape(dddSTdphidphidphi(ind_3(:)),[numel(ind_t),np,np,np]);
+                tmp = reshape(dddSTdphidphidphi,[numel(Tm),np,np,np]);
+                dddSigma_timedphidphidphi = tmp(ind_t,:,:,:);
                 if nargout >= 5 % fourth order derivatives
-                    IIII = bsxfun(@plus,III,permute(I*np^3,[1,3,4,5,2]));
-                    ind_4 = bsxfun(@plus,ind_t,IIII);
-                    ddddSigma_timedphidphidphidphi = reshape(ddddSTdphidphidphidphi(ind_4(:)),[numel(ind_t),np,np,np,np]);
+                    tmp = reshape(ddddSTdphidphidphidphi,[numel(Tm),np,np,np,np]);
+                    ddddSigma_timedphidphidphidphi = tmp(ind_t,:,:,:,:);
                 end
             end
         end
