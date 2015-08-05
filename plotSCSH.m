@@ -1,5 +1,7 @@
-% function fh = plotSCSH(Data,Sim,fh,options)
-function fh = plotSCSH(varargin)
+% function fh = plotSCSH(Data,Sim,s,options)
+function plotSCSH(varargin)
+
+persistent fh
 
 %% Check and assign inputs
 if nargin >= 2
@@ -9,16 +11,18 @@ else
     error('Not enough inputs.')
 end
 
-% Figure handel
-if nargin >= 3
-    if ~isempty(varargin{3})
-        fh = figure(varargin{3});
-    else
-        fh = figure;
-    end
+% Figure handle
+s = varargin{3};
+if(isempty(fh))
+    fh(s) = figure;
 else
-    fh = figure;
+    if length(fh) < s
+        fh(s) = figure;
+    elseif(isempty(fh(s)))
+        fh(s) = figure;
+    end
 end
+figure(fh(s));
 
 % Options
 options.data.col = 'b';

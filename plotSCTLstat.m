@@ -1,5 +1,7 @@
-% function fh = plotSCTLstatstat(Data,Sim,fh,options)
-function fh = plotSCTLstatstat(varargin)
+% function plotSCTLstatstat(Data,Sim,fh,options)
+function plotSCTLstat(varargin)
+
+persistent fh
 
 %% Check and assign inputs
 if nargin >= 2
@@ -9,16 +11,18 @@ else
     error('Not enough inputs.')
 end
 
-% Figure handel
-if nargin >= 3
-    if ~isempty(varargin{3})
-        fh = figure(varargin{3});
-    else
-        fh = figure;
-    end
+% Figure handle
+s = varargin{3};
+if(isempty(fh))
+    fh(s) = figure;
 else
-    fh = figure;
+    if length(fh) < s
+        fh(s) = figure;
+    elseif(isempty(fh(s)))
+        fh(s) = figure;
+    end
 end
+figure(fh(s));
 
 % Options
 options.data.col = 'b';
@@ -153,7 +157,7 @@ if ~isempty(Sim)
     imagesc(Data.SCTLstat.Cz,Cz_abs_max*[-1,1]); hold on;
     xlabel('column'); ylabel('row');
     colorbar;
-    
+    caxis([min(min(min(Data.SCTLstat.Cz,Cz_abs_max))),max(max(max(Data.SCTLstat.Cz,Cz_abs_max)))])
     % Covariances - Simulation
     I = [];
     for i = 1:ny
@@ -163,6 +167,7 @@ if ~isempty(Sim)
     imagesc(Sim.Cz,Cz_abs_max*[-1,1]); hold on;
     xlabel('column'); ylabel('row');
     colorbar;
+    caxis([min(min(min(Data.SCTLstat.Cz,Cz_abs_max))),max(max(max(Data.SCTLstat.Cz,Cz_abs_max)))])
 
 end
 

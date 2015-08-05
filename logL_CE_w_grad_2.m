@@ -6,7 +6,7 @@
 %
 % USAGE:
 % ======
-% [logL,dlogLdxi,ddlogLdxidxi = logL_CE_w_grad_2(xi,Data,Model,options)
+% [logL,dlogLdxi,ddlogLdxidxi] = logL_CE_w_grad_2(xi,Data,Model,options)
 % P = logL_CE_w_grad_2(xi,Data,Model,options,1)
 %
 % INPUTS:
@@ -46,7 +46,7 @@
 %   .type_D ... string specifying the parametrisation of the covariance
 %       matrix for the random effects. either
 %       'diag-matrix-logarithm' for diagonal matrix with log. paramet. or
-%       'matrix-logarithm' for full matrix with log. paramet. or
+%       'matrix-logarithm' for full matrix with log. parametrisation
 %   .integration ... flag indicating whether integration for classical
 %       mixed effect models via laplace approximation should be applied.
 %       only applicable for SCTL data.
@@ -94,14 +94,10 @@
 %                   .s2y ... second order sensitivity for observable, matrix [time,measurement]
 %                   .s2root ... (optional) second order sensitivity for event, matrix [time,event]
 %                   .s2rootval ... (optional) second order sensitivity for rootfunction, matrix [time,event]
-%      .fh ...figure handle for plotting of simulation
-%      .fp ...figure handle for plotting of random effect distribution
-%      .fl ...figure handle for plotting of likelihood contributions
 %      .plot ... function handle for plotting of simulation resutls with arguments
 %          Data ... data
 %          Sim ... simulation
-%          fh ... figure handle to the figure in which the function
-%               should plot
+%          s ... experiment index
 %      and the following fields which contain figure handles whith mixed
 %      effect parameter as argument of the respective variable
 %      .dsigma_noisedphi
@@ -167,6 +163,8 @@ function varargout = logL_CE_w_grad_2(varargin)
 persistent tau
 persistent P_old
 persistent logL_old
+persistent fp
+persistent fl
 
 if isempty(tau)
     tau = clock;
@@ -183,8 +181,10 @@ Model = varargin{3};
 % Options
 options.tau_update = 0;
 options.plot = 1;
-if nargin == 4
-    options = setdefault(varargin{4},options);
+if nargin >= 4
+    if(isstruct(varargin{4}))
+        options = setdefault(varargin{4},options);
+    end
 end
 
 if nargin >= 5
@@ -717,7 +717,16 @@ for s = 1:length(Data)
         if options.plot
             
             % Visualisation of single cell parameters
-            figure(Model.exp{s}.fp)
+            if(isempty(fp))
+                fp(s) = figure;
+            else
+                if(length(fp)<s)
+                    fp(s) = figure;
+                elseif(isempty(fp(s)))
+                    fp(s) = figure;
+                end
+            end
+            figure(fp(s))
             clf
             b_s = P{s}.SCTL.bhat;
             n_b = size(b_s,1);
@@ -753,8 +762,16 @@ for s = 1:length(Data)
             legend('cdf of single cell Parameters','cdf of populaton Parameters')
             
             % Visualisation of likelihood contribution
-            
-            figure(Model.exp{s}.fl)
+            if(isempty(fl))
+                fl(s) = figure;
+            else
+                if(length(fl)<s)
+                    fl(s) = figure;
+                elseif(isempty(fl(s)))
+                    fl(s) = figure;
+                end
+            end
+            figure(fl(s))
             if(Model.penalty)
                 if(Model.integration)
                     bar([logLi_D;logLi_T;logLi_b;logLi_I;repmat(logL_s,[1,size(Data{s}.SCTL.Y,3)])],'stacked')
@@ -778,7 +795,7 @@ for s = 1:length(Data)
             
             
             % Visualisation of data and fit
-            Model.exp{s}.plot(Data{s},Sim_SCTL,Model.exp{s}.fh);
+            Model.exp{s}.plot(Data{s},Sim_SCTL,s);
         end
     end
     
@@ -787,12 +804,11 @@ for s = 1:length(Data)
         % Simulation using sigma points
         op_SP.nderiv = nderiv;
         op_SP.req = [0,0,0,1,1,1,0];
-        if(nderiv>0)
-            dbetadxi = Model.exp{s}.dbetadxi(xi);
-            ddeltadxi = Model.exp{s}.ddeltadxi(xi);
-            SP = getSigmaPointApp(@(phi) simulateForSP(Model.exp{s}.model,Data{s}.SCTLstat.time,phi,Data{s}.condition),beta,D,Model.exp{s},op_SP,dDddelta,ddeltadxi,dbetadxi);
+        op_SP.type_D = Model.type_D;
+        if(extract_flag)
+            SP = testSigmaPointApp(@(phi) simulateForSP(Model.exp{s}.model,Data{s}.SCTLstat.time,phi,Data{s}.condition),xi,Model.exp{s},op_SP);
         else
-            SP = getSigmaPointApp(@(phi) simulateForSP(Model.exp{s}.model,Data{s}.SCTLstat.time,phi,Data{s}.condition),beta,D,Model.exp{s},op_SP);
+            SP = getSigmaPointApp(@(phi) simulateForSP(Model.exp{s}.model,Data{s}.SCTLstat.time,phi,Data{s}.condition),xi,Model.exp{s},op_SP);
         end
         
         % Evaluation of likelihood, likelihood gradient and hessian
@@ -800,9 +816,9 @@ for s = 1:length(Data)
         % Mean
         logL_mz = - 0.5*sum(nansum(((Data{s}.SCTLstat.mz - SP.mz)./Data{s}.SCTLstat.Sigma_mz).^2,1),2);
         if nderiv >= 2
-            dlogL_mzdxi = permute(nansum(bsxfun(@times,(Data{s}.SCTLstat.mz - SP.mz)./Data{s}.SCTLstat.Sigma_mz.^2,SP.dmdxizdxi),1),[2,1]);
+            dlogL_mzdxi = permute(nansum(bsxfun(@times,(Data{s}.SCTLstat.mz - SP.mz)./Data{s}.SCTLstat.Sigma_mz.^2,SP.dmzdxi),1),[2,1]);
             if nderiv >= 3
-                wdmz_SP = bsxfun(@times,1./Data{s}.SCTLstat.Sigma_mz,SP.dmdxizdxi);
+                wdmz_SP = bsxfun(@times,1./Data{s}.SCTLstat.Sigma_mz,SP.dmzdxi);
                 %                     wdmz_SP = reshape(wdmz_SP,[numel(SP.mz),size(SP.dmdxizdxi,3)]);
                 ddlogL_mzdxi2 = -wdmz_SP'*wdmz_SP;
             end
@@ -812,11 +828,11 @@ for s = 1:length(Data)
         % Covariance
         logL_Cz = - 0.5*sum(nansum(nansum(((Data{s}.SCTLstat.Cz - SP.Cz)./Data{s}.SCTLstat.Sigma_Cz).^2,1),2),3);
         if nderiv >= 2
-            dlogL_Czdxi = squeeze(nansum(nansum(bsxfun(@times,(Data{s}.SCTLstat.Cz - SP.Cz)./Data{s}.SCTLstat.Sigma_Cz.^2,SP.dCdxizdxi),1),2));
+            dlogL_Czdxi = squeeze(nansum(nansum(bsxfun(@times,(Data{s}.SCTLstat.Cz - SP.Cz)./Data{s}.SCTLstat.Sigma_Cz.^2,SP.dCzdxi),1),2));
             if nderiv >= 3
-                wSP.dCdxiz = bsxfun(@times,1./Data{s}.SCTLstat.Sigma_Cz,SP.dCdxizdxi);
-                wSP.dCdxiz = reshape(wSP.dCdxiz,[numel(SP.Cz),size(SP.dCdxizdxi,3)]);
-                ddlogL_Czdxi2 = -wSP.dCdxiz'*wSP.dCdxiz;
+                wdCzdxi = bsxfun(@times,1./Data{s}.SCTLstat.Sigma_Cz,SP.dCzdxi);
+                wdCzdxi = reshape(wdCzdxi,[numel(SP.Cz),size(SP.dCzdxi,3)]);
+                ddlogL_Czdxi2 = -wdCzdxi'*wdCzdxi;
             end
         end
         
@@ -833,7 +849,11 @@ for s = 1:length(Data)
         if options.plot
             Sim_SCTLstat.mz = SP.mz;
             Sim_SCTLstat.Cz = SP.Cz;
-            Model.exp{s}.plot(Data{s},Sim_SCTLstat,Model.exp{s}.fh);
+            Model.exp{s}.plot(Data{s},Sim_SCTLstat,s);
+        end
+        
+        if(extract_flag)
+            P{s}.SCTLstat.SP = SP;
         end
         
     end
@@ -843,12 +863,11 @@ for s = 1:length(Data)
         % Simulation using sigma points
         op_SP.nderiv = nderiv;
         op_SP.req = [1,1,0,0,0,1,0];
-        if(nderiv>0)
-            dbetadxi = Model.exp{s}.dbetadxi(xi);
-            ddeltadxi = Model.exp{s}.ddeltadxi(xi);
-            SP = getSigmaPointApp(@(phi) simulateForSP(Model.exp{s}.model,Data{s}.SCSH.time,phi,Data{s}.condition),beta,D,Model.exp{s},op_SP,dDddelta,ddeltadxi,dbetadxi);
+        op_SP.type_D = Model.type_D;
+        if(extract_flag)
+            SP = testSigmaPointApp(@(phi) simulateForSP(Model.exp{s}.model,Data{s}.SCSH.time,phi,Data{s}.condition),xi,Model.exp{s},op_SP);
         else
-            SP = getSigmaPointApp(@(phi) simulateForSP(Model.exp{s}.model,Data{s}.SCSH.time,phi,Data{s}.condition),beta,D,Model.exp{s},op_SP);
+            SP = getSigmaPointApp(@(phi) simulateForSP(Model.exp{s}.model,Data{s}.SCSH.time,phi,Data{s}.condition),xi,Model.exp{s},op_SP);
         end
         
         % Evaluation of likelihood, likelihood gradient and hessian
@@ -887,7 +906,11 @@ for s = 1:length(Data)
         if options.plot
             Sim_SCSH.m = SP.my;
             Sim_SCSH.C = SP.Cy;
-            Model.exp{s}.plot(Data{s},Sim_SCSH,Model.exp{s}.fh);
+            Model.exp{s}.plot(Data{s},Sim_SCSH,s);
+        end
+        
+        if(extract_flag)
+            P{s}.SCSH.SP = SP;
         end
         
     end
@@ -898,12 +921,11 @@ for s = 1:length(Data)
         % Simulation using sigma points
         op_SP.nderiv = nderiv;
         op_SP.req = [1,0,0,0,0,1,0];
-        if(nderiv>0)
-            dbetadxi = Model.exp{s}.dbetadxi(xi);
-            ddeltadxi = Model.exp{s}.ddeltadxi(xi);
-            SP = getSigmaPointApp(@(phi) simulateForSP(Model.exp{s}.model,Data{s}.PA.time,phi,Data{s}.condition),beta,D,Model.exp{s},op_SP,dDddelta,ddeltadxi,dbetadxi);
+        op_SP.type_D = Model.type_D;
+        if(extract_flag)
+            SP = testSigmaPointApp(@(phi) simulateForSP(Model.exp{s}.model,Data{s}.PA.time,phi,Data{s}.condition),xi,Model.exp{s},op_SP);
         else
-            SP = getSigmaPointApp(@(phi) simulateForSP(Model.exp{s}.model,Data{s}.PA.time,phi,Data{s}.condition),beta,D,Model.exp{s},op_SP);
+            SP = getSigmaPointApp(@(phi) simulateForSP(Model.exp{s}.model,Data{s}.PA.time,phi,Data{s}.condition),xi,Model.exp{s},op_SP);
         end
         
         % Post-processing of population average data
@@ -938,7 +960,11 @@ for s = 1:length(Data)
         % Visulization
         if options.plot
             Sim_PA.m = SP.m;
-            Model.exp{s}.plot(Data{s},Sim_PA,Model.exp{s}.fh);
+            Model.exp{s}.plot(Data{s},Sim_PA,s);
+        end
+        
+        if(extract_flag)
+            P{s}.PA.SP = SP;
         end
     end
     
@@ -947,11 +973,7 @@ end
 %% Output
 
 if extract_flag
-    if isfield(Data{s},'SCTL')
-        varargout{1} = P;
-    elseif any([isfield(Data{s},'SCTLstat'),isfield(Data{s},'PA'),isfield(Data{s},'SCSH')])
-        varargout{1} = SP.B;
-    end
+    varargout{1} = P;
     return
 end
 
