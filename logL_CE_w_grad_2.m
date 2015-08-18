@@ -163,14 +163,12 @@ function varargout = logL_CE_w_grad_2(varargin)
 persistent tau
 persistent P_old
 persistent logL_old
+persistent xi_old
 persistent fp
 persistent fl
 
 if isempty(tau)
     tau = clock;
-end
-if isempty(logL_old)
-    logL_old = -inf;
 end
 
 %% Initialization
@@ -194,6 +192,19 @@ else
 end
 
 nderiv = nargout;
+
+
+if(isempty(logL_old))
+    logL_old = -Inf;
+    xi_old = zeros(size(xi));
+    for s = 1:length(Data)
+        if isfield(Data{s},'SCTL')
+            P_old{s}.SCTL.bhat = zeros(length(Model.exp{s}.ind_b),size(Data{s}.SCTL.Y,3));
+            P_old{s}.SCTL.dbdxi = zeros(length(Model.exp{s}.ind_b),length(xi),size(Data{s}.SCTL.Y,3));
+        end
+    end
+end
+    
 
 % Plot options
 if (etime(clock,tau) > options.tau_update) && (options.plot == 1)
@@ -234,7 +245,6 @@ for s = 1:length(Data)
     % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(delta,@(x) xi2D(x,type_D),1e-4,2,4)
     % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(delta,@(x) xi2D(x,type_D),1e-4,4,6)
     
-    
     %% Construction of time vector
     t_s = [];
     for dtype = 1:length(data_type)
@@ -263,13 +273,6 @@ for s = 1:length(Data)
         % set default scaling
         if(~isfield(Model,'SCTLscale'))
             Model.SCTLscale = 1;
-        end
-        
-        % load values from previous evaluation as initialisation
-        if logL_old == -inf
-            bhat_0 = zeros(length(Model.exp{s}.ind_b),size(Data{s}.SCTL.Y,3));
-        else
-            bhat_0 = P_old{s}.SCTL.bhat;
         end
         
         % Loop: Indiviudal cells
@@ -305,7 +308,7 @@ for s = 1:length(Data)
             Tm_si = Data{s}.SCTL.T(:,:,i);
             ind_t = find(~isnan(Tm_si));
             
-            bhat_si0 = bhat_0(:,i);
+            bhat_si0 = P_old{s}.SCTL.bhat(:,i) + P_old{s}.SCTL.dbdxi(:,:,i)*(xi-xi_old);
             
             %% Estimation of single cell random effects
             % Higher order derivatives of the objective function for single cell parameters
@@ -659,6 +662,8 @@ for s = 1:length(Data)
             end
         end
         
+        
+        
         logL = logL + Model.SCTLscale*sum(logLi_D + logLi_T + logLi_b + logLi_I,2);
         if nderiv > 1
             dlogLdxi = dlogLdxi + Model.SCTLscale*sum(dlogLi_Ddxi + dlogLi_Tdxi + dlogLi_bdxi + dlogLi_Idxi,2);
@@ -709,9 +714,6 @@ for s = 1:length(Data)
                 
             end
         end
-        
-        
-        
         
         % Visulization
         if options.plot
@@ -968,6 +970,16 @@ for s = 1:length(Data)
         end
     end
     
+
+    
+    
+end
+
+% updated stored value
+if(logL > logL_old)
+    logL_old = logL;
+    P_old = P;
+    xi_old = xi;
 end
 
 %% Output
