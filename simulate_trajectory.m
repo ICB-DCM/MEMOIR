@@ -55,6 +55,7 @@ else
     optionmu.sensi = 2; % number of requested sensitivities
     optionmu.linsol = 9;
     sol = Model.exp{s}.model(t,phi,kappa,optionmu);
+    % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(phi,@(phi) Model.exp{s}.model(t,phi,kappa,optionmu),1e-5,'y','sy')
     dYdphi = sol.sy;
     if(isfield(sol,'sroot'))
         dTdphi = sol.sroot(ind_t,:,:);

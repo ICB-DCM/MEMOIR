@@ -203,6 +203,9 @@ t = iscell(x) || (ischar(x)&&size(x,1)==1) || isa(x,'sym');
 % validator for file parameter
 function t = isFunc(x)
 [~,file] = fileparts(x);
+if length(file)>namelengthmax
+    error('filename is longer than what matlab can handle.')
+end
 t = isempty(file) || isvarname(file);
 
 % parse inputs and return option structure output
