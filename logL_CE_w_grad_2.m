@@ -166,6 +166,7 @@ persistent logL_old
 persistent xi_old
 persistent fp
 persistent fl
+persistent n_store
 
 if isempty(tau)
     tau = clock;
@@ -193,14 +194,17 @@ end
 
 nderiv = nargout;
 
-
+% initialise storage
 if(isempty(logL_old))
     logL_old = -Inf;
     xi_old = zeros(size(xi));
+    n_store = 0;
     for s = 1:length(Data)
         if isfield(Data{s},'SCTL')
             P_old{s}.SCTL.bhat = zeros(length(Model.exp{s}.ind_b),size(Data{s}.SCTL.Y,3));
             P_old{s}.SCTL.dbdxi = zeros(length(Model.exp{s}.ind_b),length(xi),size(Data{s}.SCTL.Y,3));
+        else
+            P_old{s} = [];
         end
     end
 end
@@ -237,7 +241,7 @@ for s = 1:length(Data)
     beta = Model.exp{s}.beta(xi);
     delta = Model.exp{s}.delta(xi);
     
-    [D,invD,dDddelta,dinvDddelta,ddDddeltaddelta,ddinvDddeltaddelta] = xi2D(delta,type_D);
+    [D,~,~,~,~,~] = xi2D(delta,type_D);
     
     % debugging:
     % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(delta,@(x) xi2D(x,type_D),1e-4,1,3)
@@ -308,7 +312,11 @@ for s = 1:length(Data)
             Tm_si = Data{s}.SCTL.T(:,:,i);
             ind_t = find(~isnan(Tm_si));
             
-            bhat_si0 = P_old{s}.SCTL.bhat(:,i) + P_old{s}.SCTL.dbdxi(:,:,i)*(xi-xi_old);
+            if(isfield(P_old{s}.SCTL,'dbdxi'))
+                bhat_si0 = P_old{s}.SCTL.bhat(:,i) + P_old{s}.SCTL.dbdxi(:,:,i)*(xi-xi_old);
+            else
+                bhat_si0 = P_old{s}.SCTL.bhat(:,i);
+            end
             
             %% Estimation of single cell random effects
             % Higher order derivatives of the objective function for single cell parameters
@@ -316,17 +324,21 @@ for s = 1:length(Data)
             % with respect to b
             % F_diff and b_diff determine how many derivatives of the objective function and of the optimum need to
             % be computed
+            
+            % do multistart every few iterations
+            fms = (mod(n_store,10)==0);
+            
             switch(nderiv)
                 case 0
                     F_diff = 0;
                     b_diff = 0;
                     [bhat_si,G] ...
-                        = optimize_SCTL_si(Model,Data,bhat_si0,beta,delta,type_D,t_s,Ym_si,Tm_si,ind_y,ind_t,F_diff,b_diff,s);
+                        = optimize_SCTL_si(Model,Data,bhat_si0,beta,delta,type_D,t_s,Ym_si,Tm_si,ind_y,ind_t,F_diff,b_diff,s,fms);
                 case 1
                     F_diff = 0;
                     b_diff = 0;
                     [bhat_si,G] ...
-                        = optimize_SCTL_si(Model,Data,bhat_si0,beta,delta,type_D,t_s,Ym_si,Tm_si,ind_y,ind_t,F_diff,b_diff,s);
+                        = optimize_SCTL_si(Model,Data,bhat_si0,beta,delta,type_D,t_s,Ym_si,Tm_si,ind_y,ind_t,F_diff,b_diff,s,fms);
                 case 2
                     b_diff = 1;
                     if(Model.integration)
@@ -334,14 +346,14 @@ for s = 1:length(Data)
                         
                         [bhat_si,dbhat_sidbeta,dbhat_siddelta,...
                             G,dGdb,pdGpdbeta,pdGpddelta] ...
-                            = optimize_SCTL_si(Model,Data,bhat_si0,beta,delta,type_D,t_s,Ym_si,Tm_si,ind_y,ind_t,F_diff,b_diff,s);
+                            = optimize_SCTL_si(Model,Data,bhat_si0,beta,delta,type_D,t_s,Ym_si,Tm_si,ind_y,ind_t,F_diff,b_diff,s,fms);
                         % [g,g_fd_f,g_fd_b,g_fd_c]=testGradient(beta,@(beta)optimize_SCTL_si(Model,Data,bhat_si0,beta,delta,type_D,t_s,Ym_si,Tm_si,ind_y,ind_t,F_diff,b_diff,s),1e-4,1,2)
                         % [g,g_fd_f,g_fd_b,g_fd_c]=testGradient(delta,@(delta)optimize_SCTL_si(Model,Data,bhat_si0,beta,delta,type_D,t_s,Ym_si,Tm_si,ind_y,ind_t,F_diff,b_diff,s),1e-4,1,3)
                     else
                         F_diff = 2;
                         [bhat_si,dbhat_sidbeta,dbhat_siddelta,...
                             G] ...
-                            = optimize_SCTL_si(Model,Data,bhat_si0,beta,delta,type_D,t_s,Ym_si,Tm_si,ind_y,ind_t,F_diff,b_diff,s);
+                            = optimize_SCTL_si(Model,Data,bhat_si0,beta,delta,type_D,t_s,Ym_si,Tm_si,ind_y,ind_t,F_diff,b_diff,s,fms);
                         % [g,g_fd_f,g_fd_b,g_fd_c]=testGradient(beta,@(beta)optimize_SCTL_si(Model,Data,bhat_si0,beta,delta,type_D,t_s,Ym_si,Tm_si,ind_y,ind_t,F_diff,b_diff,s),1e-4,1,2)
                         % [g,g_fd_f,g_fd_b,g_fd_c]=testGradient(delta,@(delta)optimize_SCTL_si(Model,Data,bhat_si0,beta,delta,type_D,t_s,Ym_si,Tm_si,ind_y,ind_t,F_diff,b_diff,s),1e-4,1,3)
                     end
@@ -353,7 +365,7 @@ for s = 1:length(Data)
                         [bhat_si,dbhat_sidbeta,dbhat_siddelta,ddbhat_sidbetadbeta,ddbhat_sidbetaddelta,ddbhat_siddeltaddelta,...
                             G,dGdb,pdGpdbeta,pdGpddelta,ddGdbdb,pddGdbpdbeta,pdpdGpdbetapdbeta,pddGdbpddelta,pdpdGpddeltapddelta,...
                             pdpdGpdbetapddelta] ...
-                            = optimize_SCTL_si(Model,Data,bhat_si0,beta,delta,type_D,t_s,Ym_si,Tm_si,ind_y,ind_t,F_diff,b_diff,s);
+                            = optimize_SCTL_si(Model,Data,bhat_si0,beta,delta,type_D,t_s,Ym_si,Tm_si,ind_y,ind_t,F_diff,b_diff,s,fms);
                     else
                         F_diff = 3;
                         b_diff = 2;
@@ -364,7 +376,7 @@ for s = 1:length(Data)
                         % [g,g_fd_f,g_fd_b,g_fd_c]=testGradient(delta,@(delta)optimize_SCTL_si(Model,Data,bhat_si0,beta,delta,type_D,t_s,Ym_si,Tm_si,ind_y,ind_t,F_diff,b_diff,s),1e-4,3,6)
                         [bhat_si,dbhat_sidbeta,dbhat_siddelta,ddbhat_sidbetadbeta,ddbhat_sidbetaddelta,ddbhat_siddeltaddelta,...
                             G,dGdb,pdGpdbeta] ...
-                            = optimize_SCTL_si(Model,Data,bhat_si0,beta,delta,type_D,t_s,Ym_si,Tm_si,ind_y,ind_t,F_diff,b_diff,s);
+                            = optimize_SCTL_si(Model,Data,bhat_si0,beta,delta,type_D,t_s,Ym_si,Tm_si,ind_y,ind_t,F_diff,b_diff,s,fms);
                     end
             end
             
@@ -980,6 +992,7 @@ if(logL > logL_old)
     logL_old = logL;
     P_old = P;
     xi_old = xi;
+    n_store = n_store + 1;
 end
 
 %% Output
