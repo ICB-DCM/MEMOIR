@@ -130,6 +130,13 @@
 %      .plot ... flag whether the function should plot either
 %          0 ... no plots
 %          1 ... all plots (default)
+%      .ms_iter ... number of function call with decreasing likelihood
+%      value between multistarts for the inner optimisation problem for SCTL
+%      data, for optimisation this is typically the number of iterations
+%      between multistarts
+%          0 ... multistart every iteration 
+%          X ... multistart every X iterations (default = 10)
+%        Inf ... Only one multistart in the beginning
 %  extract_flag ... flag indicating whether the values of random effect
 %      parameters are to be extracted (only for SCTL data)
 %          0 ... no extraction (default)
@@ -180,6 +187,7 @@ Model = varargin{3};
 % Options
 options.tau_update = 0;
 options.plot = 1;
+options.ms_iter = 10;
 if nargin >= 4
     if(isstruct(varargin{4}))
         options = setdefault(varargin{4},options);
@@ -230,6 +238,8 @@ end
 
 % definition of possible datatypes
 data_type = {'SCTL','SCSH','SCTLstat','PA'};
+
+ms_iter = options.ms_iter;
 
 % Loop: Experiments/Experimental Conditions
 for s = 1:length(Data)
@@ -326,7 +336,7 @@ for s = 1:length(Data)
             % be computed
             
             % do multistart every few iterations
-            fms = (mod(n_store,10)==0);
+            fms = (mod(n_store,ms_iter)==0);
             
             switch(nderiv)
                 case 0
@@ -732,12 +742,36 @@ for s = 1:length(Data)
             
             % Visualisation of single cell parameters
             if(isempty(fp))
-                fp(s) = figure;
+                if(isfield(Model.exp{s},'Title'))
+                    if(ischar(Model.exp{s}.Title))
+                        fp(s) = figure('Name',Model.exp{s}.Title);
+                    else
+                        fp(s) = figure;
+                    end
+                else
+                    fp(s) = figure;
+                end
             else
                 if(length(fp)<s)
-                    fp(s) = figure;
+                    if(isfield(Model.exp{s},'Title'))
+                        if(ischar(Model.exp{s}.Title))
+                            fp(s) = figure('Name',Model.exp{s}.Title);
+                        else
+                            fp(s) = figure;
+                        end
+                    else
+                        fp(s) = figure;
+                    end
                 elseif(isempty(fp(s)))
-                    fp(s) = figure;
+                    if(isfield(Model.exp{s},'Title'))
+                        if(ischar(Model.exp{s}.Title))
+                            fp(s) = figure('Name',Model.exp{s}.Title);
+                        else
+                            fp(s) = figure;
+                        end
+                    else
+                        fp(s) = figure;
+                    end
                 end
             end
             figure(fp(s))

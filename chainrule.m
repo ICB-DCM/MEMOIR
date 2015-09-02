@@ -24,10 +24,10 @@ if(numel(dxdy)>1)
                 dxdz = dxdy*dydz;
             end
         else
-            dxdz = permute(sum(bsxfun(@times,dxdy,permute(dydz,[d2+(1:(d1-1)),1,2:d2])),d1),[1:(d1-1),(d1+1):(d1+d2-1),d1]);
+            dxdz = permute(nansum(bsxfun(@times,dxdy,permute(dydz,[d2+(1:(d1-1)),1,2:d2])),d1),[1:(d1-1),(d1+1):(d1+d2-1),d1]);
         end
     else
-        dxdz =     permute(sum(bsxfun(@times,dxdy,permute(dydz,[              1,2:d2])),d1),[1:(d1-1),(d1+1):(d1+d2-1),d1]);
+        dxdz =     permute(nansum(bsxfun(@times,dxdy,permute(dydz,[              1,2:d2])),d1),[1:(d1-1),(d1+1):(d1+d2-1),d1]);
     end
 elseif(numel(dxdy)==1)
     dxdz = permute(dxdy*dydz,[d2+(1:(d1-1)),2:d2,1]);

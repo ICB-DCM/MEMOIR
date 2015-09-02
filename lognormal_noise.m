@@ -5,7 +5,7 @@
 function varargout = lognormal_noise(Y,Ym,Sigma,ind)
 if nargout >=1
     % J_D
-    varargout{1} = transpose(sum(0.5*((log(Y(ind)) - Ym(ind))./Sigma).^2 + 0.5*log(sqrt(2*pi)*(Sigma(ind).^2).*(Y(ind).^2))));
+    varargout{1} = transpose(nansum(0.5*((log(Y(ind)) - Ym(ind))./Sigma).^2 + 0.5*log(sqrt(2*pi)*(Sigma(ind).^2).*(Y(ind).^2))));
     if nargout >= 3
         % dJ_DdY
         varargout{2} = transpose((log(Y(ind)) - Ym(ind))./(Sigma(ind).^2).*(1./Y) + 1./Y(ind));
