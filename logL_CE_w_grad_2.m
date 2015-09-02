@@ -247,9 +247,13 @@ for s = 1:length(Data)
     %% Assignment of global variables
     type_D = Model.type_D;
     
+    n_b = length(Model.exp{s}.ind_b);
+    
     %% Construct fixed effects and covariance matrix
     beta = Model.exp{s}.beta(xi);
     delta = Model.exp{s}.delta(xi);
+    
+    n_beta = length(Model.exp{s}.beta(xi));
     
     [D,~,~,~,~,~] = xi2D(delta,type_D);
     
@@ -314,6 +318,57 @@ for s = 1:length(Data)
         end
         
         parfor i = 1:size(Data{s}.SCTL.Y,3)
+            
+            % initialisation
+            bhat_si = [];
+            G = [];
+            dbhat_sidbeta = [];
+            dbhat_siddelta = [];
+            dGdb = [];
+            pdGpdbeta = [];
+            pdGpddelta = [];
+            ddbhat_sidbetadbeta = [];
+            ddbhat_sidbetaddelta = [];
+            ddbhat_siddeltaddelta = [];
+            ddGdbdb = [];
+            pddGdbpdbeta = [];
+            pdpdGpdbetapdbeta = [];
+            pddGdbpddelta = [];
+            pdpdGpddeltapddelta = [];
+            pdpdGpdbetapddelta = [];
+            dY_sidphi = [];
+            dT_sidphi = [];
+            dR_sidphi = [];
+            ddY_sidphidphi = [];
+            ddT_sidphidphi = [];
+            ddR_sidphidphi = [];
+            dSigma_noisedphi = [];
+            dSigma_timedphi = [];
+            J_D = [];
+            dJ_DdY = [];
+            dJ_DdSigma = [];
+            ddJ_DdYdY = [];
+            ddJ_DdYdSigma = [];
+            ddJ_DdSigmadSigma = [];
+            J_T = [];
+            dJ_TdT = [];
+            dJ_TdR = [];
+            dJ_TdSigma = [];
+            ddJ_TdTdT = [];
+            ddJ_TdTdR = [];
+            ddJ_TdRdR = [];
+            ddJ_TdTdSigma = [];
+            ddJ_TdRdSigma = [];
+            ddJ_TdSigmadSigma = [];
+            J_b = [];
+            dJ_bdb = [];
+            pdJ_bpddelta = [];
+            ddJ_bdbdb = [];
+            dpdJ_bdbpddelta = [];
+            pdpdJ_bpddeltapddelta = [];
+            dGdbeta = [];
+            dGddelta = [];
+            dGdxi = [];
             
             % Load single-cell data
             Ym_si = Data{s}.SCTL.Y(ind_time,:,i);
