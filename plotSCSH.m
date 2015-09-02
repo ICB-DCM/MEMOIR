@@ -37,9 +37,11 @@ options.sim.bound_lw = 1;
 options.error.col = 'b';
 options.error.ls = '-';
 options.error.lw = 1;
+options.title = '';
 if nargin == 4
     options = setdefault(varargin{4},options);
 end
+set(gcf,'Name',options.title);
 
 %% Subplot dimensions
 n_y = size(Data.SCSH.m,2);

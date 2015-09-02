@@ -34,9 +34,11 @@ options.sim.lw = 1;
 options.error.col = 'b';
 options.error.ls = '-';
 options.error.lw = 1;
+options.title = '';
 if nargin == 4
     options = setdefault(varargin{4},options);
 end
+set(gcf,'Name',options.title);
 
 %% Subplot dimensions
 if(isfield(Data.SCTL,'Y'))
@@ -91,9 +93,14 @@ if ~isempty(Sim)
         
         % Error 
         subplot(nr,nc,[4*j-1,4*j]); hold off;
+        try
+            ps = Data.plotsymbol{j};
+        catch
+            ps = '-';
+        end
         for i = 1:size(Data.SCTL.Y,3)
             ind = ~isnan(Data.SCTL.Y(:,j,i));
-            plot(Data.SCTL.time(ind,1),Data.SCTL.Y(ind,j,i)-Sim.Y(ind,j,i),'-',...
+            plot(Data.SCTL.time(ind,1),Data.SCTL.Y(ind,j,i)-Sim.Y(ind,j,i),ps,...
                 'linewidth',options.error.lw,...
                 'linestyle',options.error.ls,...
                 'color',options.error.col); hold on;

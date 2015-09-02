@@ -317,7 +317,7 @@ for s = 1:length(Data)
             end
         end
         
-        parfor i = 1:size(Data{s}.SCTL.Y,3)
+        for i = 1:size(Data{s}.SCTL.Y,3)
             
             % initialisation
             bhat_si = [];
@@ -797,9 +797,9 @@ for s = 1:length(Data)
             
             % Visualisation of single cell parameters
             if(isempty(fp))
-                if(isfield(Model.exp{s},'Title'))
-                    if(ischar(Model.exp{s}.Title))
-                        fp(s) = figure('Name',Model.exp{s}.Title);
+                if(isfield(Model.exp{s},'title'))
+                    if(ischar(Model.exp{s}.title))
+                        fp(s) = figure('Name',Model.exp{s}.title);
                     else
                         fp(s) = figure;
                     end
@@ -808,9 +808,9 @@ for s = 1:length(Data)
                 end
             else
                 if(length(fp)<s)
-                    if(isfield(Model.exp{s},'Title'))
-                        if(ischar(Model.exp{s}.Title))
-                            fp(s) = figure('Name',Model.exp{s}.Title);
+                    if(isfield(Model.exp{s},'title'))
+                        if(ischar(Model.exp{s}.title))
+                            fp(s) = figure('Name',Model.exp{s}.title);
                         else
                             fp(s) = figure;
                         end
@@ -818,9 +818,9 @@ for s = 1:length(Data)
                         fp(s) = figure;
                     end
                 elseif(isempty(fp(s)))
-                    if(isfield(Model.exp{s},'Title'))
-                        if(ischar(Model.exp{s}.Title))
-                            fp(s) = figure('Name',Model.exp{s}.Title);
+                    if(isfield(Model.exp{s},'title'))
+                        if(ischar(Model.exp{s}.title))
+                            fp(s) = figure('Name',Model.exp{s}.title);
                         else
                             fp(s) = figure;
                         end
@@ -866,15 +866,40 @@ for s = 1:length(Data)
             
             % Visualisation of likelihood contribution
             if(isempty(fl))
-                fl(s) = figure;
+                if(isfield(Model.exp{s},'title'))
+                    if(ischar(Model.exp{s}.title))
+                        fl(s) = figure('Name',Model.exp{s}.title);
+                    else
+                        fl(s) = figure;
+                    end
+                else
+                    fl(s) = figure;
+                end
             else
                 if(length(fl)<s)
-                    fl(s) = figure;
+                    if(isfield(Model.exp{s},'title'))
+                        if(ischar(Model.exp{s}.title))
+                            fl(s) = figure('Name',Model.exp{s}.title);
+                        else
+                            fl(s) = figure;
+                        end
+                    else
+                        fl(s) = figure;
+                    end
                 elseif(isempty(fl(s)))
-                    fl(s) = figure;
+                    if(isfield(Model.exp{s},'title'))
+                        if(ischar(Model.exp{s}.title))
+                            fl(s) = figure('Name',Model.exp{s}.title);
+                        else
+                            fl(s) = figure;
+                        end
+                    else
+                        fl(s) = figure;
+                    end
                 end
             end
             figure(fl(s))
+            clf
             if(Model.penalty)
                 if(Model.integration)
                     bar([logLi_D;logLi_T;logLi_b;logLi_I;repmat(logL_s,[1,size(Data{s}.SCTL.Y,3)])],'stacked')
@@ -1009,7 +1034,15 @@ for s = 1:length(Data)
         if options.plot
             Sim_SCSH.m = SP.my;
             Sim_SCSH.C = SP.Cy;
-            Model.exp{s}.plot(Data{s},Sim_SCSH,s);
+            if(isfield(Model.exp{s},'title'))
+                if(ischar(Model.exp{s}.title))
+                    op_plot.title = Model.exp{s}.title;
+                else
+                    op_plot.title = '';
+                end
+                op_plot.title = '';
+            end
+            Model.exp{s}.plot(Data{s},Sim_SCSH,s,op_plot);
         end
         
         if(extract_flag)
