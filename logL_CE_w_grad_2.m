@@ -1095,7 +1095,7 @@ for s = 1:length(Data)
         
         % Visulization
         if options.plot
-            Sim_PA.m = SP.m;
+            Sim_PA.m = SP.my;
             Model.exp{s}.plot(Data{s},Sim_PA,s);
         end
         
