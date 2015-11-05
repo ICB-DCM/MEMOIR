@@ -20,6 +20,8 @@ else
         fh(s) = figure;
     elseif(isempty(fh(s)))
         fh(s) = figure;
+    elseif(fh(s) == 0);
+        fh(s) = figure;
     end
 end
 figure(fh(s));

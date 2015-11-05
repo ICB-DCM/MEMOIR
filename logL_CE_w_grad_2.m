@@ -54,12 +54,10 @@
 %       synchronisation of parameters across experiments should be applied.
 %       only applicable for SCTL data.
 %   .prior ... cell array containing prior information for the optimization
-%       parameters. the length of the cell array should not exceed the
+%       parameters. the length of the cell array must not exceed the
 %       length of the optimization parameter. the prior is applied when
-%       there exist fields .mu and .std. these two parameters define a
-%       quadratic function centered around .mu multiplied with 1/(.std^2).
-%       in the case of logarithmic parametrisation this corresponds to a
-%       normal prior with mean .mu and variance (.std)^2.
+%       there exist fields .mu and .std. This imposes a normal prior with
+%       mean .mu and variance (.std)^2.
 %   .exp ... cell array containing specific information about individual
 %       experiments. must have the following fields
 %       .PA_post_processing ... (optional, only for PA data) function
@@ -377,10 +375,14 @@ for s = 1:length(Data)
             Tm_si = Data{s}.SCTL.T(:,:,i);
             ind_t = find(~isnan(Tm_si));
             
-            if(isfield(P_old{s}.SCTL,'dbdxi'))
-                bhat_si0 = P_old{s}.SCTL.bhat(:,i) + P_old{s}.SCTL.dbdxi(:,:,i)*(xi-xi_old);
+            if(isfield(P_old{s},'SCTL'))
+                if(isfield(P_old{s}.SCTL,'dbdxi'))
+                    bhat_si0 = P_old{s}.SCTL.bhat(:,i) + P_old{s}.SCTL.dbdxi(:,:,i)*(xi-xi_old);
+                else
+                    bhat_si0 = P_old{s}.SCTL.bhat(:,i);
+                end
             else
-                bhat_si0 = P_old{s}.SCTL.bhat(:,i);
+                bhat_si0 = zeros(n_b,1);
             end
             
             %% Estimation of single cell random effects
@@ -1041,6 +1043,8 @@ for s = 1:length(Data)
                     op_plot.title = '';
                 end
                 op_plot.title = '';
+            else
+                op_plot.title = '';
             end
             Model.exp{s}.plot(Data{s},Sim_SCSH,s,op_plot);
         end
@@ -1133,13 +1137,13 @@ if isfield(Model,'prior')
                 if(isfield(Model.prior{ixi},'mu') && isfield(Model.prior{ixi},'std'))
                     if nderiv >= 1
                         % One output
-                        logL =  logL + 0.5*((xi(ixi)-Model.prior{ixi}.mu)/Model.prior{ixi}.std)^2;
+                        logL =  logL - 0.5*((xi(ixi)-Model.prior{ixi}.mu)/Model.prior{ixi}.std)^2;
                         if nderiv >= 2
                             % Two outputs
-                            dlogLdxi(ixi) =  dlogLdxi(ixi) + ((xi(ixi)-Model.prior{ixi}.mu)/Model.prior{ixi}.std^2);
+                            dlogLdxi(ixi) =  dlogLdxi(ixi) - ((xi(ixi)-Model.prior{ixi}.mu)/Model.prior{ixi}.std^2);
                             if nderiv >= 3
                                 % Two outputs
-                                ddlogLdxidxi(ixi,ixi) =  ddlogLdxidxi(ixi,ixi) + 1/Model.prior{ixi}.std^2;
+                                ddlogLdxidxi(ixi,ixi) =  ddlogLdxidxi(ixi,ixi) - 1/Model.prior{ixi}.std^2;
                             end
                         end
                     end
