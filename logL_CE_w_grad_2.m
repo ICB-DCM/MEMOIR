@@ -480,33 +480,30 @@ for s = 1:length(Data)
             % J_D = log(p(Y(b,beta)|D))
             switch(Model.exp{s}.noise_model)
                 case 'normal'
-                    switch(nderiv)
-                        case 0
-                            J_D = normal_noise(Y_si,Ym_si,Sigma_noise_si,ind_y);
-                        case 1
-                            J_D = normal_noise(Y_si,Ym_si,Sigma_noise_si,ind_y);
-                        case 2
-                            [J_D,dJ_DdY,dJ_DdSigma] = normal_noise(Y_si,Ym_si,Sigma_noise_si,ind_y);
-                        case 3
-                            [J_D,dJ_DdY,dJ_DdSigma,ddJ_DdYdY,ddJ_DdYdSigma,ddJ_DdSigmadSigma] = normal_noise(Y_si,Ym_si,Sigma_noise_si,ind_y);
-                    end
-                    
+                    noisedist = @normal_noise;
                 case 'lognormal'
-                    switch(nderiv)
-                        case 0
-                            J_D = lognormal_noise(Y_si,Ym_si,Sigma_noise_si,ind_y);
-                        case 1
-                            J_D = lognormal_noise(Y_si,Ym_si,Sigma_noise_si,ind_y);
-                        case 2
-                            [J_D,dJ_DdY,dJ_DdSigma] = lognormal_noise(Y_si,Ym_si,Sigma_noise_si,ind_y);
-                        case 3
-                            [J_D,dJ_DdY,dJ_DdSigma,ddJ_DdYdY,ddJ_DdYdSigma,ddJ_DdSigmadSigma] = lognormal_noise(Y_si,Ym_si,Sigma_noise_si,ind_y);
-                    end
+                    noisedist = @lognormal_noise;
+                case 'tdist'
+                    noisedist = @tdist_noise;    
+            end
+            
+            switch(nderiv)
+                case 0
+                    J_D = noisedist(Y_si,Ym_si,Sigma_noise_si,ind_y);
+                case 1
+                    J_D = noisedist(Y_si,Ym_si,Sigma_noise_si,ind_y);
+                case 2
+                    [J_D,dJ_DdY,dJ_DdSigma] = noisedist(Y_si,Ym_si,Sigma_noise_si,ind_y);
+                case 3
+                    [J_D,dJ_DdY,dJ_DdSigma,ddJ_DdYdY,ddJ_DdYdSigma,ddJ_DdSigmadSigma] = noisedist(Y_si,Ym_si,Sigma_noise_si,ind_y);
             end
             
             % this is part accounts for the event model
             % J_D = log(p(Y(b,beta)|D))
-            switch(Model.exp{s}.noise_model)
+            if(~isfield(Model.exp{s},'time_model'))
+                Model.exp{s}.time_model = 'normal';
+            end
+            switch(Model.exp{s}.time_model)
                 case 'normal'
                     switch(nderiv)
                         case 0

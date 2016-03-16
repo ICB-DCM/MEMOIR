@@ -90,52 +90,40 @@ else
 end
 
 % noise model
+if(~isfield(Model.exp{s},'noise_model'))
+    Model.exp{s}.noise_model = 'normal';
+end
+
 switch(Model.exp{s}.noise_model)
     case 'normal'
-        if nargout <= 1
-            J_D = normal_noise(Y,Ym,Sigma_noise,ind_y);
-        elseif nargout <=2 % first order derivatives
-            [J_D,...
-                dJ_DdY,dJ_DdSigma] = normal_noise(Y,Ym,Sigma_noise,ind_y);
-        elseif nargout <=9 % second order derivatives
-            [J_D,...
-                dJ_DdY,dJ_DdSigma,...
-                ddJ_DdYdY,ddJ_DdYdSigma,ddJ_DdSigmadSigma] = normal_noise(Y,Ym,Sigma_noise,ind_y);
-        elseif nargout <=15 % third order derivatives
-            [J_D,...
-                dJ_DdY,dJ_DdSigma,...
-                ddJ_DdYdY,ddJ_DdYdSigma,ddJ_DdSigmadSigma,...
-                dddJ_DdYdYdY,dddJ_DdYdYdSigma,dddJ_DdYdSigmadSigma,dddJ_DdSigmadSigmadSigma] = normal_noise(Y,Ym,Sigma_noise,ind_y);
-        else % fourth order derivatives
-            [J_D,...
-                dJ_DdY,dJ_DdSigma,...
-                ddJ_DdYdY,ddJ_DdYdSigma,ddJ_DdSigmadSigma,...
-                dddJ_DdYdYdY,dddJ_DdYdYdSigma,dddJ_DdYdSigmadSigma,dddJ_DdSigmadSigmadSigma,...
-                ddddJ_DdYdYdYdY,ddddJ_DdYdYdYdSigma,ddddJ_DdYdYdSigmadSigma,ddddJ_DdYdSigmadSigmadSigma,ddddJ_DdSigmadSigmadSigmadSigma] = normal_noise(Y,Ym,Sigma_noise,ind_y);
-        end
+        noisedist = @normal_noise;
     case 'lognormal'
-        if nargout <=1
-            J_D = lognormal_noise(Y,Ym,Sigma_noise,ind_y);
-        elseif nargout <=2 % first order derivatives
-            [J_D,...
-                dJ_DdY,dJ_DdSigma] = lognormal_noise(Y,Ym,Sigma_noise,ind_y);
-        elseif nargout <=9 % second order derivatives
-            [J_D,...
-                dJ_DdY,dJ_DdSigma,...
-                ddJ_DdYdY,ddJ_DdYdSigma,ddJ_DdSigmadSigma] = lognormal_noise(Y,Ym,Sigma_noise,ind_y);
-        elseif nargout <=15 % third order derivatives
-            [J_D,...
-                dJ_DdY,dJ_DdSigma,...
-                ddJ_DdYdY,ddJ_DdYdSigma,ddJ_DdSigmadSigma,...
-                dddJ_DdYdYdY,dddJ_DdYdYdSigma,dddJ_DdYdSigmadSigma,dddJ_DdSigmadSigmadSigma] = lognormal_noise(Y,Ym,Sigma_noise,ind_y);
-        else % fourth order derivatives
-            [J_D,...
-                dJ_DdY,dJ_DdSigma,...
-                ddJ_DdYdY,ddJ_DdYdSigma,ddJ_DdSigmadSigma,...
-                dddJ_DdYdYdY,dddJ_DdYdYdSigma,dddJ_DdYdSigmadSigma,dddJ_DdSigmadSigmadSigma,...
-                ddddJ_DdYdYdYdY,ddddJ_DdYdYdYdSigma,ddddJ_DdYdYdSigmadSigma,ddddJ_DdYdSigmadSigmadSigma,ddddJ_DdSigmadSigmadSigmadSigma] = lognormal_noise(Y,Ym,Sigma_noise,ind_y);
-        end
-        
+        noisedist = @lognormal_noise;
+    case 'tdist'
+        noisedist = @tdist_noise;
+end
+if nargout <= 1
+    J_D = noisedist(Y,Ym,Sigma_noise,ind_y);
+elseif nargout <=2 % first order derivatives
+    % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(Y,@(Y)noisedist(Y,Ym,Sigma_noise,ind_y),1e-3,1,2)
+    % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(Sigma_noise,@(Sigma_noise)noisedist(Y,Ym,Sigma_noise,ind_y),1e-5,1,3)
+    [J_D,...
+     dJ_DdY,dJ_DdSigma] = noisedist(Y,Ym,Sigma_noise,ind_y);
+elseif nargout <=9 % second order derivatives
+    [J_D,...
+     dJ_DdY,dJ_DdSigma,...
+     ddJ_DdYdY,ddJ_DdYdSigma,ddJ_DdSigmadSigma] = noisedist(Y,Ym,Sigma_noise,ind_y);
+elseif nargout <=15 % third order derivatives
+    [J_D,...
+     dJ_DdY,dJ_DdSigma,...
+     ddJ_DdYdY,ddJ_DdYdSigma,ddJ_DdSigmadSigma,...
+     dddJ_DdYdYdY,dddJ_DdYdYdSigma,dddJ_DdYdSigmadSigma,dddJ_DdSigmadSigmadSigma] = noisedist(Y,Ym,Sigma_noise,ind_y);
+else % fourth order derivatives
+    [J_D,...
+     dJ_DdY,dJ_DdSigma,...
+     ddJ_DdYdY,ddJ_DdYdSigma,ddJ_DdSigmadSigma,...
+     dddJ_DdYdYdY,dddJ_DdYdYdSigma,dddJ_DdYdSigmadSigma,dddJ_DdSigmadSigmadSigma,...
+     ddddJ_DdYdYdYdY,ddddJ_DdYdYdYdSigma,ddddJ_DdYdYdSigmadSigma,ddddJ_DdYdSigmadSigmadSigma,ddddJ_DdSigmadSigmadSigmadSigma] = noisedist(Y,Ym,Sigma_noise,ind_y);
 end
 
 % event model
@@ -621,51 +609,4 @@ if nargout >= 2
     end
 end
 
-end
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% AUXILIARY FUNCTIONS FOR NOISE MODELS %%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-function varargout = normal_noise(Y,Ym,Sigma,ind)
-if nargout >=1
-    % J_D
-    varargout{1} = sum(0.5*((Y - Ym(ind))./Sigma(ind)).^2 + 0.5*log(sqrt(2*pi)*Sigma(ind).^2));
-    if nargout >= 3
-        % dJ_DdY
-        varargout{2} = transpose((Y - Ym(ind))./(Sigma(ind).^2));
-        % dJ_DdSigma
-        varargout{3} = transpose(- (((Y - Ym(ind)).^2)./(Sigma(ind).^3)) + 1./Sigma(ind));
-        if nargout >= 4
-            %ddJ_DdYdY
-            varargout{4} = transpose(1./(Sigma(ind).^2));
-            %ddJ_DdYdSigma
-            varargout{5} = transpose(-2*(Y - Ym(ind))./(Sigma(ind).^3));
-            %ddJ_DdSigmadSigma
-            varargout{6} = transpose(3*(((Y - Ym(ind)).^2)./(Sigma(ind).^4)) - 1./(Sigma(ind).^2));
-            if nargout >= 7
-                %dddJ_DdYdYdY
-                varargout{7} = transpose(zeros(size(Y)));
-                %dddJ_DdYdYdSigma
-                varargout{8} = transpose(- 2./(Sigma(ind).^3));
-                %dddJ_DdYdSigmadSigma
-                varargout{9} = transpose(6*(Y - Ym(ind))./(Sigma(ind).^4));
-                %dddJ_DdSigmadSigmadSigma
-                varargout{10} = transpose(- 12*(((Y - Ym(ind)).^2)./(Sigma(ind).^5)) + 2./(Sigma(ind).^3));
-                if nargout >= 11
-                    %ddddJ_DdYdYdYdY
-                    varargout{11} = transpose(zeros(size(Y)));
-                    %ddddJ_DdYdYdYdSigma
-                    varargout{12} = transpose(zeros(size(Y)));
-                    %ddddJ_DdYdYdSigmadSigma
-                    varargout{13} = transpose(6./(Sigma(ind).^4));
-                    %ddddJ_DdYdSigmadSigmadSigma
-                    varargout{14} = transpose(- 24*((Y - Ym(ind))./(Sigma(ind).^5)));
-                    %ddddJ_DdSigmadSigmadSigmadSigma
-                    varargout{15} = transpose(60*(((Y - Ym(ind)).^2)./(Sigma(ind).^6)) - 6./(Sigma(ind).^4));
-                end
-            end
-        end
-    end
-end
 end

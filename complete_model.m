@@ -176,7 +176,7 @@ if(~loadold)
         Model.exp{s}.sym.beta = Model.sym.beta(Model.exp{s}.ind_beta);
         Model.exp{s}.sym.b = Model.sym.b(Model.exp{s}.ind_b);
         Model.exp{s}.sym.delta = Model.sym.delta(Model.exp{s}.ind_delta);
-        phi = Model.sym.phi(1:length(Model.exp{s}.sym.phi));
+        phi = Model.sym.phi(Model.exp{s}.ind_phi);
         
         % compute parameter length
         n_beta = length(Model.exp{s}.sym.beta);
