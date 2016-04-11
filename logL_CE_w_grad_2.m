@@ -979,9 +979,7 @@ for s = 1:length(Data)
             Model.exp{s}.plot(Data{s},Sim_SCTLstat,s);
         end
         
-        if(extract_flag)
-            P{s}.SCTLstat.SP = SP;
-        end
+        P{s}.SCTLstat.SP = SP;
         
     end
     
@@ -1046,9 +1044,7 @@ for s = 1:length(Data)
             Model.exp{s}.plot(Data{s},Sim_SCSH,s,op_plot);
         end
         
-        if(extract_flag)
-            P{s}.SCSH.SP = SP;
-        end
+        P{s}.SCSH.SP = SP;
         
     end
     
@@ -1100,9 +1096,7 @@ for s = 1:length(Data)
             Model.exp{s}.plot(Data{s},Sim_PA,s);
         end
         
-        if(extract_flag)
-            P{s}.PA.SP = SP;
-        end
+        P{s}.PA.SP = SP;
     end
     
 
