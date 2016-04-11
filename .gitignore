@@ -1,5 +1,8 @@
 
-MEMfn
 *.mat
+
 *.m~
+
 *.o
+
+models/*
