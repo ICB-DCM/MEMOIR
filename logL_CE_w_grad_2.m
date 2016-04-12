@@ -1051,29 +1051,19 @@ for s = 1:length(Data)
     %% Population average data
     if isfield(Data{s},'PA')
         
-        % Simulation using sigma points
-        op_SP.nderiv = nderiv;
-        op_SP.req = [1,0,0,0,0,1,0];
-        op_SP.type_D = Model.type_D;
-        if(extract_flag)
-            SP = testSigmaPointApp(@(phi) simulateForSP(Model.exp{s}.model,Data{s}.PA.time,phi,Data{s}.condition),xi,Model.exp{s},op_SP);
+        % Simulation
+        if(nderiv >= 2)
+            [SP,my,dmydxi] = getSimulationPA(xi, Model, Data, s);
         else
-            SP = getSigmaPointApp(@(phi) simulateForSP(Model.exp{s}.model,Data{s}.PA.time,phi,Data{s}.condition),xi,Model.exp{s},op_SP);
+            [SP,my] = getSimulationPA(xi, Model, Data, s);
         end
-        
-        % Post-processing of population average data
-        if isfield(Model.exp{s},'PA_post_processing')
-            if(nderiv==1)
-                SP.dmydxi = zeros([size(SP.my) size(xi,1)]);
-            end
-            [SP.my,SP.dmydxi] = Model.exp{s}.PA_post_processing(SP.my,SP.dmydxi);
-        end
+%         [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(xi,@(theta) getSimulationPA(theta, Model, Data, s),1e-4,2,3);
         
         
         % Evaluation of likelihood, likelihood gradient and hessian
-        logL_m = - 0.5*nansum(nansum(((Data{s}.PA.m - SP.my)./Data{s}.PA.Sigma_m).^2,1),2);
+        logL_m = - 0.5*nansum(nansum(((Data{s}.PA.m - my)./Data{s}.PA.Sigma_m).^2,1),2);
         if nderiv >= 2
-            dlogL_mdxi = squeeze(nansum(nansum(bsxfun(@times,(Data{s}.PA.m - SP.my)./Data{s}.PA.Sigma_m.^2,SP.dmydxi),1),2));
+            dlogL_mdxi = squeeze(nansum(nansum(bsxfun(@times,(Data{s}.PA.m - my)./Data{s}.PA.Sigma_m.^2,dmydxi),1),2));
             if nderiv >= 3
                 wdmdxi = bsxfun(@times,1./Data{s}.PA.Sigma_m,SP.dmydxi);
                 wdmdxi = reshape(wdmdxi,[numel(SP.my),size(SP.dmydxi,3)]);
