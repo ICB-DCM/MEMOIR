@@ -4,13 +4,13 @@
 %
 % USAGE:
 % ======
-% [Sigma_noise,dSigma_noisedphi,ddSigma_noisedphidphi,dddSigma_noisedphidphidphi,ddddSigma_noisedphidphidphidphi] = build_sigma_noise(phi,Ym,s,Model,ind_y)
+% [Sigma_noise,dSigma_noisedphi,ddSigma_noisedphidphi,dddSigma_noisedphidphidphi,ddddSigma_noisedphidphidphidphi] = build_sigma_noise(phi,Ym,s,model,ind_y)
 %
 % INPUTS:
 % =======
 % phi ... mixed effect parameter
 % Ym ... measurements
-% Model ... model definition
+% model ... model definition
 % s ... index of considered experiment
 % ind_y ... indexing of observables
 %
@@ -23,13 +23,13 @@
 % 2015/04/14 Fabian Froehlich
 
 
-function [Sigma_noise,dSigma_noisedphi,ddSigma_noisedphidphi,dddSigma_noisedphidphidphi,ddddSigma_noisedphidphidphidphi] = build_sigma_noise(phi,Ym,s,Model,ind_y)
+function [Sigma_noise,dSigma_noisedphi,ddSigma_noisedphidphi,dddSigma_noisedphidphidphi,ddddSigma_noisedphidphidphidphi] = build_sigma_noise(phi,Ym,s,model,ind_y)
 
 nt = size(Ym,1);
 ny = size(Ym,2);
 np = length(phi);
 
-sigma_noise = Model.exp{s}.sigma_noise(phi);
+sigma_noise = model.sigma_noise(phi);
 
 if(size(sigma_noise,1) == nt)
     if(size(sigma_noise,2) == 1)
@@ -52,7 +52,7 @@ else
 end
 
 if nargout >= 2 % first order derivatives
-    dsigma_noisedphi = Model.exp{s}.dsigma_noisedphi(phi);
+    dsigma_noisedphi = model.dsigma_noisedphi(phi);
     dSigma_noisedphi = zeros(length(ind_y),np);
     
     if(size(dsigma_noisedphi,1) == nt)
@@ -70,7 +70,7 @@ if nargout >= 2 % first order derivatives
     end
     
     if nargout >= 3 % second order derivatives
-        ddsigma_noisedphidphi = Model.exp{s}.ddsigma_noisedphidphi(phi);
+        ddsigma_noisedphidphi = model.ddsigma_noisedphidphi(phi);
         ddSigma_noisedphidphi = zeros(length(ind_y),np,np);
         if(size(dsigma_noisedphi,1) == nt)
             if(size(dsigma_noisedphi,2) == 1)
@@ -88,7 +88,7 @@ if nargout >= 2 % first order derivatives
     end
     
     if nargout >= 4 % third order derivatives
-        dddsigma_noisedphidphidphi = Model.exp{s}.dddsigma_noisedphidphidphi(phi);
+        dddsigma_noisedphidphidphi = model.dddsigma_noisedphidphidphi(phi);
         dddSigma_noisedphidphidphi = zeros(length(ind_y),np,np,np);
         if(size(dsigma_noisedphi,1) == nt)
             if(size(dsigma_noisedphi,2) == 1)
@@ -106,7 +106,7 @@ if nargout >= 2 % first order derivatives
     end
     
     if nargout >= 5 % fourth order derivatives
-        ddddsigma_noisedphidphidphidphi = Model.exp{s}.ddddsigma_noisedphidphidphidphi(phi);
+        ddddsigma_noisedphidphidphidphi = model.ddddsigma_noisedphidphidphidphi(phi);
         ddddSigma_noisedphidphidphidphi = zeros(length(ind_y),np,np,np,np);
         if(size(dsigma_noisedphi,1) == nt)
             if(size(dsigma_noisedphi,2) == 1)

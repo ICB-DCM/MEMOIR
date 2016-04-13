@@ -9,7 +9,7 @@
 % =======
 % t ... time vector
 % phi ... mixed effect parameter
-% Model ... model definition, here only the .exp{s}.model and .integration 
+% Model ... model definition, here only the .model and .integration 
 %     field is required
 % kappa ... experimental condition
 % s ... index of considered experiment
@@ -39,14 +39,14 @@ optionmu.rtol = 1e-12;
 
 if nargout < 4
     optionmu.sensi = 0; % number of requested sensitivities
-    sol = Model.exp{s}.model(t,phi,kappa,optionmu);
+    sol = Model.model(t,phi,kappa,optionmu);
 elseif nargout < 7
     optionmu.sensi = 1; % number of requested sensitivities
-    sol = Model.exp{s}.model(t,phi,kappa,optionmu);
+    sol = Model.model(t,phi,kappa,optionmu);
     dYdphi = sol.sy;
     if(isfield(sol,'sroot'))
-        dTdphi = sol.sroot(ind_t,:,:);
-        dRdphi = sol.srootval(ind_t,:,:);
+        dTdphi = sol.sroot;
+        dRdphi = sol.srootval;
     else
         dTdphi = zeros(0,sum(ind_t),length(phi));
         dRdphi = zeros(0,sum(ind_t),length(phi));
@@ -54,8 +54,8 @@ elseif nargout < 7
 else
     optionmu.sensi = 2; % number of requested sensitivities
     optionmu.linsol = 9;
-    sol = Model.exp{s}.model(t,phi,kappa,optionmu);
-    % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(phi,@(phi) Model.exp{s}.model(t,phi,kappa,optionmu),1e-5,'y','sy')
+    sol = Model.model(t,phi,kappa,optionmu);
+    % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(phi,@(phi) Model.model(t,phi,kappa,optionmu),1e-5,'y','sy')
     dYdphi = sol.sy;
     if(isfield(sol,'sroot'))
         dTdphi = sol.sroot(ind_t,:,:);
@@ -92,24 +92,16 @@ end
 Y = Y(:);
 
 % Apply indexing
-Y = Y(ind_y,:);
-T = T(ind_t,:);
-R = R(ind_t,:);
+
             
 if nargout >=4
-    tempy = reshape(dYdphi,[size(dYdphi,1)*size(dYdphi,2),size(dYdphi,3)]);
-    dYdphi = tempy(ind_y,:);
-    tempt = reshape(dTdphi,[size(dTdphi,1)*size(dTdphi,2),size(dTdphi,3)]);
-    dTdphi = tempt(ind_t,:);
-    tempr = reshape(dRdphi,[size(dRdphi,1)*size(dRdphi,2),size(dRdphi,3)]);
-    dRdphi = tempr(ind_t,:);
+    dYdphi = reshape(dYdphi,[size(dYdphi,1)*size(dYdphi,2),size(dYdphi,3)]);
+    dTdphi = reshape(dTdphi,[size(dTdphi,1)*size(dTdphi,2),size(dTdphi,3)]);
+    dRdphi = reshape(dRdphi,[size(dRdphi,1)*size(dRdphi,2),size(dRdphi,3)]);
     if nargout >=7
-        tempy = reshape(ddYdphidphi,[size(ddYdphidphi,1)*size(ddYdphidphi,2),size(ddYdphidphi,3),size(ddYdphidphi,4)]);
-        ddYdphidphi = tempy(ind_y,:,:);
-        tempt = reshape(ddTdphidphi,[size(ddTdphidphi,1)*size(ddTdphidphi,2),size(ddTdphidphi,3),size(ddTdphidphi,4)]);
-        ddTdphidphi = tempt(ind_t,:,:);
-        tempr = reshape(ddRdphidphi,[size(ddRdphidphi,1)*size(ddRdphidphi,2),size(ddRdphidphi,3),size(ddRdphidphi,4)]);
-        ddRdphidphi = tempr(ind_t,:,:);
+        ddYdphidphi = reshape(ddYdphidphi,[size(ddYdphidphi,1)*size(ddYdphidphi,2),size(ddYdphidphi,3),size(ddYdphidphi,4)]);
+        ddTdphidphi = reshape(ddTdphidphi,[size(ddTdphidphi,1)*size(ddTdphidphi,2),size(ddTdphidphi,3),size(ddTdphidphi,4)]);
+        ddRdphidphi = reshape(ddRdphidphi,[size(ddRdphidphi,1)*size(ddRdphidphi,2),size(ddRdphidphi,3),size(ddRdphidphi,4)]);
     end
 end
 

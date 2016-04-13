@@ -1,95 +1,103 @@
-function [P,logL_SCTL,dlogL_SCTLdxi,ddlogL_SCTLdxi2] = logL_SCTL(xi, Model, Data, s, options, P, P_old)
+function [P,logL_sc,dlogL_scdxi,ddlogL_scdxidxi] = logL_SCTL(xi, model, data, s, options, P)
+    
+    persistent fp
+    persistent fl
+    
+    options.nderiv = nargout-2;
     
     %% Construct fixed effects and covariance matrix
-    beta = Model.exp{s}.beta(xi);
-    delta = Model.exp{s}.delta(xi);
+    beta = model.beta(xi);
+    delta = model.delta(xi);
     
-    [D,~,~,~,~,~] = xi2D(delta,type_D);
+    [D,~,~,~,~,~] = xi2D(delta,options.type_D);
     % debugging:
-    % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(delta,@(x) xi2D(x,type_D),1e-4,1,3)
-    % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(delta,@(x) xi2D(x,type_D),1e-4,3,5)
-    % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(delta,@(x) xi2D(x,type_D),1e-4,2,4)
-    % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(delta,@(x) xi2D(x,type_D),1e-4,4,6)
+    % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(delta,@(x) xi2D(x,options.type_D),1e-4,1,3)
+    % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(delta,@(x) xi2D(x,options.type_D),1e-4,3,5)
+    % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(delta,@(x) xi2D(x,options.type_D),1e-4,2,4)
+    % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(delta,@(x) xi2D(x,options.type_D),1e-4,4,6)
     
     % Initialization measurements
-    Sim_SCTL.Y = NaN(size(Data{s}.SCTL.Y));
+    Sim_SCTL.Y = NaN(size(data.SCTL.Y));
     % events
-    if(~isfield(Data{s}.SCTL,'T'))
-        Data{s}.SCTL.T = zeros(0,1,size(Data{s}.SCTL.Y,3));
+    if(~isfield(data.SCTL,'T'))
+        data.SCTL.T = zeros(0,1,size(data.SCTL.Y,3));
     end
-    Sim_SCTL.T = NaN(size(Data{s}.SCTL.T));
-    Sim_SCTL.R = NaN(size(Data{s}.SCTL.T));
+    Sim_SCTL.T = NaN(size(data.SCTL.T));
+    Sim_SCTL.R = NaN(size(data.SCTL.T));
     
     % set default scaling
-    if(~isfield(Model,'SCTLscale'))
-        Model.SCTLscale = 1;
+    if(~isfield(model,'SCTLscale'))
+        model.SCTLscale = 1;
     end
     
     % Loop: Indiviudal cells
     
-    dbetadxi = Model.exp{s}.dbetadxi(xi);
-    ddeltadxi = Model.exp{s}.ddeltadxi(xi);
-    ddbetadxidxi = Model.exp{s}.ddbetadxidxi(xi);
-    dddeltadxidxi = Model.exp{s}.dddeltadxidxi(xi);
+    dbetadxi = model.dbetadxi(xi);
+    ddeltadxi = model.ddeltadxi(xi);
+    ddbetadxidxi = model.ddbetadxidxi(xi);
+    dddeltadxidxi = model.dddeltadxidxi(xi);
     
-    logLi_D = zeros(1,size(Data{s}.SCTL.Y,3));
-    logLi_T = zeros(1,size(Data{s}.SCTL.Y,3));
-    logLi_b = zeros(1,size(Data{s}.SCTL.Y,3));
-    logLi_I = zeros(1,size(Data{s}.SCTL.Y,3));
-    if nderiv >= 1
-        dlogLi_Ddxi = zeros(length(xi),size(Data{s}.SCTL.Y,3));
-        dlogLi_Tdxi = zeros(length(xi),size(Data{s}.SCTL.Y,3));
-        dlogLi_bdxi = zeros(length(xi),size(Data{s}.SCTL.Y,3));
-        dlogLi_Idxi = zeros(length(xi),size(Data{s}.SCTL.Y,3));
-        if nderiv > 2
-            ddlogLi_Ddxidxi = zeros(length(xi),length(xi),size(Data{s}.SCTL.Y,3));
-            ddlogLi_Tdxidxi = zeros(length(xi),length(xi),size(Data{s}.SCTL.Y,3));
-            ddlogLi_bdxidxi = zeros(length(xi),length(xi),size(Data{s}.SCTL.Y,3));
-            ddlogLi_Idxidxi = zeros(length(xi),length(xi),size(Data{s}.SCTL.Y,3));
+    logLi_D = zeros(1,size(data.SCTL.Y,3));
+    logLi_T = zeros(1,size(data.SCTL.Y,3));
+    logLi_b = zeros(1,size(data.SCTL.Y,3));
+    logLi_I = zeros(1,size(data.SCTL.Y,3));
+    if options.nderiv >= 1
+        dlogLi_Ddxi = zeros(length(xi),size(data.SCTL.Y,3));
+        dlogLi_Tdxi = zeros(length(xi),size(data.SCTL.Y,3));
+        dlogLi_bdxi = zeros(length(xi),size(data.SCTL.Y,3));
+        dlogLi_Idxi = zeros(length(xi),size(data.SCTL.Y,3));
+        if options.nderiv > 2
+            ddlogLi_Ddxidxi = zeros(length(xi),length(xi),size(data.SCTL.Y,3));
+            ddlogLi_Tdxidxi = zeros(length(xi),length(xi),size(data.SCTL.Y,3));
+            ddlogLi_bdxidxi = zeros(length(xi),length(xi),size(data.SCTL.Y,3));
+            ddlogLi_Idxidxi = zeros(length(xi),length(xi),size(data.SCTL.Y,3));
         end
     end
+    tmp = arrayfun(@(x) ~isnan(data.SCTL.Y(:,:,x)),1:size(data.SCTL.Y,3),'UniformOutput',false);
+    data.SCTL.ind_y = [tmp{:}];
+    tmp = arrayfun(@(x) ~isnan(data.SCTL.T(:,:,x)),1:size(data.SCTL.Y,3),'UniformOutput',false);
+    data.SCTL.ind_t = [tmp{:}];
     
-    for i = 1:size(Data{s}.SCTL.Y,3)
-
-        % Load single-cell data
-        Ym_si = Data{s}.SCTL.Y(:,:,i);
-        Tm_si = Data{s}.SCTL.T(:,:,i);
+    for i = 1:size(data.SCTL.Y,3)
         
-
-        
-
-        
-        
+        [B,G] = getBhat(xi, model, data, s, i, options, P);
         
         % Construct single-cell parameter
-        phi_si = Model.exp{s}.phi(beta,bhat_si);
+        phi_si = model.phi(beta,B.val);
+        Ym_si = data.SCTL.Y(:,:,i);
+        Tm_si = data.SCTL.T(:,:,i);
+        bhat_si = B.val;
+        t_s = data.SCTL.time(data.SCTL.ind_y(:,i));
+        ind_y = data.SCTL.ind_y(:,i);
+        ind_t = data.SCTL.ind_t(:,i);
+        
         
         % Simulate model and compute derivatives
-        if(nderiv == 1)
-            [Y_si,T_si,R_si] = simulate_trajectory(t_s,phi_si,Model,Data{s}.condition,s,ind_t,ind_y);
-        elseif(and(nderiv == 2,Model.integration == 0))
-            [Y_si,T_si,R_si,dY_sidphi,dT_sidphi,dR_sidphi] = simulate_trajectory(t_s,phi_si,Model,Data{s}.condition,s,ind_t,ind_y);
+        if(options.nderiv == 0)
+            [Y_si,T_si,R_si] = simulate_trajectory(t_s,phi_si,model,data.condition,s,ind_t,ind_y);
+        elseif(and(options.nderiv == 1,options.integration == 0))
+            [Y_si,T_si,R_si,dY_sidphi,dT_sidphi,dR_sidphi] = simulate_trajectory(t_s,phi_si,model,data.condition,s,ind_t,ind_y);
         else
-            [Y_si,T_si,R_si,dY_sidphi,dT_sidphi,dR_sidphi,ddY_sidphidphi,ddT_sidphidphi,ddR_sidphidphi] = simulate_trajectory(t_s,phi_si,Model,Data{s}.condition,s,ind_t,ind_y);
+            [Y_si,T_si,R_si,dY_sidphi,dT_sidphi,dR_sidphi,ddY_sidphidphi,ddT_sidphidphi,ddR_sidphidphi] = simulate_trajectory(t_s,phi_si,model,data.condition,s,ind_t,ind_y);
         end
         
         % Construct sigma
-        if(nderiv<2)
-            [Sigma_noise_si] = build_sigma_noise(phi_si,Ym_si,s,Model,ind_y);
-            [Sigma_time_si] = build_sigma_time(phi_si,Tm_si,s,Model,ind_t);
-        elseif(nderiv<3)
-            [Sigma_noise_si,dSigma_noisedphi] = build_sigma_noise(phi_si,Ym_si,s,Model,ind_y);
-            [Sigma_time_si,dSigma_timedphi] = build_sigma_time(phi_si,Tm_si,s,Model,ind_t);
+        if(options.nderiv<1)
+            [Sigma_noise_si] = build_sigma_noise(phi_si,Ym_si,s,model,ind_y);
+            [Sigma_time_si] = build_sigma_time(phi_si,Tm_si,s,model,ind_t);
+        elseif(options.nderiv<2)
+            [Sigma_noise_si,dSigma_noisedphi] = build_sigma_noise(phi_si,Ym_si,s,model,ind_y);
+            [Sigma_time_si,dSigma_timedphi] = build_sigma_time(phi_si,Tm_si,s,model,ind_t);
         else
-            [Sigma_noise_si,dSigma_noisedphi,ddSigma_noisedphidphi] = build_sigma_noise(phi_si,Ym_si,s,Model,ind_y);
-            [Sigma_time_si,dSigma_timedphi,ddSigma_timedphidphi] = build_sigma_time(phi_si,Tm_si,s,Model,ind_t);
+            [Sigma_noise_si,dSigma_noisedphi,ddSigma_noisedphidphi] = build_sigma_noise(phi_si,Ym_si,s,model,ind_y);
+            [Sigma_time_si,dSigma_timedphi,ddSigma_timedphidphi] = build_sigma_time(phi_si,Tm_si,s,model,ind_t);
         end
         
         %% Evaluation of likelihood and likelihood gradient
         
         % this is part accounts for the noise model
         % J_D = log(p(Y(b,beta)|D))
-        switch(Model.exp{s}.noise_model)
+        switch(model.noise_model)
             case 'normal'
                 noisedist = @normal_noise;
             case 'lognormal'
@@ -98,81 +106,76 @@ function [P,logL_SCTL,dlogL_SCTLdxi,ddlogL_SCTLdxi2] = logL_SCTL(xi, Model, Data
                 noisedist = @tdist_noise;
         end
         
-        switch(nderiv)
+        switch(options.nderiv)
             case 0
                 J_D = noisedist(Y_si,Ym_si,Sigma_noise_si,ind_y);
             case 1
-                J_D = noisedist(Y_si,Ym_si,Sigma_noise_si,ind_y);
-            case 2
                 [J_D,dJ_DdY,dJ_DdSigma] = noisedist(Y_si,Ym_si,Sigma_noise_si,ind_y);
-            case 3
+            case 2
                 [J_D,dJ_DdY,dJ_DdSigma,ddJ_DdYdY,ddJ_DdYdSigma,ddJ_DdSigmadSigma] = noisedist(Y_si,Ym_si,Sigma_noise_si,ind_y);
         end
         
         % this is part accounts for the event model
         % J_D = log(p(Y(b,beta)|D))
-        if(~isfield(Model.exp{s},'time_model'))
-            Model.exp{s}.time_model = 'normal';
+        if(~isfield(model,'time_model'))
+            model.time_model = 'normal';
         end
-        switch(Model.exp{s}.time_model)
+        switch(model.time_model)
             case 'normal'
-                switch(nderiv)
+                switch(options.nderiv)
                     case 0
                         J_T = normal_time(T_si,Tm_si,R_si,Sigma_time_si,ind_t);
                     case 1
-                        J_T = normal_time(T_si,Tm_si,R_si,Sigma_time_si,ind_t);
-                    case 2
                         [J_T,dJ_TdT,dJ_TdR,dJ_TdSigma] = normal_time(T_si,Tm_si,R_si,Sigma_time_si,ind_t);
-                    case 3
+                    case 2
                         [J_T,dJ_TdT,dJ_TdR,dJ_TdSigma,ddJ_TdTdT,ddJ_TdTdR,ddJ_TdRdR,ddJ_TdTdSigma,ddJ_TdRdSigma,ddJ_TdSigmadSigma] = normal_time(T_si,Tm_si,R_si,Sigma_time_si,ind_t);
                 end
         end
         
         % this part accounts for the parameter model
         % J_b = log(p(b_si|delta))
-        switch(Model.exp{s}.parameter_model)
+        switch(model.parameter_model)
             case 'normal'
-                switch(nderiv)
+                switch(options.nderiv)
                     case 0
-                        J_b = normal_param(bhat_si,delta,type_D);
+                        J_b = normal_param(bhat_si,delta,options.type_D);
                     case 1
-                        J_b = normal_param(bhat_si,delta,type_D);
+                        [J_b,dJ_bdb,pdJ_bpddelta]= normal_param(bhat_si,delta,options.type_D);
                     case 2
-                        [J_b,dJ_bdb,pdJ_bpddelta]= normal_param(bhat_si,delta,type_D);
-                    case 3
-                        % [g,g_fd_f,g_fd_b,g_fd_c]=testGradient(bhat_si,@(b) normal_param(b,delta,type_D),1e-4,1,2)
-                        % [g,g_fd_f,g_fd_b,g_fd_c]=testGradient(delta,@(delta) normal_param(bhat_si,delta,type_D),1e-4,1,3)
-                        % [g,g_fd_f,g_fd_b,g_fd_c]=testGradient(bhat_si,@(b) normal_param(b,delta,type_D),1e-4,2,4)
-                        % [g,g_fd_f,g_fd_b,g_fd_c]=testGradient(delta,@(delta) normal_param(bhat_si,delta,type_D),1e-4,2,5)
-                        % [g,g_fd_f,g_fd_b,g_fd_c]=testGradient(delta,@(delta) normal_param(bhat_si,delta,type_D),1e-4,3,6)
-                        [J_b,dJ_bdb,pdJ_bpddelta,ddJ_bdbdb,dpdJ_bdbpddelta,pdpdJ_bpddeltapddelta]= normal_param(bhat_si,delta,type_D);
+                        % [g,g_fd_f,g_fd_b,g_fd_c]=testGradient(bhat_si,@(b) normal_param(b,delta,options.type_D),1e-4,1,2)
+                        % [g,g_fd_f,g_fd_b,g_fd_c]=testGradient(delta,@(delta) normal_param(bhat_si,delta,options.type_D),1e-4,1,3)
+                        % [g,g_fd_f,g_fd_b,g_fd_c]=testGradient(bhat_si,@(b) normal_param(b,delta,options.type_D),1e-4,2,4)
+                        % [g,g_fd_f,g_fd_b,g_fd_c]=testGradient(delta,@(delta) normal_param(bhat_si,delta,options.type_D),1e-4,2,5)
+                        % [g,g_fd_f,g_fd_b,g_fd_c]=testGradient(delta,@(delta) normal_param(bhat_si,delta,options.type_D),1e-4,3,6)
+                        [J_b,dJ_bdb,pdJ_bpddelta,ddJ_bdbdb,dpdJ_bdbpddelta,pdpdJ_bpddeltapddelta]= normal_param(bhat_si,delta,options.type_D);
                 end
             case 'lognormal'
-                switch(nderiv)
+                switch(options.nderiv)
                     case 0
-                        J_b = lognormal_param(bhat_si,delta,type_D);
+                        J_b = lognormal_param(bhat_si,delta,options.type_D);
                     case 1
-                        J_b = lognormal_param(bhat_si,delta,type_D);
+                        [J_b,dJ_bdb,pdJ_bpddelta]= lognormal_param(bhat_si,delta,options.type_D);
                     case 2
-                        [J_b,dJ_bdb,pdJ_bpddelta]= lognormal_param(bhat_si,delta,type_D);
-                    case 3
-                        [J_b,dJ_bdb,pdJ_bpddelta,ddJ_bdbdb,dpdJ_bdbpddelta,pdpdJ_bpddeltapddelta] = lognormal_param(bhat_si,delta,type_D);
+                        [J_b,dJ_bdb,pdJ_bpddelta,ddJ_bdbdb,dpdJ_bdbpddelta,pdpdJ_bpddeltapddelta] = lognormal_param(bhat_si,delta,options.type_D);
                 end
         end
         
         logLi_D(1,i) =  - J_D;
         logLi_T(1,i)  = - J_T;
         logLi_b(1,i)  = - J_b;
+        bhat(:,i) = B.val;
         
-        if(Model.integration)
+        if(options.integration)
             % laplace approximation
             logLi_I(1,i) = - 0.5*log(det(G));
         end
         
-        if nderiv >= 2
+        if options.nderiv >= 1
+            dbhat_sidbeta = B.dbeta;
+            dbhat_siddelta = B.ddelta;
             % first order derivatives
-            dphidb = Model.exp{s}.dphidb(beta,bhat_si);
-            pdphipdbeta  = Model.exp{s}.dphidbeta(beta,bhat_si);
+            dphidb = model.dphidb(beta,bhat_si);
+            pdphipdbeta  = model.dphidbeta(beta,bhat_si);
             
             dphidbeta = chainrule(dphidb,dbhat_sidbeta) + pdphipdbeta;
             dphiddelta = chainrule(dphidb,dbhat_siddelta);
@@ -193,7 +196,7 @@ function [P,logL_SCTL,dlogL_SCTLdxi,ddlogL_SCTLdxi2] = logL_SCTL(xi, Model, Data
             dlogLi_Tdxi(:,i) = - transpose(dJ_Tdxi);
             dlogLi_bdxi(:,i) = - transpose(dJ_bdxi);
             
-            if(Model.integration)
+            if(options.integration)
                 % laplace approximation
                 invG = pinv(G);
                 
@@ -212,11 +215,15 @@ function [P,logL_SCTL,dlogL_SCTLdxi,ddlogL_SCTLdxi2] = logL_SCTL(xi, Model, Data
                 dlogLi_Idxi(:,i) = - 0.5*squeeze(sum(sum(bsxfun(@times,squeeze(sum(bsxfun(@times,invG,permute(dGdxi,[4,1,2,3])),2)),eye(length(bhat_si))),1),2)); % 1/2*Tr(invG*dG)
             end
             
-            if nderiv >= 3
+            if options.nderiv >= 2
                 % second order derivatives
                 
-                ddphidbdb = Model.exp{s}.ddphidbdb(beta,bhat_si);
-                ddphidbdbeta = Model.exp{s}.ddphidbdbeta(beta,bhat_si);
+                ddbhat_sidbetadbeta = B.dbetadbeta;
+                ddbhat_sidbetaddelta = B.dbetaddelta;
+                ddbhat_siddeltaddelta = B.ddeltaddelta;
+                
+                ddphidbdb = model.ddphidbdb(beta,bhat_si);
+                ddphidbdbeta = model.ddphidbdbeta(beta,bhat_si);
                 
                 ddphidbetadbeta = chainrule(dphidb,ddbhat_sidbetadbeta) + chainrule_ddxdydy_dydz(ddphidbdb,dbhat_sidbeta) ...
                     + permute(chainrule(permute(ddphidbdbeta,[1,3,2]),dbhat_sidbeta),[1,3,2]);
@@ -282,7 +289,7 @@ function [P,logL_SCTL,dlogL_SCTLdxi,ddlogL_SCTLdxi2] = logL_SCTL(xi, Model, Data
                 ddlogLi_Tdxidxi(:,:,i) = - ddJ_Tdxidxi;
                 ddlogLi_bdxidxi(:,:,i) = - ddJ_bdxidxi;
                 
-                if(Model.integration)
+                if(options.integration)
                     % laplace approximation
                     invG = pinv(G);
                     
@@ -310,133 +317,167 @@ function [P,logL_SCTL,dlogL_SCTLdxi,ddlogL_SCTLdxi2] = logL_SCTL(xi, Model, Data
             
         end
         
-        Y_si_tmp{i} = Y_si;
-        T_si_tmp{i} = T_si;
-        R_si_tmp{i} = R_si;
+        Sim_SCTL.Y(ind_y,:,i) = Y_si;
+        Sim_SCTL.T(ind_t,:,i) = T_si;
+        Sim_SCTL.R(ind_t,:,i) = R_si;
+    end
+    
+    P{s}.SCTL.bhat = bhat;
+    if(options.nderiv>0)
+      P{s}.SCTL.dbhatdxi = dbhatdxi;  
+    end
+    
+    %% Visulization
+    if options.plot
         
-        % Visulization
-        if options.plot
-            
-            % Visualisation of single cell parameters
-            if(isempty(fp))
-                if(isfield(Model.exp{s},'title'))
-                    if(ischar(Model.exp{s}.title))
-                        fp(s) = figure('Name',Model.exp{s}.title);
+        % Visualisation of single cell parameters
+        if(isempty(fp))
+            if(isfield(model,'title'))
+                if(ischar(model.title))
+                    fp(s) = figure('Name',model.title);
+                else
+                    fp(s) = figure;
+                end
+            else
+                fp(s) = figure;
+            end
+        else
+            if(length(fp)<s)
+                if(isfield(model,'title'))
+                    if(ischar(model.title))
+                        fp(s) = figure('Name',model.title);
                     else
                         fp(s) = figure;
                     end
                 else
                     fp(s) = figure;
                 end
-            else
-                if(length(fp)<s)
-                    if(isfield(Model.exp{s},'title'))
-                        if(ischar(Model.exp{s}.title))
-                            fp(s) = figure('Name',Model.exp{s}.title);
-                        else
-                            fp(s) = figure;
-                        end
+            elseif(isempty(fp(s)))
+                if(isfield(model,'title'))
+                    if(ischar(model.title))
+                        fp(s) = figure('Name',model.title);
                     else
                         fp(s) = figure;
                     end
-                elseif(isempty(fp(s)))
-                    if(isfield(Model.exp{s},'title'))
-                        if(ischar(Model.exp{s}.title))
-                            fp(s) = figure('Name',Model.exp{s}.title);
-                        else
-                            fp(s) = figure;
-                        end
-                    else
-                        fp(s) = figure;
-                    end
+                else
+                    fp(s) = figure;
                 end
             end
-            figure(fp(s))
-            clf
-            b_s = P{s}.SCTL.bhat;
-            n_b = size(b_s,1);
-            
-            for j = 1:n_b
-                subplot(ceil((n_b+1)/4),4,j+1)
-                xx = linspace(-5*sqrt(D(j,j)),5*sqrt(D(j,j)),100);
-                %nhist(P{s}.SCTL.bhat(j,:),'pdf','noerror');
-                hold on
-                plot(xx,normcdf(xx,0,sqrt(D(j,j))),'.-b','LineWidth',2)
-                ecdf = zeros(length(xx),1);
-                for k = 1:length(xx)
-                    ecdf(k) = sum(b_s(j,:)<xx(k))/length(b_s(j,:));
-                end
-                plot(xx,ecdf,'--r','LineWidth',2)
-                
-                
-                if(j==1)
-                    
-                end
-                xlim([-5*sqrt(D(j,j)),5*sqrt(D(j,j))])
-                ylim([0,1.1])
-                %xlabel(char(Model.sym.b(Model.exp{s}.ind_b(j))));
-                ylabel('cdf')
-                box on
-            end
-            subplot(ceil(n_b+1/4),4,1,'Visible','off')
+        end
+        figure(fp(s))
+        clf
+        b_s = P{s}.SCTL.bhat;
+        n_b = size(b_s,1);
+        
+        for j = 1:n_b
+            subplot(ceil((n_b+1)/4),4,j+1)
+            xx = linspace(-5*sqrt(D(j,j)),5*sqrt(D(j,j)),100);
+            %nhist(P{s}.SCTL.bhat(j,:),'pdf','noerror');
             hold on
-            plot(xx,normcdf(xx,0,sqrt(D(j,j))),'.-b','Visible','off')
-            plot(xx,ecdf,'--r','LineWidth',2,'Visible','off')
+            plot(xx,normcdf(xx,0,sqrt(D(j,j))),'.-b','LineWidth',2)
+            ecdf = zeros(length(xx),1);
+            for k = 1:length(xx)
+                ecdf(k) = sum(b_s(j,:)<xx(k))/length(b_s(j,:));
+            end
+            plot(xx,ecdf,'--r','LineWidth',2)
             
             
-            legend('cdf of single cell Parameters','cdf of populaton Parameters')
-            
-            % Visualisation of likelihood contribution
-            if(isempty(fl))
-                if(isfield(Model.exp{s},'title'))
-                    if(ischar(Model.exp{s}.title))
-                        fl(s) = figure('Name',Model.exp{s}.title);
+            if(j==1)
+                
+            end
+            xlim([-5*sqrt(D(j,j)),5*sqrt(D(j,j))])
+            ylim([0,1.1])
+            %xlabel(char(model.sym.b(model.ind_b(j))));
+            ylabel('cdf')
+            box on
+        end
+        subplot(ceil(n_b+1/4),4,1,'Visible','off')
+        hold on
+        plot(xx,normcdf(xx,0,sqrt(D(j,j))),'.-b','Visible','off')
+        plot(xx,ecdf,'--r','LineWidth',2,'Visible','off')
+        
+        
+        legend('cdf of single cell Parameters','cdf of populaton Parameters')
+        
+        % Visualisation of likelihood contribution
+        if(isempty(fl))
+            if(isfield(model,'title'))
+                if(ischar(model.title))
+                    fl(s) = figure('Name',model.title);
+                else
+                    fl(s) = figure;
+                end
+            else
+                fl(s) = figure;
+            end
+        else
+            if(length(fl)<s)
+                if(isfield(model,'title'))
+                    if(ischar(model.title))
+                        fl(s) = figure('Name',model.title);
                     else
                         fl(s) = figure;
                     end
                 else
                     fl(s) = figure;
                 end
-            else
-                if(length(fl)<s)
-                    if(isfield(Model.exp{s},'title'))
-                        if(ischar(Model.exp{s}.title))
-                            fl(s) = figure('Name',Model.exp{s}.title);
-                        else
-                            fl(s) = figure;
-                        end
+            elseif(isempty(fl(s)))
+                if(isfield(model,'title'))
+                    if(ischar(model.title))
+                        fl(s) = figure('Name',model.title);
                     else
                         fl(s) = figure;
                     end
-                elseif(isempty(fl(s)))
-                    if(isfield(Model.exp{s},'title'))
-                        if(ischar(Model.exp{s}.title))
-                            fl(s) = figure('Name',Model.exp{s}.title);
-                        else
-                            fl(s) = figure;
-                        end
-                    else
-                        fl(s) = figure;
-                    end
+                else
+                    fl(s) = figure;
                 end
             end
-            figure(fl(s))
-            clf
-            if(Model.integration)
-                bar([logLi_D;logLi_T;logLi_b;logLi_I;repmat(logL_s,[1,size(Data{s}.SCTL.Y,3)])],'stacked')
-                set(gca,'XTickLabel',{'Data','Event','Par','Int','Pen'})
-            else
-                bar([logLi_D;logLi_T;logLi_b;repmat(logL_s,[1,size(Data{s}.SCTL.Y,3)])],'stacked')
-                set(gca,'XTickLabel',{'Data','Event','Par','Pen'})
-            end
-            ylabel('log-likelihood')
-            title('likelihood contribution')
-            
-            
-            
-            % Visualisation of data and fit
-            Model.exp{s}.plot(Data{s},Sim_SCTL,s);
+        end
+        figure(fl(s))
+        clf
+        if(options.integration)
+            bar([logLi_D;logLi_T;logLi_b;logLi_I],'stacked')
+            set(gca,'XTickLabel',{'data','event','par','int'})
+        else
+            bar([logLi_D;logLi_T;logLi_b],'stacked')
+            set(gca,'XTickLabel',{'data','event','par'})
+        end
+        ylabel('log-likelihood')
+        title('likelihood contribution')
+        
+        
+        
+        % Visualisation of data and fit
+        model.plot(data,Sim_SCTL,s);
+    end
+    
+    %% Summation
+    logL_sc = logLi_D + logLi_b;
+    if(options.events)
+        logL_sc = logL_sc + logLi_T;
+    end
+    if(options.integration)
+        logL_sc = logL_sc + logLi_I;
+    end
+    if(options.nderiv >= 1)
+        dlogL_scdxi = dlogLi_Ddxi + dlogLi_bdxi;
+        if(options.events)
+            dlogL_scdxi = dlogL_scdxi + dlogLi_Tdxi;
+        end
+        if(options.integration)
+            dlogL_scdxi = dlogL_scdxi + dlogLi_Idxi;
         end
         
+        if(options.nderiv >= 2)
+            ddlogL_scdxidxi = ddlogLi_Ddxidxi + ddlogLi_bdxidxi;
+            if(options.events)
+                ddlogL_scdxidxi = ddlogL_scdxidxi + ddlogLi_Tdxidxi;
+            end
+            if(options.integration)
+                ddlogL_scdxidxi = ddlogL_scdxidxi + ddlogLi_Idxidxi;
+            end
+        end
     end
+    
+    
 end

@@ -6,12 +6,12 @@
 %
 % USAGE:
 % ======
-% [...] = bhat_SCTL_si(Model,Data,bhat_0,beta,delta,type_D,t,Ym,Tm,ind_y,ind_t,F_diff,b_diff,s,fms)
+% [...] = bhat_SCTL_si(model,data,bhat_0,beta,delta,type_D,t,Ym,Tm,ind_y,ind_t,F_diff,b_diff,s,fms)
 %
 % INPUTS:
 % =======
-% Model ... [struct] model definition
-% Data ... [struct] data definition
+% model ... [struct] model definition
+% data ... [struct] data definition
 % bhat_0 ... [1xnb] previously estimated random effect parameters, these are used
 %     as initialistion to the next estimation
 % beta ... [1xnbeta] common effect parameter
@@ -38,7 +38,7 @@
 
 
 
-function [B,J,FIM] = optimize_SCTL_si(Model,Data,bhat_0,beta,delta,type_D,t,Ym,Tm,ind_y,ind_t,F_diff,b_diff,s,fms)
+function [B,J,FIM] = optimize_SCTL_si(model,data,bhat_0,beta,delta,F_diff,b_diff,s,i,options,P_old)
 options_fmincon = optimset('algorithm','trust-region-reflective',...
     'display','off',...
     'GradObj','on',...
@@ -48,9 +48,12 @@ options_fmincon = optimset('algorithm','trust-region-reflective',...
     'PrecondBandWidth',Inf,...
     'Hessian','user-supplied');
 
+    % do multistart every few iterations
+    fms = (mod(P_old{s}.n_store,options.ms_iter)==0);
+
 if(fms)
     [bhat,OBJ,~,~,~,~,~] = fmincon(...
-        @(b) objective_SCTL_s1(Model,beta,b,Data{s}.condition,delta,type_D,t,Ym,Tm,ind_y,ind_t,s),...
+        @(b) objective_SCTL_s1(model,data,beta,b,delta,s,i,options,1),...
         bhat_0,[],[],[],[],-5*ones(length(bhat_0),1),5*ones(length(bhat_0),1),[],options_fmincon);
     rng(0);
     bhat_0_lhc = 10*lhsdesign(10,length(bhat_0),'smooth','off')' - 5;
@@ -58,7 +61,7 @@ if(fms)
     for j = 1:10
         try 
         [bhatp,OBJp,~,~,~,~,~] = fmincon(...
-            @(b) objective_SCTL_s1(Model,beta,b,Data{s}.condition,delta,type_D,t,Ym,Tm,ind_y,ind_t,s),...
+            @(b) objective_SCTL_s1(model,data,beta,b,delta,s,i,options,1),...
             bhat_0_lhc(:,j),[],[],[],[],-5*ones(length(bhat_0),1),5*ones(length(bhat_0),1),[],options_fmincon);
         if(OBJp<OBJ)
             bhat = bhatp;
@@ -68,11 +71,11 @@ if(fms)
     end
 else
     [bhat,~,~,~,~,~,~] = fmincon(...
-    @(b) objective_SCTL_s1(Model,beta,b,Data{s}.condition,delta,type_D,t,Ym,Tm,ind_y,ind_t,s),...
+    @(b) objective_SCTL_s1(model,data,beta,b,delta,s,i,options,1),...
     bhat_0,[],[],[],[],-5*ones(length(bhat_0),1),5*ones(length(bhat_0),1),[],options_fmincon);
 end
 
-[J,FIM] = objective_SCTL_s1(Model,beta,bhat,Data{s}.condition,delta,type_D,t,Ym,Tm,ind_y,ind_t,s,F_diff);
+[~,~,~,J,FIM] = objective_SCTL_s1(model,data,beta,bhat,delta,s,i,options,F_diff);
 B = bhat_SCTL_si(bhat,FIM,J,b_diff);
 
 end

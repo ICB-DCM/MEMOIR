@@ -24,7 +24,7 @@
 
 
 function [Sigma_time,dSigma_timedphi,ddSigma_timedphidphi,dddSigma_timedphidphidphi,ddddSigma_timedphidphidphidphi] = build_sigma_time(phi,Tm,s,Model,ind_t)
-sigma_time = Model.exp{s}.sigma_time(phi);
+sigma_time = Model.sigma_time(phi);
 
 np = length(phi);
 nt = size(Tm,1);
@@ -51,7 +51,7 @@ else
 end
 
 if nargout >= 2 % first order derivatives
-    dsigma_timedphi = Model.exp{s}.dsigma_timedphi(phi);
+    dsigma_timedphi = Model.dsigma_timedphi(phi);
     dSigma_timedphi = zeros(length(ind_t),np);
     
     if(size(dsigma_timedphi,1) == nt)
@@ -69,7 +69,7 @@ if nargout >= 2 % first order derivatives
     end
     
     if nargout >= 3 % second order derivatives
-        ddsigma_timedphidphi = Model.exp{s}.ddsigma_timedphidphi(phi);
+        ddsigma_timedphidphi = Model.ddsigma_timedphidphi(phi);
         ddSigma_timedphidphi = zeros(length(ind_t),np,np);
         if(size(dsigma_timedphi,1) == nt)
             if(size(dsigma_timedphi,2) == 1)
@@ -87,7 +87,7 @@ if nargout >= 2 % first order derivatives
     end
     
     if nargout >= 4 % third order derivatives
-        dddsigma_timedphidphidphi = Model.exp{s}.dddsigma_timedphidphidphi(phi);
+        dddsigma_timedphidphidphi = Model.dddsigma_timedphidphidphi(phi);
         dddSigma_timedphidphidphi = zeros(length(ind_t),np,np,np);
         if(size(dsigma_timedphi,1) == nt)
             if(size(dsigma_timedphi,2) == 1)
@@ -105,7 +105,7 @@ if nargout >= 2 % first order derivatives
     end
     
     if nargout >= 5 % fourth order derivatives
-        ddddsigma_timedphidphidphidphi = Model.exp{s}.ddddsigma_timedphidphidphidphi(phi);
+        ddddsigma_timedphidphidphidphi = Model.ddddsigma_timedphidphidphidphi(phi);
         ddddSigma_timedphidphidphidphi = zeros(length(ind_t),np,np,np,np);
         if(size(dsigma_timedphi,1) == nt)
             if(size(dsigma_timedphi,2) == 1)
