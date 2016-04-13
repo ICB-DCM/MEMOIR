@@ -162,7 +162,7 @@
 %
 % 2015/04/14 Fabian Froehlich
 
-function varargout = logL_CE_w_grad_2(varargin)
+function varargout = logLMEMOIR(varargin)
 
 %% Load old values
 persistent tau
@@ -191,13 +191,11 @@ if nargin >= 4
         options = setdefault(varargin{4},options);
     end
 end
-
 if nargin >= 5
     extract_flag = varargin{5};
 else
     extract_flag = false;
 end
-
 nderiv = max(nargout-1,0);
 
 % initialise storage
@@ -215,7 +213,6 @@ if(isempty(logL_old))
     end
 end
     
-
 % Plot options
 if (etime(clock,tau) > options.tau_update) && (options.plot == 1)
     options.plot = 30;
@@ -227,51 +224,18 @@ end
 %% Evaluation of likelihood function
 % Initialization
 logL = 0;
-if nderiv >= 2
+if nderiv >= 1
     dlogLdxi = zeros(length(xi),1);
-    if nderiv >= 3
+    if nderiv >= 2
         ddlogLdxidxi = zeros(length(xi));
     end
 end
 
-% definition of possible datatypes
-data_type = {'SCTL','SCSH','SCTLstat','PA'};
-
-ms_iter = options.ms_iter;
-
 % Loop: Experiments/Experimental Conditions
 for s = 1:length(Data)
     
-    %% Assignment of global variables
-    type_D = Model.type_D;
-    
-    n_b = length(Model.exp{s}.ind_b);
-    
-    %% Construct fixed effects and covariance matrix
-    beta = Model.exp{s}.beta(xi);
-    delta = Model.exp{s}.delta(xi);
-    
-    n_beta = length(Model.exp{s}.beta(xi));
-    
-    [D,~,~,~,~,~] = xi2D(delta,type_D);
-    
-    % debugging:
-    % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(delta,@(x) xi2D(x,type_D),1e-4,1,3)
-    % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(delta,@(x) xi2D(x,type_D),1e-4,3,5)
-    % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(delta,@(x) xi2D(x,type_D),1e-4,2,4)
-    % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(delta,@(x) xi2D(x,type_D),1e-4,4,6)
-    
-    %% Construction of time vector
-    t_s = [];
-    for dtype = 1:length(data_type)
-        if isfield(Data{s},data_type{dtype})
-            t_s = union(eval(['Data{s}.' data_type{dtype} '.time']),t_s);
-        end
-    end
-    
     %% Single cell time-lapse data - Individuals
-    if isfield(Data{s},'SCTL')
-        
+    if isfield(Data{s},'SCTL')     
         switch(nderiv)
             case 0
                 [P,logL_sc] = logL_SCTL(xi, Model, Data, s, options, P);
@@ -288,8 +252,6 @@ for s = 1:length(Data)
                 ddlogLdxidxi = ddlogLdxidxi + sum(bsxfun(@times,Model.SCTLscale,ddlogL_scdxi2),2);
             end
         end
-
-
     end
     
     %% Single cell time-lapse data - Statistics
@@ -397,7 +359,6 @@ for s = 1:length(Data)
         
         P{s}.PA.SP = SP;
     end
-   
 end
 
 % updated stored value
@@ -408,12 +369,6 @@ if(logL > logL_old)
     n_store = n_store + 1;
 end
 
-%% Output
-
-if extract_flag
-    varargout{1} = P;
-    return
-end
 
 %% Prior
 
@@ -445,7 +400,12 @@ if isfield(Model,'prior')
 end
 
 
-%%
+%% OUTPUT
+
+if extract_flag
+    varargout{1} = P;
+    return
+end
 
 if nderiv >= 1
     % One output

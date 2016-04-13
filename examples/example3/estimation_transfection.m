@@ -104,9 +104,6 @@ S = [1];
 
 % indicate whether integration should be activated for SCTL data
 Model.integration = false;
-% indicate whether additional penalty terms should be considered for SCTL
-% data
-Model.penalty = false;
 % indicate the model name
 Model.name = model;
 
