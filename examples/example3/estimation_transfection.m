@@ -147,8 +147,8 @@ options.mode = 'visual';
 options.calc_profiles = 'true';
 parameters_MEM.true = xi;
 
-parameters_MEM = getMultiStarts(parameters_MEM,@(theta) logL_CE_w_grad_2(theta,Data,Model),options);
-parameters_MEM = getProfiles(parameters_MEM,@(theta) logL_CE_w_grad_2(theta,Data,Model),options);
+parameters_MEM = getMultiStarts(parameters_MEM,@(theta) logLMEMOIR(theta,Data,Model),options);
+parameters_MEM = getProfiles(parameters_MEM,@(theta) logLMEMOIR(theta,Data,Model),options);
 save(['./project/results/' model '/' datafile '/' date_now '/MS_MEM/S=[' strrep(num2str(S),'  ','_') ']_' filename '.mat'],...
     'parameters_MEM',...
     'Data',...

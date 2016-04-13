@@ -238,11 +238,11 @@ for s = 1:length(Data)
     if isfield(Data{s},'SCTL')     
         switch(nderiv)
             case 0
-                [P,logL_sc] = logL_SCTL(xi, Model, Data, s, options, P);
+                [P,logL_sc] = logL_SCTL(xi, Model, Data, s, options, P_old);
             case 1
-                [P,logL_sc,dlogL_scdxi] = logL_SCTL(xi, Model, Data, s, options, P);
+                [P,logL_sc,dlogL_scdxi] = logL_SCTL(xi, Model, Data, s, options, P_old);
             case 2
-                [P,logL_sc,dlogL_scdxi,ddlogL_scdxi2] = logL_SCTL(xi, Model, Data, s, options ,P);
+                [P,logL_sc,dlogL_scdxi,ddlogL_scdxi2] = logL_SCTL(xi, Model, Data, s, options ,P_old);
         end
         
         logL = logL + sum(bsxfun(@times,Model.SCTLscale,logL_sc),2);

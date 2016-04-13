@@ -4,7 +4,7 @@
 %
 % USAGE:
 % ======
-% [J,dJdb,ddJdbdb,...] = objective_SCTL_s1(Model,beta,b,kappa,delta,type_D,t,Ym,Tm,ind_y,ind_t,s)
+% [J,J.db,J.dbdb,...] = objective_SCTL_s1(Model,beta,b,kappa,delta,type_D,t,Ym,Tm,ind_y,ind_t,s)
 %
 % INPUTS:
 % =======
@@ -27,19 +27,19 @@
 % objective function J and derivatives wrt to b, beta and delta, see file
 % for details, pd indicates that only the partial derivative is considered
 % J
-% dJdb
-% ddJdbdb = G
-% ddJdbdbeta
-% ddJdbddelta
-% ddJdbetadbeta
-% ddJddeltaddelta
-% ddJdbetaddelta
+% J.db
+% J.dbdb = G
+% J.dbdbeta
+% J.dbddelta
+% J.dbetadbeta
+% J.ddeltaddelta
+% J.dbetaddelta
 % dGdb
 % pdGpdbeta
 % pdGpddelta
-% dddJdbdbetadbeta
-% dddJdbddeltaddelta
-% dddJdbdbetaddelta
+% J.dbdbetadbeta
+% J.dbddeltaddelta
+% J.dbdbetaddelta
 % ddGdbdb
 % pddGdbpdbeta
 % pdpdGpdbetapdbeta
@@ -49,7 +49,7 @@
 %
 % 2015/04/14 Fabian Froehlich
 
-function varargout = objective_SCTL_s1(Model,beta,b,kappa,delta,type_D,t,Ym,Tm,ind_y,ind_t,s)
+function [J,FIM] = objective_SCTL_s1(Model,beta,b,kappa,delta,type_D,t,Ym,Tm,ind_y,ind_t,s,nderiv)
 
 [D,invD,dDddelta,dinvDddelta,ddDddeltaddelta,ddinvDddeltaddelta] = xi2D(delta,Model.type_D);
 
@@ -178,12 +178,10 @@ switch(Model.exp{s}.parameter_model)
     case 'lognormal'
 end
 
-J = J_D + J_T + J_b ;
+J.val = J_D + J_T + J_b ;
 
-varargout{1} = J;
-
-if nargout >= 2
-    %% dJdb
+if nderiv >= 1
+    %% J.db
     dphidb = Model.exp{s}.dphidb(beta,b);
     
     dJ_Ddphi = chainrule(dJ_DdY,dYdphi) + chainrule(dJ_DdSigma,dSigma_noisedphi);
@@ -194,12 +192,10 @@ if nargout >= 2
     
     dJ_Tdb = chainrule(dJ_Tdphi,dphidb);
     
-    dJdb = dJ_Ddb + dJ_Tdb + dJ_bdb;
+    J.db = dJ_Ddb + dJ_Tdb + dJ_bdb;
     
-    varargout{2} = dJdb;
-    
-    if nargout >= 3
-        %% ddJdbdb
+    if nargout >= 2
+        %% J.dbdb
         % we need to make two different computations here,
         % one for the integration, in order to ensure that it is possible
         % to compute derivatives by using second order sensitivities by
@@ -240,13 +236,10 @@ if nargout >= 2
         ddJ_Tappdbdphi = transpose(squeeze(sum(bsxfun(@times,ddJ_Tappdphidphi,permute(dphidb,[3,1,2])),2)));
         ddJ_Tappdbdb = squeeze(sum(bsxfun(@times,ddJ_Tappdbdphi,permute(dphidb,[3,1,2,4])),2)) + chainrule(dJ_Tdphi,ddphidbdb);
         
-        ddJappdbdb = squeeze(ddJ_Dappdbdb) + squeeze(ddJ_Tappdbdb) + squeeze(ddJ_bdbdb);
+        % FIM
+        FIM.val = squeeze(ddJ_Dappdbdb) + squeeze(ddJ_Tappdbdb) + squeeze(ddJ_bdbdb);
         
-        
-        % FIM approximation
-        varargout{3} = ddJappdbdb;
-        
-        if nargout >= 4
+        if nderiv >= 2
         
             % exact
             ddJ_Ddphidphi = ddJ_Dappdphidphi ...
@@ -262,12 +255,9 @@ if nargout >= 2
             ddJ_Tdbdphi = transpose(squeeze(sum(bsxfun(@times,ddJ_Tdphidphi,permute(dphidb,[3,1,2])),2)));
             ddJ_Tdbdb = squeeze(sum(bsxfun(@times,ddJ_Tdbdphi,permute(dphidb,[3,1,2,4])),2)) + chainrule(dJ_Tdphi,ddphidbdb);
             
-            ddJdbdb = squeeze(ddJ_Ddbdb) + squeeze(ddJ_Tdbdb) + squeeze(ddJ_bdbdb);
-            
-            % exact
-            varargout{4} = ddJdbdb;
+            J.dbdb = squeeze(ddJ_Ddbdb) + squeeze(ddJ_Tdbdb) + squeeze(ddJ_bdbdb);
         
-            %% ddJdbdbeta
+            %% J.dbdbeta
             dphidbeta = Model.exp{s}.dphidbeta(beta,b);
             ddphidbdbeta = Model.exp{s}.ddphidbdbeta(beta,b);
             
@@ -280,17 +270,13 @@ if nargout >= 2
                 ddJ_Tdbdbeta = squeeze(sum(bsxfun(@times,ddJ_Tdbdphi,permute(dphidbeta,[3,1,2])),2)) + chainrule(dJ_Tdphi,ddphidbdbeta);
             end
             
-            ddJdbdbeta = ddJ_Ddbdbeta + ddJ_Tdbdbeta;
+            J.dbdbeta = ddJ_Ddbdbeta + ddJ_Tdbdbeta;
             
-            varargout{5} = ddJdbdbeta;
+            %% J.dbdelta
             
-            %% ddJdbdelta
+            J.dbddelta = ddJ_bdbddelta;
             
-            ddJdbddelta = ddJ_bdbddelta;
-            
-            varargout{6} = ddJdbddelta;
-            
-            %% ddJdbetadbeta
+            %% J.dbetadbeta
             
             ddphidbetadbeta = Model.exp{s}.ddphidbetadbeta(beta,b);
             
@@ -304,25 +290,19 @@ if nargout >= 2
                 ddJ_Tdbetadbeta = squeeze(sum(bsxfun(@times,ddJ_Tdbetadphi,permute(dphidbeta,[3,1,2])),2)) + chainrule(dJ_Tdphi,ddphidbetadbeta);
             end
             
-            ddJdbetadbeta = ddJ_Ddbetadbeta + ddJ_Tdbetadbeta;
+            J.dbetadbeta = ddJ_Ddbetadbeta + ddJ_Tdbetadbeta;
             
-            varargout{7} = ddJdbetadbeta;
+            %% J.ddeltaddelta
             
-            %% ddJddeltaddelta
+            J.ddeltaddelta = ddJ_bddeltaddelta;
             
-            ddJddeltaddelta = ddJ_bddeltaddelta;
+            %% J.dbetaddelta
             
-            varargout{8} = ddJddeltaddelta;
+            J.dbetaddelta = zeros(length(beta),size(dDddelta,3));
             
-            %% ddJdbetaddelta
-            
-            ddJdbetaddelta = zeros(length(beta),size(dDddelta,3));
-            
-            varargout{9} = ddJdbetaddelta;
-            
-            if nargout >= 10
+            if nderiv >= 3
                 
-                %% dddJdbdbdb
+                %% FIM.db
                 
                 temp = squeeze(sum(bsxfun(@times,ddJ_DdphidY,permute(ddYdphidphi,[4,1,5,2,3])) ...
                     + bsxfun(@times,ddJ_DdphidSigma,permute(ddSigma_noisedphidphi,[4,1,5,2,3])),2));
@@ -395,27 +375,20 @@ if nargout >= 2
                 dddJ_Tdbdbdb = permute(sum(bsxfun(@times,dddJ_Tdbdbdphi,permute(dphidb,[3,4,1,2])),3),[1,2,4,3]) ...
                     + squeeze(chainrule(ddJ_Tdbdphi,ddphidbdb));
                 
-                dddJdbdbdb = dddJ_Ddbdbdb + dddJ_Tdbdbdb + squeeze(dddJ_bdbdbdb);
+                FIM.db = dddJ_Ddbdbdb + dddJ_Tdbdbdb + squeeze(dddJ_bdbdbdb);
                 
-                varargout{10} = dddJdbdbdb;
-                
-                %% dddJdbdbbeta
+                %% FIM.dbeta
                 
                 dddJ_Ddbdbdbeta = permute(sum(bsxfun(@times,dddJ_Ddbdbdphi,permute(dphidbeta,[3,4,1,2])),3),[1,2,4,3]);
                 
                 dddJ_Tdbdbdbeta = permute(sum(bsxfun(@times,dddJ_Tdbdbdphi,permute(dphidbeta,[3,4,1,2])),3),[1,2,4,3]);
                 
-                dddJdbdbdbeta = dddJ_Ddbdbdbeta + dddJ_Tdbdbdbeta;
+                FIM.dbeta = dddJ_Ddbdbdbeta + dddJ_Tdbdbdbeta;
                 
-                varargout{11} = dddJdbdbdbeta;
+                %% FIM.ddelta
+                FIM.ddelta = dddJ_bdbdbddelta;
                 
-                
-                %% dddJdbdbdelta
-                dddJdbdbddelta = dddJ_bdbdbddelta;
-                
-                varargout{12} = squeeze(dddJdbdbddelta);
-                
-                %% dddJdbdbetadbeta
+                %% J.dbdbetadbeta
                 
                 dddJ_Ddbdbetadphi = permute(sum(bsxfun(@times,dddJ_Ddbdphidphi,permute(dphidbeta,[3,1,4,2])),2),[1,4,3,2]);
                 dddJ_Ddbdbetadbeta = permute(sum(bsxfun(@times,dddJ_Ddbdbetadphi,permute(dphidbeta,[3,4,1,2])),3),[1,2,4,3]);
@@ -423,22 +396,18 @@ if nargout >= 2
                 dddJ_Tdbdbetadphi = permute(sum(bsxfun(@times,dddJ_Tdbdphidphi,permute(dphidbeta,[3,1,4,2])),2),[1,4,3,2]);
                 dddJ_Tdbdbetadbeta = permute(sum(bsxfun(@times,dddJ_Tdbdbetadphi,permute(dphidbeta,[3,4,1,2])),3),[1,2,4,3]);
                 
-                dddJdbdbetadbeta = dddJ_Ddbdbetadbeta + dddJ_Tdbdbetadbeta;
+                J.dbdbetadbeta = dddJ_Ddbdbetadbeta + dddJ_Tdbdbetadbeta;
                 
-                varargout{13} = squeeze(dddJdbdbetadbeta);
+                %% J.dbddeltadelta
+                J.dbddeltaddelta = dddJ_bdbddeltaddelta;
                 
-                %% dddJdbddeltadelta
-                dddJdbddeltaddelta = dddJ_bdbddeltaddelta;
+                %% J.dbdbetaddelta
                 
-                varargout{14} = squeeze(dddJdbddeltaddelta);
+                J.dbdbetaddelta = zeros(length(b),length(beta),size(dDddelta,3));
                 
-                %% dddJdbdbetaddelta
-                
-                varargout{15} = zeros(length(b),length(beta),size(dDddelta,3));
-                
-                if nargout >= 16
+                if nderiv >= 4
                     
-                    %% ddddJdbdbdbdb
+                    %% FIM.dbdb
                     
                     temp = squeeze(sum(bsxfun(@times,bsxfun(@times,ddJ_DdYdY,permute(ddYdphidphi,[4,1,2,3])),permute(ddYdphidphi,[4,1,5,6,2,3])) ...
                         + bsxfun(@times,bsxfun(@times,ddJ_DdYdSigma,permute(ddYdphidphi,[4,1,2,3])),permute(ddSigma_noisedphidphi,[4,1,5,6,2,3])) ...
@@ -555,11 +524,9 @@ if nargout >= 2
                     ddddJ_Tdbdbdbdb = permute(sum(bsxfun(@times,ddddJ_Tdbdbdbdphi,permute(dphidb,[3,4,5,1,2])),4),[1,2,3,5,4]) ...
                         + permute(sum(bsxfun(@times,dddJ_Tdbdbdphi,permute(ddphidbdb,[4,5,1,2,3])),3),[1,2,4,5,3]);
                     
-                    ddddJdbdbdbdb = ddddJ_Ddbdbdbdb + ddddJ_Tdbdbdbdb + squeeze(ddddJ_bdbdbdbdb);
+                    FIM.dbdb = ddddJ_Ddbdbdbdb + ddddJ_Tdbdbdbdb + squeeze(ddddJ_bdbdbdbdb);
                     
-                    varargout{16} = ddddJdbdbdbdb;
-                    
-                    %% ddddJdbdbdbdbeta
+                    %% FIM.dbdbeta
                     
                     ddddJ_Ddbdbdbdbeta = permute(sum(bsxfun(@times,ddddJ_Ddbdbdbdphi,permute(dphidbeta,[3,4,5,1,2])),4),[1,2,3,5,4]) ...
                         + permute(sum(bsxfun(@times,dddJ_Ddbdbdphi,permute(ddphidbdbeta,[4,5,1,2,3])),3),[1,2,4,5,3]);
@@ -567,11 +534,9 @@ if nargout >= 2
                     ddddJ_Tdbdbdbdbeta = permute(sum(bsxfun(@times,ddddJ_Tdbdbdbdphi,permute(dphidbeta,[3,4,5,1,2])),4),[1,2,3,5,4]) ...
                         + permute(sum(bsxfun(@times,dddJ_Tdbdbdphi,permute(ddphidbdbeta,[4,5,1,2,3])),3),[1,2,4,5,3]);
                     
-                    ddddJdbdbdbdbeta = ddddJ_Ddbdbdbdbeta + ddddJ_Tdbdbdbdbeta;
+                    FIM.dbdbeta = ddddJ_Ddbdbdbdbeta + ddddJ_Tdbdbdbdbeta;
                     
-                    varargout{17} = ddddJdbdbdbdbeta;
-                    
-                    %% ddddJdbdbdbetadbeta
+                    %% FIM.dbetadbeta
                     
                     ddddJ_Ddbdbdbetadphi = permute(sum(bsxfun(@times,ddddJ_Ddbdbdphidphi,permute(dphidbeta,[3,4,1,5,2])),3),[1,2,5,4,3]) ...
                         + permute(sum(bsxfun(@times,dddJ_Ddbdphidphi,permute(ddphidbdbeta,[4,1,5,2,3])),2),[1,4,5,3,2]);
@@ -583,25 +548,18 @@ if nargout >= 2
                     ddddJ_Tdbdbdbetadbeta = permute(sum(bsxfun(@times,ddddJ_Tdbdbdbetadphi,permute(dphidbeta,[3,4,5,1,2])),4),[1,2,3,5,4]) ...
                         + permute(sum(bsxfun(@times,dddJ_Tdbdbdphi,permute(ddphidbetadbeta,[4,5,1,2,3])),3),[1,2,4,5,3]);
                     
-                    ddddJdbdbdbetadbeta = ddddJ_Ddbdbdbetadbeta + ddddJ_Tdbdbdbetadbeta;
+                    FIM.dbetadbeta = ddddJ_Ddbdbdbetadbeta + ddddJ_Tdbdbdbetadbeta;
                     
-                    varargout{18} = ddddJdbdbdbetadbeta;
+                    %% FIM.dbddelta
                     
-                    %% ddddJdbdbdbddelta
+                    FIM.dbddelta = ddddJ_bdbdbdbddelta;
                     
-                    ddddJdbdbdbddelta = ddddJ_bdbdbdbddelta;
+                    %% FIM.ddeltaddelta
                     
-                    varargout{19} = ddddJdbdbdbddelta;
+                    FIM.ddeltaddelta = ddddJ_bdbdbddeltaddelta;
                     
-                    %% ddddJdbdbddeltaddelta
-                    
-                    ddddJdbdbddeltaddelta = ddddJ_bdbdbddeltaddelta;
-                    
-                    varargout{20} = ddddJdbdbddeltaddelta;
-                    
-                    %% dddddJdbdbdbetaddelta
-                    varargout{21} = zeros(length(b),length(b),length(beta),length(b));
-                    
+                    %% FIM.dbetaddelta
+                    FIM.dbetaddelta = zeros(length(b),length(b),length(beta),length(b));
                     
                 end
             end
