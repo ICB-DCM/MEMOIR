@@ -167,7 +167,7 @@ function [P,logL_sc,dlogL_scdxi,ddlogL_scdxidxi] = logL_SCTL(xi, model, data, s,
         
         if(options.integration)
             % laplace approximation
-            logLi_I(1,i) = - 0.5*log(det(G));
+            logLi_I(1,i) = - 0.5*log(det(G.val));
         end
         
         if options.nderiv >= 1
@@ -198,7 +198,7 @@ function [P,logL_sc,dlogL_scdxi,ddlogL_scdxidxi] = logL_SCTL(xi, model, data, s,
             
             if(options.integration)
                 % laplace approximation
-                invG = pinv(G);
+                invG = pinv(G.val);
                 
                 % take care when nelem(b) == 1 ... (ones(1,1,1) ==
                 % ones(1,1) so dGdb will be missing one dimension!)
@@ -207,8 +207,8 @@ function [P,logL_sc,dlogL_scdxi,ddlogL_scdxidxi] = logL_SCTL(xi, model, data, s,
                     dGddelta = pdGpddelta + permute(dGdb*dbhat_siddelta,[3,1,2]);
                     dGdxi = chainrule(dGdbeta,dbetadxi) + chainrule(dGddelta,ddeltadxi);
                 else
-                    dGdbeta = pdGpdbeta + chainrule(dGdb,dbhat_sidbeta);
-                    dGddelta = pdGpddelta + chainrule(dGdb,dbhat_siddelta);
+                    dGdbeta = G.pdbeta + chainrule(G.db,dbhat_sidbeta);
+                    dGddelta = G.pddelta + chainrule(G.db,dbhat_siddelta);
                     dGdxi = chainrule(dGdbeta,dbetadxi) + chainrule(dGddelta,ddeltadxi);
                 end
                 

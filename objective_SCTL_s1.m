@@ -405,10 +405,10 @@ function [varargout] = objective_SCTL_s1(model,data,beta,b,delta,s,i,options,nde
                     
                     dddJ_Tdbdbdbeta = permute(sum(bsxfun(@times,dddJ_Tdbdbdphi,permute(dphidbeta,[3,4,1,2])),3),[1,2,4,3]);
                     
-                    FIM.dbeta = dddJ_Ddbdbdbeta + dddJ_Tdbdbdbeta;
+                    FIM.pdbeta = dddJ_Ddbdbdbeta + dddJ_Tdbdbdbeta;
                     
                     %% FIM.ddelta
-                    FIM.ddelta = dddJ_bdbdbddelta;
+                    FIM.pddelta = dddJ_bdbdbddelta;
                     
                     %% J.dbdbetadbeta
                     

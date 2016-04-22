@@ -27,6 +27,6 @@ function [B,G] = getBhat(xi, model, data, s, i, options, P_old)
         F_diff = 0;
     end
 
-    [B,G] = optimize_SCTL_si(model,data,bhat_si0,beta,delta,F_diff,b_diff,s,i,options,P_old);
+    [B,J,G] = optimize_SCTL_si(model,data,bhat_si0,beta,delta,F_diff,b_diff,s,i,options,P_old);
     % [g,g_fd_f,g_fd_b,g_fd_c]=testGradient(beta,@(beta)optimize_SCTL_si(model,data,bhat_si0,beta,D,dDddelta,ddDddeltaddelta,invD,dinvDddelta,ddinvDddeltaddelta,t_s,Ym_si,ind,F_diff,b_diff,s),1e-4,2,4)
 end
