@@ -202,7 +202,7 @@ function [varargout] = objective_SCTL_s1(model,data,beta,b,delta,s,i,options,nde
     
     J.val = J_D + J_T + J_b ;
     
-    if nargout >= 1
+    if nargout >= 2
         %% J.db
         dphidb = model.dphidb(beta,b);
         
@@ -216,7 +216,7 @@ function [varargout] = objective_SCTL_s1(model,data,beta,b,delta,s,i,options,nde
         
         J.db = dJ_Ddb + dJ_Tdb + dJ_bdb;
         
-        if nargout >= 2
+        if nargout >= 3
             %% J.dbdb
             % we need to make two different computations here,
             % one for the integration, in order to ensure that it is possible

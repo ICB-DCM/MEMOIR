@@ -253,9 +253,9 @@ function varargout = logLMEMOIR(varargin)
             end
             
             logL = logL + scaling*sum(logL_sc,2);
-            if options.nderiv <= 2
+            if options.nderiv >= 1
                 dlogLdxi = dlogLdxi + scaling*sum(dlogL_scdxi,2);
-                if options.nderiv <= 3
+                if options.nderiv >= 2
                     ddlogLdxidxi = ddlogLdxidxi + scaling*sum(ddlogL_scdxi2,3);
                 end
             end
