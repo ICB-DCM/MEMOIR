@@ -1,4 +1,4 @@
-function [B,G] = getBhat(xi, model, data, s, i, options, P_old)
+function [B,G] = getBhat(beta,delta, model, data, s, i, options, P_old)
     
     if(isfield(P_old{s},'SCTL'))
         if(isfield(P_old{s}.SCTL,'dbdxi'))
@@ -16,9 +16,6 @@ function [B,G] = getBhat(xi, model, data, s, i, options, P_old)
     % with respect to b
     % F_diff and b_diff determine how many derivatives of the objective function and of the optimum need to
     % be computed
-    
-    beta = model.beta(xi);
-    delta = model.delta(xi);
     
     b_diff = min(options.nderiv,2);
     if(options.nderiv>0)

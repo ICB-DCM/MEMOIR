@@ -56,6 +56,8 @@ function [varargout] = objective_SCTL_s1(model,data,beta,b,delta,s,i,options,nde
     % mixed effect parameter
     phi = model.phi(beta,b);
     
+    nderiv = max(nderiv,nargout>1);
+    
     % build standard deviation matrices
     switch(nderiv)
         case 0

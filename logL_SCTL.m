@@ -58,9 +58,12 @@ function [P,logL_sc,dlogL_scdxi,ddlogL_scdxidxi] = logL_SCTL(xi, model, data, s,
     tmp = arrayfun(@(x) ~isnan(data.SCTL.T(:,:,x)),1:size(data.SCTL.Y,3),'UniformOutput',false);
     data.SCTL.ind_t = [tmp{:}];
     
+    beta = model.beta(xi);
+    delta = model.delta(xi);
+    
     for i = 1:size(data.SCTL.Y,3)
-        
-        [B,G] = getBhat(xi, model, data, s, i, options, P);
+
+        [B,G] = getBhat(beta,delta, model, data, s, i, options, P);
         
         % Construct single-cell parameter
         phi_si = model.phi(beta,B.val);
