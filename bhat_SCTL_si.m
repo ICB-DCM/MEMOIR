@@ -19,11 +19,11 @@
 
 function B = bhat_SCTL_si(bhat,FIM,J,nderiv)
     
-    invG = pinv(FIM.val);
-    
     B.val = bhat;
     
     if nderiv>=1
+        
+        invG = pinv(J.dbdb);
         
         B.dbeta = -invG*squeeze(J.dbdbeta);
         B.ddelta = -invG*squeeze(J.dbddelta);

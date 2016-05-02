@@ -63,10 +63,29 @@ function [P,logL_sc,dlogL_scdxi,ddlogL_scdxidxi] = logL_SCTL(xi, model, data, s,
     
     for i = 1:size(data.SCTL.Y,3)
 
-        [B,G] = getBhat(beta,delta, model, data, s, i, options, P);
+        if(isfield(P{s},'SCTL'))
+            if(isfield(P{s}.SCTL,'dbdxi'))
+                bhat_si0 = P{s}.SCTL.bhat(:,i) + P{s}.SCTL.dbdxi(:,:,i)*(xi-P{s}.xi);
+            else
+                bhat_si0 = P{s}.SCTL.bhat(:,i);
+            end
+        else
+            bhat_si0 = zeros(length(model.ind_b),1);
+        end
         
+        % compute bhat (optimum of the single cell likelihood
+        % (objective_SCTL_s1) with respect to b and the respective
+        % derivatives with respect to beta and delta
+        %
+        % testing:
+        % [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(beta,@(beta) getBhat( beta, delta, bhat_si0, model, data, s, i, options, P),1e-5,'val','dbeta')
+        % [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(delta,@(delta) getBhat( beta, delta, bhat_si0, model, data, s, i, options, P),1e-5,'val','ddelta')
+        
+        
+        [B,G] = getBhat( beta, delta, bhat_si0, model, data, s, i, options, P);
+
         % Construct single-cell parameter
-        phi_si = model.phi(beta,B.val);
+        phi_si = model.phi( beta, B.val);
         Ym_si = data.SCTL.Y(:,:,i);
         Tm_si = data.SCTL.T(:,:,i);
         bhat_si = B.val;
@@ -210,8 +229,8 @@ function [P,logL_sc,dlogL_scdxi,ddlogL_scdxidxi] = logL_SCTL(xi, model, data, s,
                     dGddelta = pdGpddelta + permute(dGdb*dbhat_siddelta,[3,1,2]);
                     dGdxi = chainrule(dGdbeta,dbetadxi) + chainrule(dGddelta,ddeltadxi);
                 else
-                    dGdbeta = G.pdbeta + chainrule(G.db,dbhat_sidbeta);
-                    dGddelta = G.pddelta + chainrule(G.db,dbhat_siddelta);
+                    dGdbeta = G.dbeta + chainrule(G.db,dbhat_sidbeta);
+                    dGddelta = G.ddelta + chainrule(G.db,dbhat_siddelta);
                     dGdxi = chainrule(dGdbeta,dbetadxi) + chainrule(dGddelta,ddeltadxi);
                 end
                 

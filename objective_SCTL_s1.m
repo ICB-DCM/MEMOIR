@@ -188,16 +188,16 @@ function [varargout] = objective_SCTL_s1(model,data,beta,b,delta,s,i,options,nde
                     J_b = normal_param(b,delta,options.type_D);
                 case 1 % first order derivatives
                     if(nargout<3)
-                        [J_b,dJ_bdb,~]= normal_param(b,delta,options.type_D);
+                        [J_b,dJ_bdb,dJ_bddelta]= normal_param(b,delta,options.type_D);
                     else
-                        [J_b,dJ_bdb,~,ddJ_bdbdb,ddJ_bdbddelta,ddJ_bddeltaddelta] = normal_param(b,delta,options.type_D);
+                        [J_b,dJ_bdb,dJ_bddelta,ddJ_bdbdb,ddJ_bdbddelta,ddJ_bddeltaddelta] = normal_param(b,delta,options.type_D);
                     end
                 case 2% second order derivatives
-                    [J_b,dJ_bdb,~,ddJ_bdbdb,ddJ_bdbddelta,ddJ_bddeltaddelta] = normal_param(b,delta,options.type_D);
+                    [J_b,dJ_bdb,dJ_bddelta,ddJ_bdbdb,ddJ_bdbddelta,ddJ_bddeltaddelta] = normal_param(b,delta,options.type_D);
                 case 3 % third order derivatives
-                    [J_b,dJ_bdb,~,ddJ_bdbdb,ddJ_bdbddelta,ddJ_bddeltaddelta,dddJ_bdbdbdb,dddJ_bdbdbddelta,dddJ_bdbddeltaddelta] = normal_param(b,delta,options.type_D);
+                    [J_b,dJ_bdb,dJ_bddelta,ddJ_bdbdb,ddJ_bdbddelta,ddJ_bddeltaddelta,dddJ_bdbdbdb,dddJ_bdbdbddelta,dddJ_bdbddeltaddelta] = normal_param(b,delta,options.type_D);
                 case 4 % fourth order derivatives
-                    [J_b,dJ_bdb,~,ddJ_bdbdb,ddJ_bdbddelta,ddJ_bddeltaddelta,dddJ_bdbdbdb,dddJ_bdbdbddelta,dddJ_bdbddeltaddelta,ddddJ_bdbdbdbdb,ddddJ_bdbdbdbddelta,ddddJ_bdbdbddeltaddelta] = normal_param(b,delta,options.type_D);
+                    [J_b,dJ_bdb,dJ_bddelta,ddJ_bdbdb,ddJ_bdbddelta,ddJ_bddeltaddelta,dddJ_bdbdbdb,dddJ_bdbdbddelta,dddJ_bdbddeltaddelta,ddddJ_bdbdbdbdb,ddddJ_bdbdbdbddelta,ddddJ_bdbdbddeltaddelta] = normal_param(b,delta,options.type_D);
             end
         case 'lognormal'
     end
@@ -207,6 +207,7 @@ function [varargout] = objective_SCTL_s1(model,data,beta,b,delta,s,i,options,nde
     if nargout >= 2
         %% J.db
         dphidb = model.dphidb(beta,b);
+        dphidbeta = model.dphidbeta(beta,b);
         
         dJ_Ddphi = chainrule(dJ_DdY,dYdphi) + chainrule(dJ_DdSigma,dSigma_noisedphi);
         
@@ -218,7 +219,19 @@ function [varargout] = objective_SCTL_s1(model,data,beta,b,delta,s,i,options,nde
         
         J.db = dJ_Ddb + dJ_Tdb + dJ_bdb;
         
-        if nargout >= 3
+        %% J.dbeta
+        
+        dJ_Ddbeta = chainrule(dJ_Ddphi,dphidbeta);
+        
+        dJ_Tdbeta = chainrule(dJ_Tdphi,dphidbeta);
+        
+        J.dbeta = dJ_Ddbeta + dJ_Tdbeta;
+        
+        %% J.ddelta
+        
+        J.ddelta = dJ_bddelta;
+        
+        if nargout >= 3 || nderiv >= 1
             %% J.dbdb
             % we need to make two different computations here,
             % one for the integration, in order to ensure that it is possible
@@ -282,7 +295,6 @@ function [varargout] = objective_SCTL_s1(model,data,beta,b,delta,s,i,options,nde
                 J.dbdb = squeeze(ddJ_Ddbdb) + squeeze(ddJ_Tdbdb) + squeeze(ddJ_bdbdb);
                 
                 %% J.dbdbeta
-                dphidbeta = model.dphidbeta(beta,b);
                 ddphidbdbeta = model.ddphidbdbeta(beta,b);
                 
                 % if size of b == 1 then we have to permute second term,
@@ -407,10 +419,10 @@ function [varargout] = objective_SCTL_s1(model,data,beta,b,delta,s,i,options,nde
                     
                     dddJ_Tdbdbdbeta = permute(sum(bsxfun(@times,dddJ_Tdbdbdphi,permute(dphidbeta,[3,4,1,2])),3),[1,2,4,3]);
                     
-                    FIM.pdbeta = dddJ_Ddbdbdbeta + dddJ_Tdbdbdbeta;
+                    FIM.dbeta = dddJ_Ddbdbdbeta + dddJ_Tdbdbdbeta;
                     
                     %% FIM.ddelta
-                    FIM.pddelta = dddJ_bdbdbddelta;
+                    FIM.ddelta = dddJ_bdbdbddelta;
                     
                     %% J.dbdbetadbeta
                     

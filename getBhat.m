@@ -1,14 +1,4 @@
-function [B,G] = getBhat(beta,delta, model, data, s, i, options, P_old)
-    
-    if(isfield(P_old{s},'SCTL'))
-        if(isfield(P_old{s}.SCTL,'dbdxi'))
-            bhat_si0 = P_old{s}.SCTL.bhat(:,i) + P_old{s}.SCTL.dbdxi(:,:,i)*(xi-P_old{s}.xi);
-        else
-            bhat_si0 = P_old{s}.SCTL.bhat(:,i);
-        end
-    else
-        bhat_si0 = zeros(length(model.ind_b),1);
-    end
+function [B,G] = getBhat(beta,delta, bhat_si0, model, data, s, i, options, P_old)
     
     %% Estimation of single cell random effects
     % Higher order derivatives of the objective function for single cell parameters
@@ -24,6 +14,5 @@ function [B,G] = getBhat(beta,delta, model, data, s, i, options, P_old)
         F_diff = 0;
     end
 
-    [B,J,G] = optimize_SCTL_si(model,data,bhat_si0,beta,delta,F_diff,b_diff,s,i,options,P_old);
-    % [g,g_fd_f,g_fd_b,g_fd_c]=testGradient(beta,@(beta)optimize_SCTL_si(model,data,bhat_si0,beta,delta,F_diff,b_diff,s,i,options,P_old),1e-4,2,4)
+    [B,G] = optimize_SCTL_si(model,data,bhat_si0,beta,delta,F_diff,b_diff,s,i,options,P_old);
 end
