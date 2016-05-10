@@ -21,6 +21,8 @@ if(numel(dxdy)>1)
             if(size(dydz,1)==1)
                 dxdz = bsxfun(@times,dxdy,permute(dydz,[3,1,2]));
             else
+                % nancheck
+                dxdy(isnan(dxdy)) =  0;
                 dxdz = dxdy*dydz;
             end
         else

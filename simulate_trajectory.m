@@ -36,6 +36,7 @@ function [ Y,T,R, dYdphi,dTdphi,dRdphi, ddYdphidphi,ddTdphidphi,ddRdphidphi ] = 
 
 optionmu.atol = 1e-12;
 optionmu.rtol = 1e-12;
+optionmu.nmaxevent = length(ind_t);
 
 if nargout < 4
     optionmu.sensi = 0; % number of requested sensitivities
@@ -44,9 +45,9 @@ elseif nargout < 7
     optionmu.sensi = 1; % number of requested sensitivities
     sol = Model.model(t,phi,kappa,optionmu);
     dYdphi = sol.sy;
-    if(isfield(sol,'sroot'))
-        dTdphi = sol.sroot;
-        dRdphi = sol.srootval;
+    if(isfield(sol,'sz'))
+        dTdphi = sol.sz;
+        dRdphi = zeros(size(sol.sz,1),sum(ind_t),length(phi));
     else
         dTdphi = zeros(0,sum(ind_t),length(phi));
         dRdphi = zeros(0,sum(ind_t),length(phi));
@@ -57,21 +58,21 @@ else
     sol = Model.model(t,phi,kappa,optionmu);
     % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(phi,@(phi) Model.model(t,phi,kappa,optionmu),1e-5,'y','sy')
     dYdphi = sol.sy;
-    if(isfield(sol,'sroot'))
-        dTdphi = sol.sroot(ind_t,:,:);
-        dRdphi = sol.srootval(ind_t,:,:);
+    if(isfield(sol,'sz'))
+        dTdphi = sol.sz(ind_t,:,:);
+        dRdphi = zeros(size(sol.sz,1),sum(ind_t),length(phi));
     else
         dTdphi = zeros(0,sum(ind_t),length(phi));
         dRdphi = zeros(0,sum(ind_t),length(phi));
     end
     try
         ddYdphidphi = sol.s2y;
-        ddTdphidphi = sol.s2root(ind_t,:,:,:);
-        ddRdphidphi = sol.s2rootval(ind_t,:,:,:);
+        ddTdphidphi = sol.s2z(ind_t,:,:,:);
+        ddRdphidphi = zeros(length(ind_t),size(sol.sz,2),length(phi),length(phi));
     catch
         % fallback if no second order sensitivities are available
         ddYdphidphi = zeros(length(t),size(sol.sy,2),length(phi),length(phi));
-        if(isfield(sol,'sroot'))
+        if(isfield(sol,'sz'))
             ddTdphidphi = zeros(sum(ind_t),size(sol.sroot,2),length(phi),length(phi));
             ddRdphidphi = zeros(sum(ind_t),size(sol.srootval,2),length(phi),length(phi));
         else
@@ -82,9 +83,9 @@ else
     end
 end
 Y = sol.y;
-if(isfield(sol,'root'))
-    T = sol.root;
-    R = sol.rootval;
+if(isfield(sol,'z'))
+    T = sol.z;
+    R = 0;
 else
     T = zeros(0,sum(ind_t));
     R = zeros(0,sum(ind_t));

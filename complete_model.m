@@ -11,7 +11,7 @@
 % Model ... model struct encapsulating the model definition for a MEM
 %   .sym ... contains symbolic definition of the overall model
 %       .xi ... are the parameter wich are optimised, this usually consist
-%       of common effects, the parametrisation of the random effects
+%       of common effecmts, the parametrisation of the random effects
 %       covariance matrix and the parametrisation of the noise parameters
 %       .phi ... is are the mixed effect parametrisation as function of
 %       common effects beta and random effects b

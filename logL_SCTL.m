@@ -53,9 +53,10 @@ function [P,logL_sc,dlogL_scdxi,ddlogL_scdxidxi] = logL_SCTL(xi, model, data, s,
             ddlogLi_Idxidxi = zeros(length(xi),length(xi),size(data.SCTL.Y,3));
         end
     end
-    tmp = arrayfun(@(x) ~isnan(data.SCTL.Y(:,:,x)),1:size(data.SCTL.Y,3),'UniformOutput',false);
+
+    tmp = arrayfun(@(x) any(~isnan(data.SCTL.Y(:,:,x)),2),1:size(data.SCTL.Y,3),'UniformOutput',false);
     data.SCTL.ind_y = [tmp{:}];
-    tmp = arrayfun(@(x) ~isnan(data.SCTL.T(:,:,x)),1:size(data.SCTL.Y,3),'UniformOutput',false);
+    tmp = arrayfun(@(x) any(~isnan(data.SCTL.T(:,:,x)),2),1:size(data.SCTL.Y,3),'UniformOutput',false);
     data.SCTL.ind_t = [tmp{:}];
     
     beta = model.beta(xi);
@@ -223,15 +224,15 @@ function [P,logL_sc,dlogL_scdxi,ddlogL_scdxidxi] = logL_SCTL(xi, model, data, s,
                 invG = pinv(G.val);
                 
                 % take care when nelem(b) == 1 ... (ones(1,1,1) ==
-                % ones(1,1) so dGdb will be missing one dimension!)
+                % ones(1,1) so G.db will be missing one dimension!)
                 if(numel(bhat_si)==1)
-                    dGdbeta = pdGpdbeta + permute(dGdb*dbhat_sidbeta,[3,1,2]);
-                    dGddelta = pdGpddelta + permute(dGdb*dbhat_siddelta,[3,1,2]);
-                    dGdxi = chainrule(dGdbeta,dbetadxi) + chainrule(dGddelta,ddeltadxi);
+                    G.dbeta = pdGpdbeta + permute(G.db*dbhat_sidbeta,[3,1,2]);
+                    dGddelta = pdGpddelta + permute(G.db*dbhat_siddelta,[3,1,2]);
+                    dGdxi = chainrule(G.dbeta,dbetadxi) + chainrule(dGddelta,ddeltadxi);
                 else
-                    dGdbeta = G.dbeta + chainrule(G.db,dbhat_sidbeta);
+                    G.dbeta = G.dbeta + chainrule(G.db,dbhat_sidbeta);
                     dGddelta = G.ddelta + chainrule(G.db,dbhat_siddelta);
-                    dGdxi = chainrule(dGdbeta,dbetadxi) + chainrule(dGddelta,ddeltadxi);
+                    dGdxi = chainrule(G.dbeta,dbetadxi) + chainrule(dGddelta,ddeltadxi);
                 end
                 
                 dlogLi_Idxi(:,i) = - 0.5*squeeze(sum(sum(bsxfun(@times,squeeze(sum(bsxfun(@times,invG,permute(dGdxi,[4,1,2,3])),2)),eye(length(bhat_si))),1),2)); % 1/2*Tr(invG*dG)
@@ -313,20 +314,20 @@ function [P,logL_sc,dlogL_scdxi,ddlogL_scdxidxi] = logL_SCTL(xi, model, data, s,
                 
                 if(options.integration)
                     % laplace approximation
-                    invG = pinv(G);
+                    invG = pinv(G.val);
                     
-                    ddGdbetadbeta = pdpdGpdbetapdbeta + 2*chainrule(permute(pddGdbpdbeta,[1,2,4,3]),dbhat_sidbeta) ...
-                        + chainrule_ddxdydy_dydz(ddGdbdb,dbhat_sidbeta) + chainrule(dGdb,ddbhat_sidbetadbeta);
+                    ddGdbetadbeta = G.dbetadbeta + 2*chainrule(permute(G.dbdbeta,[1,2,4,3]),dbhat_sidbeta) ...
+                        + chainrule_ddxdydy_dydz(G.dbdb,dbhat_sidbeta) + chainrule(G.db,ddbhat_sidbetadbeta);
                     
-                    ddGddeltaddelta = pdpdGpddeltapddelta + 2*chainrule(permute(pddGdbpddelta,[1,2,4,3]),dbhat_siddelta) ...
-                        + chainrule_ddxdydy_dydz(ddGdbdb,dbhat_siddelta) + chainrule(dGdb,ddbhat_siddeltaddelta);
+                    ddGddeltaddelta = G.ddeltaddelta + 2*chainrule(permute(G.dbddelta,[1,2,4,3]),dbhat_siddelta) ...
+                        + chainrule_ddxdydy_dydz(G.dbdb,dbhat_siddelta) + chainrule(G.db,ddbhat_siddeltaddelta);
                     
-                    ddGdbetaddelta = pdpdGpdbetapddelta + chainrule(permute(pddGdbpdbeta,[1,2,4,3]),dbhat_siddelta) ...
-                        + permute(chainrule(permute(pddGdbpddelta,[1,2,4,3]),dbhat_sidbeta),[1,2,4,3]) ...
-                        + chainrule_ddxdydy_dydz_dydv(ddGdbdb,dbhat_sidbeta,dbhat_siddelta) ...
-                        + chainrule(dGdb,ddbhat_sidbetaddelta);
+                    ddGdbetaddelta = G.dbetaddelta + chainrule(permute(G.dbdbeta,[1,2,4,3]),dbhat_siddelta) ...
+                        + permute(chainrule(permute(G.dbddelta,[1,2,4,3]),dbhat_sidbeta),[1,2,4,3]) ...
+                        + chainrule_ddxdydy_dydz_dydv(G.dbdb,dbhat_sidbeta,dbhat_siddelta) ...
+                        + chainrule(G.db,ddbhat_sidbetaddelta);
                     
-                    ddGdxidxi = chainrule_ddxdydy_dydz(ddGdbetadbeta,dbetadxi) + chainrule(dGdbeta,ddbetadxidxi) ...
+                    ddGdxidxi = chainrule_ddxdydy_dydz(ddGdbetadbeta,dbetadxi) + chainrule(G.dbeta,ddbetadxidxi) ...
                         + chainrule_ddxdydy_dydz(ddGddeltaddelta,ddeltadxi) + chainrule(dGddelta,dddeltadxidxi) ...
                         + 2*chainrule_ddxdydy_dydz_dydv(ddGdbetaddelta,dbetadxi,ddeltadxi);
                     
