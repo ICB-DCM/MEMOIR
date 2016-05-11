@@ -123,13 +123,13 @@ if nargout >= 2 % first order derivatives
     end
     
     if nargout >= 2 % first order derivatives
-        dSigma_noisedphi = reshape(dSTdphi(ind_t,:,:),[sum(ind_t)*size(Tm,2),np]);
+        dSigma_timedphi = reshape(dSTdphi(ind_t,:,:),[sum(ind_t)*size(Tm,2),np]);
         if nargout >= 3 % second order derivatives    
-            ddSigma_noisedphidphi = reshape(ddSTdphidphi(ind_t,:,:,:),[sum(ind_t)*size(Tm,2),np,np]);
+            ddSigma_timedphidphi = reshape(ddSTdphidphi(ind_t,:,:,:),[sum(ind_t)*size(Tm,2),np,np]);
             if nargout >= 4 % third order derivatives
-                dddSigma_noisedphidphidphi = reshape(dddSTdphidphidphi(ind_t,:,:,:,:),[sum(ind_t)*size(Tm,2),np,np,np]);
+                dddSigma_timedphidphidphi = reshape(dddSTdphidphidphi(ind_t,:,:,:,:),[sum(ind_t)*size(Tm,2),np,np,np]);
                 if nargout >= 5 % fourth order derivatives
-                    ddddSigma_noisedphidphidphidphi = reshape(ddddSTdphidphidphidphi(ind_t,:,:,:,:,:),[sum(ind_t)*size(Tm,2),np,np,np,np]);
+                    ddddSigma_timedphidphidphidphi = reshape(ddddSTdphidphidphidphi(ind_t,:,:,:,:,:),[sum(ind_t)*size(Tm,2),np,np,np,np]);
                 end
             end
         end

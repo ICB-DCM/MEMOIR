@@ -78,6 +78,9 @@ function [varargout] = objective_SCTL_s1(model,data,beta,b,delta,s,i,options,nde
     end
     
     t = data.SCTL.time(data.SCTL.ind_y(:,i));
+    if(t(end)<max(max(data.SCTL.T(:,:,i)))*1.2)
+        t = [t;max(max(data.SCTL.T(:,:,i)))*1.2];
+    end
     
     % simulate trajectory
     if(nargout == 1)
@@ -245,7 +248,7 @@ function [varargout] = objective_SCTL_s1(model,data,beta,b,delta,s,i,options,nde
             ddJ_DdphidSigma = bsxfun(@times,ddJ_DdYdSigma,permute(dYdphi,[3,1,2])) ...
                 + bsxfun(@times,ddJ_DdSigmadSigma,permute(dSigma_noisedphi,[3,1,2]));
             % approximate
-            ddJ_Dappdphidphi = permute(sum(bsxfun(@times,ddJ_DdphidY,permute(dYdphi,[3,1,4,2])) ...
+            ddJ_Dappdphidphi = permute(nansum(bsxfun(@times,ddJ_DdphidY,permute(dYdphi,[3,1,4,2])) ...
                 + bsxfun(@times,ddJ_DdphidSigma,permute(dSigma_noisedphi,[3,1,4,2])),2),[3,4,1,2]);
             
             

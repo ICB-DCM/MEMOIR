@@ -44,10 +44,10 @@ if nargout < 4
 elseif nargout < 7
     optionmu.sensi = 1; % number of requested sensitivities
     sol = Model.model(t,phi,kappa,optionmu);
-    dYdphi = sol.sy;
+    dYdphi = sol.sy(1:(end-(sum(ind_y)<length(t))),:,:);
     if(isfield(sol,'sz'))
         dTdphi = sol.sz;
-        dRdphi = zeros(size(sol.sz,1),sum(ind_t),length(phi));
+        dRdphi = sol.srz(ind_t,:,:);
     else
         dTdphi = zeros(0,sum(ind_t),length(phi));
         dRdphi = zeros(0,sum(ind_t),length(phi));
@@ -57,24 +57,24 @@ else
     optionmu.linsol = 9;
     sol = Model.model(t,phi,kappa,optionmu);
     % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(phi,@(phi) Model.model(t,phi,kappa,optionmu),1e-5,'y','sy')
-    dYdphi = sol.sy;
+    dYdphi = sol.sy(1:(end-(sum(ind_y)<length(t))),:,:);
     if(isfield(sol,'sz'))
         dTdphi = sol.sz(ind_t,:,:);
-        dRdphi = zeros(size(sol.sz,1),sum(ind_t),length(phi));
+        dRdphi = sol.srz(ind_t,:,:);
     else
         dTdphi = zeros(0,sum(ind_t),length(phi));
         dRdphi = zeros(0,sum(ind_t),length(phi));
     end
     try
-        ddYdphidphi = sol.s2y;
+        ddYdphidphi = sol.s2y(1:(end-(sum(ind_y)<length(t))),:,:,:);
         ddTdphidphi = sol.s2z(ind_t,:,:,:);
-        ddRdphidphi = zeros(length(ind_t),size(sol.sz,2),length(phi),length(phi));
+        ddRdphidphi = sol.s2rz(ind_t,:,:,:);
     catch
         % fallback if no second order sensitivities are available
         ddYdphidphi = zeros(length(t),size(sol.sy,2),length(phi),length(phi));
         if(isfield(sol,'sz'))
-            ddTdphidphi = zeros(sum(ind_t),size(sol.sroot,2),length(phi),length(phi));
-            ddRdphidphi = zeros(sum(ind_t),size(sol.srootval,2),length(phi),length(phi));
+            ddTdphidphi = zeros(sum(ind_t),size(sol.sz,2),length(phi),length(phi));
+            ddRdphidphi = zeros(sum(ind_t),size(sol.sz,2),length(phi),length(phi));
         else
             ddTdphidphi = zeros(sum(ind_t),1,length(phi),length(phi));
             ddRdphidphi = zeros(sum(ind_t),1,length(phi),length(phi));
@@ -82,10 +82,10 @@ else
         
     end
 end
-Y = sol.y;
+Y = sol.y(1:(end-(sum(ind_y)<length(t))),:);
 if(isfield(sol,'z'))
     T = sol.z;
-    R = 0;
+    R = sol.rz;
 else
     T = zeros(0,sum(ind_t));
     R = zeros(0,sum(ind_t));
