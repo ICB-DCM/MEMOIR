@@ -45,8 +45,8 @@ elseif nargout < 7
     optionmu.sensi = 1; % number of requested sensitivities
     sol = Model.model(t,phi,kappa,optionmu);
     dYdphi = sol.sy(1:(end-(sum(ind_y)<length(t))),:,:);
-    if(isfield(sol,'sz'))
-        dTdphi = sol.sz;
+    if(isfield(sol,'sz') && sum(ind_t)>0)
+        dTdphi = sol.sz(ind_t,:,:);
         dRdphi = sol.srz(ind_t,:,:);
     else
         dTdphi = zeros(0,sum(ind_t),length(phi));
@@ -58,7 +58,7 @@ else
     sol = Model.model(t,phi,kappa,optionmu);
     % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(phi,@(phi) Model.model(t,phi,kappa,optionmu),1e-5,'y','sy')
     dYdphi = sol.sy(1:(end-(sum(ind_y)<length(t))),:,:);
-    if(isfield(sol,'sz'))
+    if(isfield(sol,'sz') && sum(ind_t)>0)
         dTdphi = sol.sz(ind_t,:,:);
         dRdphi = sol.srz(ind_t,:,:);
     else
@@ -72,7 +72,7 @@ else
     catch
         % fallback if no second order sensitivities are available
         ddYdphidphi = zeros(length(t),size(sol.sy,2),length(phi),length(phi));
-        if(isfield(sol,'sz'))
+        if(isfield(sol,'sz') && sum(ind_t)>0)
             ddTdphidphi = zeros(sum(ind_t),size(sol.sz,2),length(phi),length(phi));
             ddRdphidphi = zeros(sum(ind_t),size(sol.sz,2),length(phi),length(phi));
         else
