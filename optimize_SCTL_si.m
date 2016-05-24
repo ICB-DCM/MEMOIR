@@ -56,7 +56,7 @@ if(fms)
         @(b) objective_SCTL_s1(model,data,beta,b,delta,s,i,options,1),...
         bhat_0,[],[],[],[],-5*ones(length(bhat_0),1),5*ones(length(bhat_0),1),[],options_fmincon);
     rng(0);
-    bhat_0_lhc = 10*lhsdesign(10,length(bhat_0),'smooth','off')' - 5;
+    bhat_0_lhc = [bhat_0,10*lhsdesign(9,length(bhat_0),'smooth','off')' - 5];
     
     for j = 1:10
         try 
