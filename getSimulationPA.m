@@ -7,6 +7,11 @@ function [SP,my,dmydxi]  = getSimulationPA(xi,Model,Data,s )
     op_SP.nderiv = nderiv;
     op_SP.req = [1,1,0,0,0,1,0];
     op_SP.type_D = Model.type_D;
+    if(isfield(Model.exp{s},'SPapprox'))
+        op_SP.approx = Model.exp{s}.SPapprox;
+    else
+        op_SP.approx = 'sp';
+    end
 %     SP = testSigmaPointApp(@(phi) simulateForSP(Model.exp{s}.model,Data{s}.PA.time,phi,Data{s}.condition),xi,Model.exp{s},op_SP);
     SP = getSigmaPointApp(@(phi) simulateForSP(Model.exp{s}.model,Data{s}.PA.time,phi,Data{s}.condition),xi,Model.exp{s},op_SP);
     
