@@ -254,7 +254,7 @@ function [varargout] = objective_SCTL_s1(model,data,beta,b,delta,s,i,options,nde
             
             ddphidbdb = model.ddphidbdb(beta,b);
             
-            ddJ_Dappdbdphi = transpose(squeeze(sum(bsxfun(@times,ddJ_Dappdphidphi,permute(dphidb,[3,1,2])),2)));
+            ddJ_Dappdbdphi = transpose(squeeze(nansum(bsxfun(@times,ddJ_Dappdphidphi,permute(dphidb,[3,1,2])),2)));
             ddJ_Dappdbdb = squeeze(sum(bsxfun(@times,ddJ_Dappdbdphi,permute(dphidb,[3,1,2,4])),2)) ...
                 + chainrule(dJ_Ddphi,ddphidbdb);
             
@@ -273,8 +273,8 @@ function [varargout] = objective_SCTL_s1(model,data,beta,b,delta,s,i,options,nde
             
             ddphidbdb = model.ddphidbdb(beta,b);
             
-            ddJ_Tappdbdphi = transpose(squeeze(sum(bsxfun(@times,ddJ_Tappdphidphi,permute(dphidb,[3,1,2])),2)));
-            ddJ_Tappdbdb = squeeze(sum(bsxfun(@times,ddJ_Tappdbdphi,permute(dphidb,[3,1,2,4])),2)) + chainrule(dJ_Tdphi,ddphidbdb);
+            ddJ_Tappdbdphi = transpose(squeeze(nansum(bsxfun(@times,ddJ_Tappdphidphi,permute(dphidb,[3,1,2])),2)));
+            ddJ_Tappdbdb = squeeze(nansum(bsxfun(@times,ddJ_Tappdbdphi,permute(dphidb,[3,1,2,4])),2)) + chainrule(dJ_Tdphi,ddphidbdb);
             
             % FIM
             FIM.val = squeeze(ddJ_Dappdbdb) + squeeze(ddJ_Tappdbdb) + squeeze(ddJ_bdbdb);
@@ -283,17 +283,17 @@ function [varargout] = objective_SCTL_s1(model,data,beta,b,delta,s,i,options,nde
                 
                 % exact
                 ddJ_Ddphidphi = ddJ_Dappdphidphi ...
-                    + permute(sum(bsxfun(@times,dJ_DdY,permute(ddYdphidphi,[4,1,2,3])),2),[3,4,1,2]);
+                    + permute(nansum(bsxfun(@times,dJ_DdY,permute(ddYdphidphi,[4,1,2,3])),2),[3,4,1,2]);
                 
-                ddJ_Ddbdphi = transpose(squeeze(sum(bsxfun(@times,ddJ_Ddphidphi,permute(dphidb,[3,1,2])),2)));
-                ddJ_Ddbdb = squeeze(sum(bsxfun(@times,ddJ_Ddbdphi,permute(dphidb,[3,1,2,4])),2)) ...
+                ddJ_Ddbdphi = transpose(squeeze(nansum(bsxfun(@times,ddJ_Ddphidphi,permute(dphidb,[3,1,2])),2)));
+                ddJ_Ddbdb = squeeze(nansum(bsxfun(@times,ddJ_Ddbdphi,permute(dphidb,[3,1,2,4])),2)) ...
                     + chainrule(dJ_Ddphi,ddphidbdb);
                 
                 ddJ_Tdphidphi = ddJ_Tappdphidphi ...
-                    + permute(sum(bsxfun(@times,dJ_TdT,permute(ddTdphidphi,[4,1,2,3])),2),[3,4,1,2]);
+                    + permute(nansum(bsxfun(@times,dJ_TdT,permute(ddTdphidphi,[4,1,2,3])),2),[3,4,1,2]);
                 
-                ddJ_Tdbdphi = transpose(squeeze(sum(bsxfun(@times,ddJ_Tdphidphi,permute(dphidb,[3,1,2])),2)));
-                ddJ_Tdbdb = squeeze(sum(bsxfun(@times,ddJ_Tdbdphi,permute(dphidb,[3,1,2,4])),2)) + chainrule(dJ_Tdphi,ddphidbdb);
+                ddJ_Tdbdphi = transpose(squeeze(nansum(bsxfun(@times,ddJ_Tdphidphi,permute(dphidb,[3,1,2])),2)));
+                ddJ_Tdbdb = squeeze(nansum(bsxfun(@times,ddJ_Tdbdphi,permute(dphidb,[3,1,2,4])),2)) + chainrule(dJ_Tdphi,ddphidbdb);
                 
                 J.dbdb = squeeze(ddJ_Ddbdb) + squeeze(ddJ_Tdbdb) + squeeze(ddJ_bdbdb);
                 

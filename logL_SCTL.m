@@ -341,8 +341,8 @@ function [P,logL_sc,dlogL_scdxi,ddlogL_scdxidxi] = logL_SCTL(xi, model, data, s,
         end
         
         Sim_SCTL.Y(ind_y,:,i) = reshape(Y_si,[sum(ind_y),size(Sim_SCTL.Y,2)]);
-        Sim_SCTL.T(ind_t,:,i) = reshape(T_si,[sum(ind_t),size(Sim_SCTL.T,2)]);
-        Sim_SCTL.R(ind_t,:,i) = reshape(R_si,[sum(ind_t),size(Sim_SCTL.R,2)]);
+        Sim_SCTL.T(ind_t,:,i) = reshape(T_si(ind_t),[sum(ind_t),size(Sim_SCTL.T,2)]);
+        Sim_SCTL.R(ind_t,:,i) = reshape(R_si(ind_t),[sum(ind_t),size(Sim_SCTL.R,2)]);
     end
     
     P{s}.SCTL.bhat = bhat;
