@@ -82,6 +82,9 @@ else
         
     end
 end
+if(sol.status <0)
+    error('integration failed');
+end
 Y = sol.y(1:(end-(sum(ind_y)<length(t))),:);
 if(isfield(sol,'z'))
     T = sol.z;

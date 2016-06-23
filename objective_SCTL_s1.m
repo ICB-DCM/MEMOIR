@@ -83,18 +83,31 @@ function [varargout] = objective_SCTL_s1(model,data,beta,b,delta,s,i,options,nde
     end
     
     % simulate trajectory
-    if(nargout == 1)
-        [Y,T,R] = simulate_trajectory(t,phi,model,data.condition,s,data.SCTL.ind_t(:,i),data.SCTL.ind_y(:,i));
-    elseif(or(nargout == 2,nargout == 3))
-        % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(phi,@(phi)simulate_trajectory(t,phi,model,data.condition,s,data.SCTL.ind_t(:,i),data.SCTL.ind_y(:,i)),1e-5,1,4)
-        % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(phi,@(phi)simulate_trajectory(t,phi,model,data.condition,s,data.SCTL.ind_t(:,i),data.SCTL.ind_y(:,i)),1e-5,2,5)
-        % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(phi,@(phi)simulate_trajectory(t,phi,model,data.condition,s,data.SCTL.ind_t(:,i),data.SCTL.ind_y(:,i)),1e-5,3,6)
-        [Y,T,R,dYdphi,dTdphi,dRdphi] = simulate_trajectory(t,phi,model,data.condition,s,data.SCTL.ind_t(:,i),data.SCTL.ind_y(:,i));
-    else
-        % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(phi,@(phi)simulate_trajectory(t,phi,model,data.condition,s,data.SCTL.ind_t(:,i),data.SCTL.ind_y(:,i)),1e-5,4,7)
-        % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(phi,@(phi)simulate_trajectory(t,phi,model,data.condition,s,data.SCTL.ind_t(:,i),data.SCTL.ind_y(:,i)),1e-5,5,8)
-        % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(phi,@(phi)simulate_trajectory(t,phi,model,data.condition,s,data.SCTL.ind_t(:,i),data.SCTL.ind_y(:,i)),1e-5,6,9)
-        [Y,T,R,dYdphi,dTdphi,dRdphi,ddYdphidphi,ddTdphidphi,ddRdphidphi] = simulate_trajectory(t,phi,model,data.condition,s,data.SCTL.ind_t(:,i),data.SCTL.ind_y(:,i));
+    try
+        if(nargout == 1)
+            [Y,T,R] = simulate_trajectory(t,phi,model,data.condition,s,data.SCTL.ind_t(:,i),data.SCTL.ind_y(:,i));
+        elseif(or(nargout == 2,nargout == 3))
+            % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(phi,@(phi)simulate_trajectory(t,phi,model,data.condition,s,data.SCTL.ind_t(:,i),data.SCTL.ind_y(:,i)),1e-5,1,4)
+            % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(phi,@(phi)simulate_trajectory(t,phi,model,data.condition,s,data.SCTL.ind_t(:,i),data.SCTL.ind_y(:,i)),1e-5,2,5)
+            % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(phi,@(phi)simulate_trajectory(t,phi,model,data.condition,s,data.SCTL.ind_t(:,i),data.SCTL.ind_y(:,i)),1e-5,3,6)
+            [Y,T,R,dYdphi,dTdphi,dRdphi] = simulate_trajectory(t,phi,model,data.condition,s,data.SCTL.ind_t(:,i),data.SCTL.ind_y(:,i));
+        else
+            % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(phi,@(phi)simulate_trajectory(t,phi,model,data.condition,s,data.SCTL.ind_t(:,i),data.SCTL.ind_y(:,i)),1e-5,4,7)
+            % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(phi,@(phi)simulate_trajectory(t,phi,model,data.condition,s,data.SCTL.ind_t(:,i),data.SCTL.ind_y(:,i)),1e-5,5,8)
+            % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(phi,@(phi)simulate_trajectory(t,phi,model,data.condition,s,data.SCTL.ind_t(:,i),data.SCTL.ind_y(:,i)),1e-5,6,9)
+            [Y,T,R,dYdphi,dTdphi,dRdphi,ddYdphidphi,ddTdphidphi,ddRdphidphi] = simulate_trajectory(t,phi,model,data.condition,s,data.SCTL.ind_t(:,i),data.SCTL.ind_y(:,i));
+        end
+    catch
+        % if simulation fails, return Inf
+        varargout{1} = Inf;
+        if nargout >= 2
+            varargout{2} = zeros(length(phi),1);
+            varargout{3} = zeros(length(phi),length(phi));
+            if(nargout >3)
+                error('could not compute second order sensitivities');
+            end
+            return
+        end
     end
     
     % noise model

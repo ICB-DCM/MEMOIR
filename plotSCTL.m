@@ -102,12 +102,12 @@ if ~isempty(Sim)
         end
         for i = 1:size(Data.SCTL.Y,3)
             ind = ~isnan(Data.SCTL.Y(:,j,i));
-            plot(Data.SCTL.time(ind,1),Data.SCTL.Y(ind,j,i)-Sim.Y(ind,j,i),ps,...
+            plot(Data.SCTL.time(ind,1),(Data.SCTL.Y(ind,j,i)-Sim.Y(ind,j,i))./Data.SCTL.Sigma_Y(ind,j,i),ps,...
                 'linewidth',options.error.lw,...
                 'linestyle',options.error.ls,...
                 'color',options.error.col); hold on;
         end
-        xlabel('time'); ylabel(['error ' Data.measurands{j}]);
+        xlabel('time'); ylabel(['residual ' Data.measurands{j}]);
         xlim(Data.SCTL.time([1,end]));
     end
     % Loop: events

@@ -242,6 +242,7 @@ function varargout = logLMEMOIR(varargin)
                     [P,logL_sc] = logL_SCTL(xi, Model.exp{s}, Data{s}, s, options, P);
                 case 1
                     [P,logL_sc,dlogL_scdxi] = logL_SCTL(xi, Model.exp{s}, Data{s}, s, options, P);
+                    % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(xi,@(xi) logL_SCTL(xi, Model.exp{s}, Data{s}, s, options, P),1e-3,2,3)
                 case 2
                     [P,logL_sc,dlogL_scdxi,ddlogL_scdxi2] = logL_SCTL(xi, Model.exp{s}, Data{s}, s, options ,P);
             end
@@ -252,11 +253,11 @@ function varargout = logLMEMOIR(varargin)
                 scaling = 1;
             end
             
-            logL = logL + scaling*sum(logL_sc,2);
+            logL = logL + scaling*sum(logL_sc);
             if options.nderiv >= 1
-                dlogLdxi = dlogLdxi + scaling*sum(dlogL_scdxi,2);
+                dlogLdxi = dlogLdxi + transpose(scaling*sum(dlogL_scdxi));
                 if options.nderiv >= 2
-                    ddlogLdxidxi = ddlogLdxidxi + scaling*sum(ddlogL_scdxi2,3);
+                    ddlogLdxidxi = ddlogLdxidxi + permute(scaling*sum(ddlogL_scdxi2),[2,3,1]);
                 end
             end
         end
