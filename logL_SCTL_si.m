@@ -287,7 +287,9 @@ if options.nderiv >= 1
 end
 
 Sim.SCTL_Y = reshape(Y_si,[sum(ind_y),size(data.SCTL.Y,2)]);
+Sim.SCTL_Sigma_Y = reshape(Sigma_noise_si(ind_y,:),[sum(ind_y),size(data.SCTL.Y,2)]);
 Sim.SCTL_T = reshape(T_si(ind_t),[sum(ind_t),size(data.SCTL.T,2)]);
+Sim.SCTL_Sigma_T = reshape(Sigma_time_si(ind_t),[sum(ind_t),size(data.SCTL.T,2)]);
 Sim.SCTL_R = reshape(R_si(ind_t),[sum(ind_t),size(data.SCTL.T,2)]);
 
 

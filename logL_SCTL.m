@@ -56,11 +56,13 @@ tmp = arrayfun(@(x) any(~isnan(data.SCTL.T(:,:,x)),2),1:size(data.SCTL.T,3),'Uni
 data.SCTL.ind_t = [tmp{:}];
 
 Sim_SCTL_Y = zeros([length(data.SCTL.ind_y),size(data.SCTL.Y,2),size(data.SCTL.Y,3)]);
+Sim_SCTL_SIGMAY = zeros([length(data.SCTL.ind_y),size(data.SCTL.Y,2),size(data.SCTL.Y,3)]);
 Sim_SCTL_T = zeros([length(data.SCTL.ind_t),size(data.SCTL.T,2),size(data.SCTL.T,3)]);
+Sim_SCTL_SIGMAT = zeros([length(data.SCTL.ind_t),size(data.SCTL.T,2),size(data.SCTL.T,3)]);
 Sim_SCTL_R = zeros([length(data.SCTL.ind_t),size(data.SCTL.T,2),size(data.SCTL.T,3)]);
 % check wether there is a parallel pool available
 try
-    p = gcp('nocreate')
+    p = gcp('nocreate');
 catch
     p = [];
 end
@@ -95,9 +97,16 @@ if isempty(p)
                 end
             end
         end
-        Sim_SCTL_Y(data.SCTL.ind_y(:,i),:,i) = Sim.SCTL_Y;
-        Sim_SCTL_T(data.SCTL.ind_t(:,i),:,i) = Sim.SCTL_T;
-        Sim_SCTL_R(data.SCTL.ind_t(:,i),:,i) = Sim.SCTL_R;
+        YY(data.SCTL.ind_y(:,i),:) = Sim.SCTL_Y;
+        SY(data.SCTL.ind_y(:,i),:) = Sim.SCTL_Sigma_Y;
+        TT(data.SCTL.ind_T(:,i),:) = Sim.SCTL_T;
+        ST(data.SCTL.ind_T(:,i),:) = Sim.SCTL_Sigma_T;
+        RR(data.SCTL.ind_T(:,i),:) = Sim.SCTL_R;
+        Sim_SCTL_Y(:,:,i) = YY;
+        Sim_SCTL_SIGMAY(:,:,i) = SY;
+        Sim_SCTL_T(:,:,i) = TT;
+        Sim_SCTL_SIGMAT(:,:,i) = ST;
+        Sim_SCTL_R(:,:,i) = RR;
         
     end
 else
@@ -131,10 +140,14 @@ else
             end
         end
         YY(data.SCTL.ind_y(:,i),:) = Sim.SCTL_Y;
+        SY(data.SCTL.ind_y(:,i),:) = Sim.SCTL_Sigma_Y;
         TT(data.SCTL.ind_T(:,i),:) = Sim.SCTL_T;
+        ST(data.SCTL.ind_T(:,i),:) = Sim.SCTL_Sigma_T;
         RR(data.SCTL.ind_T(:,i),:) = Sim.SCTL_R;
         Sim_SCTL_Y(:,:,i) = YY;
+        Sim_SCTL_SIGMAY(:,:,i) = SY;
         Sim_SCTL_T(:,:,i) = TT;
+        Sim_SCTL_SIGMAT(:,:,i) = ST;
         Sim_SCTL_R(:,:,i) = RR;
     end
 end
@@ -144,8 +157,11 @@ if(options.nderiv>0)
     P{s}.SCTL.dbhatdxi = dbdxi;
 end
 Sim_SCTL.Y = Sim_SCTL_Y;
+Sim_SCTL.Sigma_Y = Sim_SCTL_SIGMAY;
 Sim_SCTL.T = Sim_SCTL_T;
+Sim_SCTL.Sigma_T = Sim_SCTL_SIGMAT;
 Sim_SCTL.R = Sim_SCTL_R;
+
 
 %% Visulization
 if options.plot
