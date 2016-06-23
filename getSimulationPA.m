@@ -9,6 +9,9 @@ function [SP,my,dmydxi]  = getSimulationPA(xi,Model,Data,s )
     op_SP.type_D = Model.type_D;
     if(isfield(Model.exp{s},'SPapprox'))
         op_SP.approx = Model.exp{s}.SPapprox;
+        if(isfield(Model.exp{s},'samples'))
+            op_SP.samples = Model.exp{s}.samples;
+        end
     else
         op_SP.approx = 'sp';
     end
