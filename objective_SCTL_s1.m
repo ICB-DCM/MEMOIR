@@ -101,8 +101,8 @@ function [varargout] = objective_SCTL_s1(model,data,beta,b,delta,s,i,options,nde
         % if simulation fails, return Inf
         varargout{1} = Inf;
         if nargout >= 2
-            varargout{2} = zeros(length(phi),1);
-            varargout{3} = zeros(length(phi),length(phi));
+            varargout{2} = zeros(length(b),1);
+            varargout{3} = zeros(length(b),length(b));
             if(nargout >3)
                 error('could not compute second order sensitivities');
             end

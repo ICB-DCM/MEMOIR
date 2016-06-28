@@ -112,7 +112,9 @@ if isempty(p)
 else
     parfor i = 1:size(data.SCTL.Y,3)
         YY = zeros(size(data.SCTL.Y(:,:,i)))
+        SY = zeros(size(data.SCTL.Y(:,:,i)))
         TT = zeros(size(data.SCTL.T(:,:,i)))
+        ST = zeros(size(data.SCTL.T(:,:,i)))
         RR = zeros(size(data.SCTL.T(:,:,i)))
         [ logL_D,logL_T,logL_b,logL_I,bhat, Sim ] = logL_SCTL_si(xi, model, data, s, options, P, i)
         logLi_D(1,i) = logL_D.val;

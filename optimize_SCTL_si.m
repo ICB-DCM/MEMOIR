@@ -65,6 +65,7 @@ if(fms)
             bhat_0_lhc(:,j),[],[],[],[],-5*ones(length(bhat_0),1),5*ones(length(bhat_0),1),[],options_fmincon);
         if(OBJp<OBJ)
             bhat = bhatp;
+            OBJ = OBJp;
         end
         catch
         end
