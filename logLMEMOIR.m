@@ -352,6 +352,7 @@ function varargout = logLMEMOIR(varargin)
                     [SP,logL_m] = logL_PA(xi, Model, Data, s, options);
                 case 1
                     [SP,logL_m,dlogL_mdxi] = logL_PA(xi, Model, Data, s, options);
+                    % [g,g_fd_f,g_fd_b,g_fd_c]=testGradient(xi,@(xi) logL_PA(xi, Model, Data, s, options),1e-3,2,3)
                 case 2
                     [SP,logL_m,dlogL_mdxi,ddlogL_mdxi2] = logL_PA(xi, Model, Data, s, options);
             end

@@ -99,9 +99,9 @@ if isempty(p)
         end
         YY(data.SCTL.ind_y(:,i),:) = Sim.SCTL_Y;
         SY(data.SCTL.ind_y(:,i),:) = Sim.SCTL_Sigma_Y;
-        TT(data.SCTL.ind_T(:,i),:) = Sim.SCTL_T;
-        ST(data.SCTL.ind_T(:,i),:) = Sim.SCTL_Sigma_T;
-        RR(data.SCTL.ind_T(:,i),:) = Sim.SCTL_R;
+        TT(data.SCTL.ind_t(:,i),:) = Sim.SCTL_T;
+        ST(data.SCTL.ind_t(:,i),:) = Sim.SCTL_Sigma_T;
+        RR(data.SCTL.ind_t(:,i),:) = Sim.SCTL_R;
         Sim_SCTL_Y(:,:,i) = YY;
         Sim_SCTL_SIGMAY(:,:,i) = SY;
         Sim_SCTL_T(:,:,i) = TT;
