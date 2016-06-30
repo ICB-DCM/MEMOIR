@@ -37,6 +37,7 @@ function [ Y,T,R, dYdphi,dTdphi,dRdphi, ddYdphidphi,ddTdphidphi,ddRdphidphi ] = 
 optionmu.atol = 1e-12;
 optionmu.rtol = 1e-12;
 optionmu.nmaxevent = length(ind_t)+10;
+optionmu.maxsteps = 1e5;
 
 if nargout < 4
     optionmu.sensi = 0; % number of requested sensitivities
