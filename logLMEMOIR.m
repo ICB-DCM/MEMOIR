@@ -194,6 +194,10 @@ function varargout = logLMEMOIR(varargin)
     else
         extract_flag = false;
     end
+    if nargin >= 6
+        P_old = varargin{6};
+        logL_old = -Inf;
+    end
     options.nderiv = max(nargout-1,0);
     
     

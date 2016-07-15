@@ -54,11 +54,11 @@ options_fmincon = optimset('algorithm','trust-region-reflective',...
 if(fms)
     [bhat,OBJ,~,~,~,~,~] = fmincon(...
         @(b) objective_SCTL_s1(model,data,beta,b,delta,s,i,options,1),...
-        bhat_0,[],[],[],[],-5*ones(length(bhat_0),1),5*ones(length(bhat_0),1),[],options_fmincon);
+        bhat_0,[],[],[],[],-10*ones(length(bhat_0),1),10*ones(length(bhat_0),1),[],options_fmincon);
     rng(0);
     bhat_0_lhc = [bhat_0,10*lhsdesign(9,length(bhat_0),'smooth','off')' - 5];
     
-    for j = 1:10
+    for j = 1:100
         try 
         [bhatp,OBJp,~,~,~,~,~] = fmincon(...
             @(b) objective_SCTL_s1(model,data,beta,b,delta,s,i,options,1),...
@@ -71,9 +71,9 @@ if(fms)
         end
     end
 else
-    [bhat,~,~,~,~,~,~] = fmincon(...
+    [bhat,OBJ,~,~,~,~,~] = fmincon(...
     @(b) objective_SCTL_s1(model,data,beta,b,delta,s,i,options,1),...
-    bhat_0,[],[],[],[],-5*ones(length(bhat_0),1),5*ones(length(bhat_0),1),[],options_fmincon);
+    bhat_0,[],[],[],[],-10*ones(length(bhat_0),1),10*ones(length(bhat_0),1),[],options_fmincon);
 end
 
 % testing:
@@ -81,14 +81,15 @@ end
 % [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(beta,@(beta) objSCTL_J(model,data,beta,bhat,delta,s,i,options,1),1e-6,'val','dbeta')
 % [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(delta,@(delta) objSCTL_J(model,data,beta,bhat,delta,s,i,options,1),1e-6,'val','ddelta')
 %
+% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(bhat,@(bhat) objSCTL_J(model,data,beta,bhat,delta,s,i,options,2),1e-3,'db','dbdb')
 % [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(beta,@(beta) objSCTL_J(model,data,beta,bhat,delta,s,i,options,2),1e-3,'db','dbdbeta')
 % [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(delta,@(delta) objSCTL_J(model,data,beta,bhat,delta,s,i,options,2),1e-3,'db','dbddelta')
 % [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(beta,@(beta) objSCTL_J(model,data,beta,bhat,delta,s,i,options,2),1e-3,'dbeta','dbetadbeta')
 % [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(delta,@(delta) objSCTL_J(model,data,beta,bhat,delta,s,i,options,2),1e-3,'ddelta','ddeltaddelta')
 % [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(delta,@(delta) objSCTL_J(model,data,beta,bhat,delta,s,i,options,2),1e-3,'dbeta','dbetaddelta')
 %
-% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(bhat,@(bhat) objSCTL_FIM(model,data,beta,bhat,delta,s,i,options,3),1e-6,'val','db')
-% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(beta,@(beta) objSCTL_FIM(model,data,beta,bhat,delta,s,i,options,3),1e-6,'val','dbeta')
+% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(bhat,@(bhat) objSCTL_FIM(model,data,beta,bhat,delta,s,i,options,3),1e-3,'val','db')
+% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(beta,@(beta) objSCTL_FIM(model,data,beta,bhat,delta,s,i,options,3),1e-3,'val','dbeta')
 % [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(delta,@(delta) objSCTL_FIM(model,data,beta,bhat,delta,s,i,options,3),1e-6,'val','ddelta')
 
 

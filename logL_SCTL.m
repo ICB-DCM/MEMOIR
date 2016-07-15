@@ -3,7 +3,6 @@ function [P,logL_sc,dlogL_scdxi,ddlogL_scdxidxi] = logL_SCTL(xi, model, data, s,
 persistent fp
 persistent fl
 
-options.nderiv = nargout-2;
 
 %% Construct fixed effects and covariance matrix
 beta = model.beta(xi);
