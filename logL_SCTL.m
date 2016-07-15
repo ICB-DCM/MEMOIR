@@ -116,11 +116,11 @@ else
         ST = zeros(size(data.SCTL.T(:,:,i)))
         RR = zeros(size(data.SCTL.T(:,:,i)))
         [ logL_D,logL_T,logL_b,logL_I,bhat, Sim ] = logL_SCTL_si(xi, model, data, s, options, P, i)
-        logLi_D(1,i) = logL_D.val;
-        logLi_T(1,i) = logL_T.val;
-        logLi_b(1,i) = logL_b.val;
+        logLi_D(i,1) = logL_D.val;
+        logLi_T(i,1) = logL_T.val;
+        logLi_b(i,1) = logL_b.val;
         if(options.integration)
-            logLi_I(1,i) = logL_I.val;
+            logLi_I(i,1) = logL_I.val;
         end
         b(:,i) = bhat.val;
         if(options.nderiv>0)
@@ -142,9 +142,9 @@ else
         end
         YY(data.SCTL.ind_y(:,i),:) = Sim.SCTL_Y;
         SY(data.SCTL.ind_y(:,i),:) = Sim.SCTL_Sigma_Y;
-        TT(data.SCTL.ind_T(:,i),:) = Sim.SCTL_T;
-        ST(data.SCTL.ind_T(:,i),:) = Sim.SCTL_Sigma_T;
-        RR(data.SCTL.ind_T(:,i),:) = Sim.SCTL_R;
+        TT(data.SCTL.ind_t(:,i),:) = Sim.SCTL_T;
+        ST(data.SCTL.ind_t(:,i),:) = Sim.SCTL_Sigma_T;
+        RR(data.SCTL.ind_t(:,i),:) = Sim.SCTL_R;
         Sim_SCTL_Y(:,:,i) = YY;
         Sim_SCTL_SIGMAY(:,:,i) = SY;
         Sim_SCTL_T(:,:,i) = TT;

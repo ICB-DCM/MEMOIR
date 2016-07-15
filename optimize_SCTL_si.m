@@ -58,7 +58,8 @@ if(fms)
     rng(0);
     bhat_0_lhc = [bhat_0,10*lhsdesign(9,length(bhat_0),'smooth','off')' - 5];
     
-    for j = 1:100
+
+    for j = 1:50
         try 
         [bhatp,OBJp,~,~,~,~,~] = fmincon(...
             @(b) objective_SCTL_s1(model,data,beta,b,delta,s,i,options,1),...
