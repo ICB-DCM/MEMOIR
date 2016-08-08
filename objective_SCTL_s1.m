@@ -97,7 +97,7 @@ function [varargout] = objective_SCTL_s1(model,data,beta,b,delta,s,i,options,nde
             % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(phi,@(phi)simulate_trajectory(t,phi,model,data.condition,s,data.SCTL.ind_t(:,i),data.SCTL.ind_y(:,i)),1e-5,6,9)
             [Y,T,R,dYdphi,dTdphi,dRdphi,ddYdphidphi,ddTdphidphi,ddRdphidphi] = simulate_trajectory(t,phi,model,data.condition,s,data.SCTL.ind_t(:,i),data.SCTL.ind_y(:,i));
         end
-    catch
+    catch err
         % if simulation fails, return Inf
         varargout{1} = Inf;
         if nargout >= 2

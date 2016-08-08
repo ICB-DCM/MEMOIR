@@ -56,14 +56,15 @@ if(fms)
         @(b) objective_SCTL_s1(model,data,beta,b,delta,s,i,options,1),...
         bhat_0,[],[],[],[],-10*ones(length(bhat_0),1),10*ones(length(bhat_0),1),[],options_fmincon);
     rng(0);
-    bhat_0_lhc = [bhat_0,10*lhsdesign(9,length(bhat_0),'smooth','off')' - 5];
+    N_MS = 50;
+    bhat_0_lhc = [bhat_0,2*lhsdesign(N_MS,length(bhat_0),'smooth','off')' - 1];
     
 
-    for j = 1:50
+    for j = 1:N_MS
         try 
         [bhatp,OBJp,~,~,~,~,~] = fmincon(...
             @(b) objective_SCTL_s1(model,data,beta,b,delta,s,i,options,1),...
-            bhat_0_lhc(:,j),[],[],[],[],-5*ones(length(bhat_0),1),5*ones(length(bhat_0),1),[],options_fmincon);
+            bhat_0_lhc(:,j),[],[],[],[],-10*ones(length(bhat_0),1),10*ones(length(bhat_0),1),[],options_fmincon);
         if(OBJp<OBJ)
             bhat = bhatp;
             OBJ = OBJp;
