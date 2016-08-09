@@ -57,7 +57,7 @@ if(fms)
         bhat_0,[],[],[],[],-10*ones(length(bhat_0),1),10*ones(length(bhat_0),1),[],options_fmincon);
     rng(0);
     N_MS = 50;
-    bhat_0_lhc = [bhat_0,2*lhsdesign(N_MS,length(bhat_0),'smooth','off')' - 1];
+    bhat_0_lhc = [bhat_0,6*lhsdesign(N_MS,length(bhat_0),'smooth','off')' - 3];
     
 
     for j = 1:N_MS
