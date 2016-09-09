@@ -72,12 +72,14 @@ if isempty(p)
         logLi_D(i,1) = logL.D;
         logLi_T(i,1) = logL.T;
         logLi_b(i,1) = logL.b;
+        logL_sc(i,1) = logL.val;
         if(options.integration)
             logLi_I(i,1) = logL.I;
         end
         b(:,i) = bhat.val;
         if(options.nderiv>0)
             dbdxi(i,:,:) = bhat.dxi;
+            dlogL_scdxi(i,:) = logL.dxi;
         end
         YY(data.SCTL.ind_y(:,i),:) = Sim.SCTL_Y;
         SY(data.SCTL.ind_y(:,i),:) = Sim.SCTL_Sigma_Y;
