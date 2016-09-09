@@ -184,6 +184,7 @@ function varargout = logLMEMOIR(varargin)
     options.ms_iter = 10;
     options.events = 1;
     options.rescaleSCTL = 0;
+    options.optimal_sigma = 1;
     if nargin >= 4
         if(isstruct(varargin{4}))
             options = setdefault(varargin{4},options);

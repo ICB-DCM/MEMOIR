@@ -32,17 +32,17 @@
 %
 % 2015/04/14 Fabian Froehlich
 
-function [ Y,T,R, dYdphi,dTdphi,dRdphi, ddYdphidphi,ddTdphidphi,ddRdphidphi ] = simulate_trajectory(t,phi,Model,kappa,s,ind_t,ind_y)
+function [ YY,TT,RR ] = simulate_trajectory(t,phi,Model,kappa,s,ind_t,ind_y,nderiv)
 
 optionmu.atol = 1e-8;
 optionmu.rtol = 1e-12;
 optionmu.nmaxevent = length(ind_t)+10;
 optionmu.maxsteps = 1e5;
 
-if nargout < 4
+if nderiv == 0
     optionmu.sensi = 0; % number of requested sensitivities
     sol = Model.model(t,phi,kappa,optionmu);
-elseif nargout < 7
+elseif nderiv == 1
     optionmu.sensi = 1; % number of requested sensitivities
     sol = Model.model(t,phi,kappa,optionmu);
     dYdphi = sol.sy(1:(end-(sum(ind_y)<length(t))),:,:);
@@ -88,25 +88,25 @@ if(sol.status <0)
 end
 Y = sol.y(1:(end-(sum(ind_y)<length(t))),:);
 if(isfield(sol,'z'))
-    T = sol.z;
-    R = sol.rz;
+    TT.val = sol.z;
+    RR.val = sol.rz;
 else
-    T = zeros(0,sum(ind_t));
-    R = zeros(0,sum(ind_t));
+    TT.val = zeros(0,sum(ind_t));
+    RR.val = zeros(0,sum(ind_t));
 end
-Y = Y(:);
+YY.val = Y(:);
 
 % Apply indexing
 
             
-if nargout >=4
-    dYdphi = reshape(dYdphi,[size(dYdphi,1)*size(dYdphi,2),size(dYdphi,3)]);
-    dTdphi = reshape(dTdphi,[size(dTdphi,1)*size(dTdphi,2),size(dTdphi,3)]);
-    dRdphi = reshape(dRdphi,[size(dRdphi,1)*size(dRdphi,2),size(dRdphi,3)]);
-    if nargout >=7
-        ddYdphidphi = reshape(ddYdphidphi,[size(ddYdphidphi,1)*size(ddYdphidphi,2),size(ddYdphidphi,3),size(ddYdphidphi,4)]);
-        ddTdphidphi = reshape(ddTdphidphi,[size(ddTdphidphi,1)*size(ddTdphidphi,2),size(ddTdphidphi,3),size(ddTdphidphi,4)]);
-        ddRdphidphi = reshape(ddRdphidphi,[size(ddRdphidphi,1)*size(ddRdphidphi,2),size(ddRdphidphi,3),size(ddRdphidphi,4)]);
+if nderiv >= 1
+    YY.dphi = reshape(dYdphi,[size(dYdphi,1)*size(dYdphi,2),size(dYdphi,3)]);
+    TT.dphi = reshape(dTdphi,[size(dTdphi,1)*size(dTdphi,2),size(dTdphi,3)]);
+    RR.dphi = reshape(dRdphi,[size(dRdphi,1)*size(dRdphi,2),size(dRdphi,3)]);
+    if nderiv >= 2
+        YY.dphidphi = reshape(ddYdphidphi,[size(ddYdphidphi,1)*size(ddYdphidphi,2),size(ddYdphidphi,3),size(ddYdphidphi,4)]);
+        TT.dphidphi = reshape(ddTdphidphi,[size(ddTdphidphi,1)*size(ddTdphidphi,2),size(ddTdphidphi,3),size(ddTdphidphi,4)]);
+        RR.dphidphi = reshape(ddRdphidphi,[size(ddRdphidphi,1)*size(ddRdphidphi,2),size(ddRdphidphi,3),size(ddRdphidphi,4)]);
     end
 end
 

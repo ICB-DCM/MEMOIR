@@ -1,4 +1,4 @@
-function [P,logL_sc,dlogL_scdxi,ddlogL_scdxidxi] = logL_SCTL(xi, model, data, s, options, P)
+function [P,logL_sc,dlogL_scdxi] = logL_SCTL(xi, model, data, s, options, P)
 
 persistent fp
 persistent fl
@@ -35,18 +35,10 @@ logLi_D = zeros(size(data.SCTL.Y,3),1);
 logLi_T = zeros(size(data.SCTL.Y,3),1);
 logLi_b = zeros(size(data.SCTL.Y,3),1);
 logLi_I = zeros(size(data.SCTL.Y,3),1);
+logL_sc = zeros(size(data.SCTL.Y,3),1);
 
 if options.nderiv >= 1
-    dlogLi_Ddxi = zeros(size(data.SCTL.Y,3),length(xi));
-    dlogLi_Tdxi = zeros(size(data.SCTL.Y,3),length(xi));
-    dlogLi_bdxi = zeros(size(data.SCTL.Y,3),length(xi));
-    dlogLi_Idxi = zeros(size(data.SCTL.Y,3),length(xi));
-    if options.nderiv > 2
-        ddlogLi_Ddxidxi = zeros(size(data.SCTL.Y,3),length(xi),length(xi));
-        ddlogLi_Tdxidxi = zeros(size(data.SCTL.Y,3),length(xi),length(xi));
-        ddlogLi_bdxidxi = zeros(size(data.SCTL.Y,3),length(xi),length(xi));
-        ddlogLi_Idxidxi = zeros(size(data.SCTL.Y,3),length(xi),length(xi));
-    end
+    dlogL_scdxi = zeros(size(data.SCTL.Y,3),length(xi));
 end
 
 tmp = arrayfun(@(x) any(~isnan(data.SCTL.Y(:,:,x)),2),1:size(data.SCTL.Y,3),'UniformOutput',false);
@@ -67,34 +59,25 @@ catch
 end
 if isempty(p)
     for i = 1:size(data.SCTL.Y,3)
-        [ logL_D,logL_T,logL_b,logL_I,bhat, Sim ] = logL_SCTL_si(xi, model, data, s, options, P, i);
+        YY = zeros(size(data.SCTL.Y(:,:,i)));
+        SY = zeros(size(data.SCTL.Y(:,:,i)));
+        TT = zeros(size(data.SCTL.T(:,:,i)));
+        ST = zeros(size(data.SCTL.T(:,:,i)));
+        RR = zeros(size(data.SCTL.T(:,:,i)));
+        [ logL, bhat, Sim ] = logL_SCTL_si(xi, model, data, s, options, P, i);
         % [g,g_fd_f,g_fd_b,g_fd_c]=testGradient(xi,@(xi) logL_D_SCTL_si(xi, model, data, s, options, P, i),1e-3,'val','dxi')
         % [g,g_fd_f,g_fd_b,g_fd_c]=testGradient(xi,@(xi) logL_T_SCTL_si(xi, model, data, s, options, P, i),1e-3,'val','dxi')
         % [g,g_fd_f,g_fd_b,g_fd_c]=testGradient(xi,@(xi) logL_b_SCTL_si(xi, model, data, s, options, P, i),1e-3,'val','dxi')
         % [g,g_fd_f,g_fd_b,g_fd_c]=testGradient(xi,@(xi) logL_I_SCTL_si(xi, model, data, s, options, P, i),1e-3,'val','dxi')
-        logLi_D(i,1) = logL_D.val;
-        logLi_T(i,1) = logL_T.val;
-        logLi_b(i,1) = logL_b.val;
+        logLi_D(i,1) = logL.D;
+        logLi_T(i,1) = logL.T;
+        logLi_b(i,1) = logL.b;
         if(options.integration)
-            logLi_I(i,1) = logL_I.val;
+            logLi_I(i,1) = logL.I;
         end
         b(:,i) = bhat.val;
         if(options.nderiv>0)
-            dlogLi_Ddxi(i,:) = logL_D.dxi;
-            dlogLi_Tdxi(i,:) = logL_T.dxi;
-            dlogLi_bdxi(i,:) = logL_b.dxi;
-            if(options.integration)
-                dlogLi_Idxi(i,:) = logL_I.dxi;
-            end
             dbdxi(i,:,:) = bhat.dxi;
-            if(options.nderiv>1)
-                ddlogLi_Ddxidxi(i,:,:) = logL_D.dxidxi;
-                ddlogLi_Tdxidxi(i,:,:) = logL_T.dxidxi;
-                ddlogLi_bdxidxi(i,:,:) = logL_b.dxidxi;
-                if(options.integration)
-                    ddlogLi_Idxidxi(i,:,:) = logL_I.dxidxi;
-                end
-            end
         end
         YY(data.SCTL.ind_y(:,i),:) = Sim.SCTL_Y;
         SY(data.SCTL.ind_y(:,i),:) = Sim.SCTL_Sigma_Y;
@@ -106,39 +89,26 @@ if isempty(p)
         Sim_SCTL_T(:,:,i) = TT;
         Sim_SCTL_SIGMAT(:,:,i) = ST;
         Sim_SCTL_R(:,:,i) = RR;
-        
     end
 else
     parfor i = 1:size(data.SCTL.Y,3)
-        YY = zeros(size(data.SCTL.Y(:,:,i)))
-        SY = zeros(size(data.SCTL.Y(:,:,i)))
-        TT = zeros(size(data.SCTL.T(:,:,i)))
-        ST = zeros(size(data.SCTL.T(:,:,i)))
-        RR = zeros(size(data.SCTL.T(:,:,i)))
-        [ logL_D,logL_T,logL_b,logL_I,bhat, Sim ] = logL_SCTL_si(xi, model, data, s, options, P, i)
-        logLi_D(i,1) = logL_D.val;
-        logLi_T(i,1) = logL_T.val;
-        logLi_b(i,1) = logL_b.val;
+        YY = zeros(size(data.SCTL.Y(:,:,i)));
+        SY = zeros(size(data.SCTL.Y(:,:,i)));
+        TT = zeros(size(data.SCTL.T(:,:,i)));
+        ST = zeros(size(data.SCTL.T(:,:,i)));
+        RR = zeros(size(data.SCTL.T(:,:,i)));
+        [ logL,bhat, Sim ] = logL_SCTL_si(xi, model, data, s, options, P, i);
+        logLi_D(i,1) = logL.D;
+        logLi_T(i,1) = logL.T;
+        logLi_b(i,1) = logL.b;
+        logL_sc(i,1) = logL.val;
         if(options.integration)
-            logLi_I(i,1) = logL_I.val;
+            logLi_I(i,1) = logL.I;
         end
         b(:,i) = bhat.val;
         if(options.nderiv>0)
-            dlogLi_Ddxi(i,:) = logL_D.dxi;
-            dlogLi_Tdxi(i,:) = logL_T.dxi;
-            dlogLi_bdxi(i,:) = logL_b.dxi;
-            if(options.integration)
-                dlogLi_Idxi(i,:) = logL_I.dxi;
-            end
             dbdxi(i,:,:) = bhat.dxi;
-            if(options.nderiv>1)
-                ddlogLi_Ddxidxi(i,:,:) = logL_D.dxidxi;
-                ddlogLi_Tdxidxi(i,:,:) = logL_T.dxidxi;
-                ddlogLi_bdxidxi(i,:,:) = logL_b.dxidxi;
-                if(options.integration)
-                    ddlogLi_Idxidxi(i,:,:) = logL_I.dxidxi;
-                end
-            end
+            dlogL_scdxi(i,:) = logL.dxi;
         end
         YY(data.SCTL.ind_y(:,i),:) = Sim.SCTL_Y;
         SY(data.SCTL.ind_y(:,i),:) = Sim.SCTL_Sigma_Y;
@@ -287,60 +257,5 @@ if options.plot
     % Visualisation of data and fit
     model.plot(data,Sim_SCTL,s);
 end
-
-%% Summation
-logL_sc = logLi_D + logLi_b;
-if(options.events)
-    logL_sc = logL_sc + logLi_T;
-end
-if(options.integration)
-    logL_sc = logL_sc + logLi_I;
-end
-if(options.nderiv >= 1)
-    dlogL_scdxi = dlogLi_Ddxi + dlogLi_bdxi;
-    if(options.events)
-        dlogL_scdxi = dlogL_scdxi + dlogLi_Tdxi;
-    end
-    if(options.integration)
-        dlogL_scdxi = dlogL_scdxi + dlogLi_Idxi;
-    end
-    
-    if(options.nderiv >= 2)
-        ddlogL_scdxidxi = ddlogLi_Ddxidxi + ddlogLi_bdxidxi;
-        if(options.events)
-            ddlogL_scdxidxi = ddlogL_scdxidxi + ddlogLi_Tdxidxi;
-        end
-        if(options.integration)
-            ddlogL_scdxidxi = ddlogL_scdxidxi + ddlogLi_Idxidxi;
-        end
-    end
-end
-
-
-end
-
-%%% FOR DEBUGGING
-
-function logL_D = logL_D_SCTL_si(xi, model, data, s, options, P, i)
-
-[ logL_D,logL_T,logL_b,logL_I,bhat, Sim ] = logL_SCTL_si(xi, model, data, s, options, P, i);
-
-end
-
-function logL_T = logL_T_SCTL_si(xi, model, data, s, options, P, i)
-
-[ logL_D,logL_T,logL_b,logL_I,bhat, Sim ] = logL_SCTL_si(xi, model, data, s, options, P, i);
-
-end
-
-function logL_b = logL_b_SCTL_si(xi, model, data, s, options, P, i)
-
-[ logL_D,logL_T,logL_b,logL_I,bhat, Sim ] = logL_SCTL_si(xi, model, data, s, options, P, i);
-
-end
-
-function logL_I = logL_I_SCTL_si(xi, model, data, s, options, P, i)
-
-[ logL_D,logL_T,logL_b,logL_I,bhat, Sim ] = logL_SCTL_si(xi, model, data, s, options, P, i);
 
 end

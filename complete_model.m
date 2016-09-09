@@ -118,12 +118,12 @@ try
     end
         
     if(all([f_xi,f_phi,f_beta,f_b,f_delta,f_phiexp,f_sigma_noiseexp,f_sigma_timeexp,f_files]))
-            if(Model.integration)
-            eval(['Model.exp{s}.ddddsigma_timedphidphidphidphi = @MEMdddds_tdpdpdpdp_' filename '_' num2str(S(s)) ';']);
-            end
-            if(Model.integration)
-            eval(['Model.exp{s}.ddddsigma_noisedphidphidphidphi = @MEMdddds_ndpdpdpdp_' filename '_' num2str(S(s)) ';']);
-            end
+%             if(Model.integration)
+%             eval(['Model.exp{s}.ddddsigma_timedphidphidphidphi = @MEMdddds_tdpdpdpdp_' filename '_' num2str(S(s)) ';']);
+%             end
+%             if(Model.integration)
+%             eval(['Model.exp{s}.ddddsigma_noisedphidphidphidphi = @MEMdddds_ndpdpdpdp_' filename '_' num2str(S(s)) ';']);
+%             end
             loadold = true; 
             disp(['Loading previous model definition files!'])
             disp(['To regenerate model, abort and delete ' mdir 'models/' filename ]);
@@ -260,20 +260,20 @@ if(~loadold)
         mfun(Model.exp{s}.sym.dddsigma_noisedphidphidphi,'file',fullfile(mdir,'models',filename,['MEMddds_ndpdpdp_' filename '_' num2str(S(s))]),'vars',{phi});
         eval(['Model.exp{s}.dddsigma_noisedphidphidphi = @MEMddds_ndpdpdp_' filename '_' num2str(S(s)) ';']);
         
-        if(Model.integration)
-            % ddddsigma_noisedphidphidphidphi --- currently disabled due to
-            % high computational cost
-            Model.exp{s}.sym.ddddsigma_noisedphidphidphidphi = sym(zeros(size(Model.exp{s}.sym.sigma_noise,1),size(Model.exp{s}.sym.sigma_noise,2),n_phi,n_phi,n_phi,n_phi));
-%             for j = 1:size(Model.exp{s}.sym.sigma_noise,1)
-%                 for k = 1:size(Model.exp{s}.sym.sigma_noise,2)
-%                     for m = 1:n_phi
-%                         Model.exp{s}.sym.ddddsigma_noisedphidphidphidphi(j,k,:,:,:,m) = diff(Model.exp{s}.sym.dddsigma_noisedphidphidphi(j,k,:,:,:),phi(m));
-%                     end
-%                 end
-%             end
-            mfun(Model.exp{s}.sym.ddddsigma_noisedphidphidphidphi,'file',fullfile(mdir,'models',filename,['MEMdddds_ndpdpdpdp_' filename '_' num2str(S(s))]),'vars',{phi});
-            eval(['Model.exp{s}.ddddsigma_noisedphidphidphidphi = @MEMdddds_ndpdpdpdp_' num2str(S(s)) ';']);
-        end
+%         if(Model.integration)
+%             % ddddsigma_noisedphidphidphidphi --- currently disabled due to
+%             % high computational cost
+%             Model.exp{s}.sym.ddddsigma_noisedphidphidphidphi = sym(zeros(size(Model.exp{s}.sym.sigma_noise,1),size(Model.exp{s}.sym.sigma_noise,2),n_phi,n_phi,n_phi,n_phi));
+% %             for j = 1:size(Model.exp{s}.sym.sigma_noise,1)
+% %                 for k = 1:size(Model.exp{s}.sym.sigma_noise,2)
+% %                     for m = 1:n_phi
+% %                         Model.exp{s}.sym.ddddsigma_noisedphidphidphidphi(j,k,:,:,:,m) = diff(Model.exp{s}.sym.dddsigma_noisedphidphidphi(j,k,:,:,:),phi(m));
+% %                     end
+% %                 end
+% %             end
+%             mfun(Model.exp{s}.sym.ddddsigma_noisedphidphidphidphi,'file',fullfile(mdir,'models',filename,['MEMdddds_ndpdpdpdp_' filename '_' num2str(S(s))]),'vars',{phi});
+%             eval(['Model.exp{s}.ddddsigma_noisedphidphidphidphi = @MEMdddds_ndpdpdpdp_' num2str(S(s)) ';']);
+%         end
         
         % sigma_time(phi)
         if(~isfield(Model.exp{s}.sym,'sigma_time'))
@@ -314,20 +314,20 @@ if(~loadold)
         mfun(Model.exp{s}.sym.dddsigma_timedphidphidphi,'file',fullfile(mdir,'models',filename,['MEMddds_tdpdpdp_' filename '_' num2str(S(s))]),'vars',{phi});
         eval(['Model.exp{s}.dddsigma_timedphidphidphi = @MEMddds_tdpdpdp_' filename '_' num2str(S(s)) ';']);
         
-        if(Model.integration)
-            % ddddsigma_timedphidphidphidphi --- currently disabled due to
-            % high computational cost
-            Model.exp{s}.sym.ddddsigma_timedphidphidphidphi = sym(zeros(size(Model.exp{s}.sym.sigma_time,1),size(Model.exp{s}.sym.sigma_time,2),n_phi,n_phi,n_phi,n_phi));
-%             for j = 1:size(Model.exp{s}.sym.sigma_time,1)
-%                 for k = 1:size(Model.exp{s}.sym.sigma_time,2)
-%                     for m = 1:n_phi
-%                         Model.exp{s}.sym.ddddsigma_timedphidphidphidphi(j,k,:,:,:,m) = diff(Model.exp{s}.sym.dddsigma_timedphidphidphi(j,k,:,:,:),phi(m));
-%                     end
-%                 end
-%             end
-            mfun(Model.exp{s}.sym.ddddsigma_timedphidphidphidphi,'file',fullfile(mdir,'models',filename,['MEMdddds_tdpdpdpdp_' filename '_' num2str(S(s))]),'vars',{phi});
-            eval(['Model.exp{s}.ddddsigma_timedphidphidphidphi = @MEMdddds_tdpdpdpdp_' filename '_' num2str(S(s)) ';']);
-        end
+%         if(Model.integration)
+%             % ddddsigma_timedphidphidphidphi --- currently disabled due to
+%             % high computational cost
+%             Model.exp{s}.sym.ddddsigma_timedphidphidphidphi = sym(zeros(size(Model.exp{s}.sym.sigma_time,1),size(Model.exp{s}.sym.sigma_time,2),n_phi,n_phi,n_phi,n_phi));
+% %             for j = 1:size(Model.exp{s}.sym.sigma_time,1)
+% %                 for k = 1:size(Model.exp{s}.sym.sigma_time,2)
+% %                     for m = 1:n_phi
+% %                         Model.exp{s}.sym.ddddsigma_timedphidphidphidphi(j,k,:,:,:,m) = diff(Model.exp{s}.sym.dddsigma_timedphidphidphi(j,k,:,:,:),phi(m));
+% %                     end
+% %                 end
+% %             end
+%             mfun(Model.exp{s}.sym.ddddsigma_timedphidphidphidphi,'file',fullfile(mdir,'models',filename,['MEMdddds_tdpdpdpdp_' filename '_' num2str(S(s))]),'vars',{phi});
+%             eval(['Model.exp{s}.ddddsigma_timedphidphidphidphi = @MEMdddds_tdpdpdpdp_' filename '_' num2str(S(s)) ';']);
+%         end
         
         % phi
         mfun(Model.exp{s}.sym.phi,'file',fullfile(mdir,'models',filename,['MEMphi_' filename '_' num2str(S(s))]),'vars',{Model.exp{s}.sym.beta,Model.exp{s}.sym.b});
