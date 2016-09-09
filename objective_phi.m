@@ -19,15 +19,16 @@ try
     [Y,T,R] = simulate_trajectory(t,phi,model,data.condition,s,ind_t,ind_y,nderiv);
 catch err
     % if simulation fails, return Inf
-    varargout{1} = Inf;
-    if nargout >= 2
-        varargout{2} = zeros(length(b),1);
-        varargout{3} = zeros(length(b),length(b));
-        if(nargout >3)
-            error('could not compute second order sensitivities');
-        end
-        return
+    J_D.val = Inf;
+    J_T.val = Inf;
+    if(nargout>=3)
+        Sim.SCTL_Y = Y.val;
+        Sim.SCTL_T = T.val(ind_t);
+        Sim.SCTL_R = R.val(ind_t);
+        Sim.SCTL_Sigma_Y = Sigma_noise.val(ind_y);
+        Sim.SCTL_Sigma_T = Sigma_time.val(ind_t);
     end
+    return
 end
 
 % noise model
@@ -79,7 +80,7 @@ if nderiv >= 1
     
     J_T.dphi = chainrule(J_T.dT,T.dphi) + chainrule(J_T.dR,R.dphi) + chainrule(J_T.dSigma,Sigma_time.dphi);
     
-    if(FIMflag)
+    if(FIMflag || nderiv >=2 )
         J_D.dphidY = permute(sum(bsxfun(@times,J_D.dYdY,permute(Y.dphi,[1,3,2])) ...
             + bsxfun(@times,J_D.dYdSigma,permute(Sigma_noise.dphi,[3,1,2])),1),[3,2,1]);
         J_D.dphidSigma = permute(sum(bsxfun(@times,J_D.dYdSigma,permute(Y.dphi,[1,3,2])) ...

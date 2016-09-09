@@ -39,7 +39,7 @@ bhat.val = B.val;
 
 if(options.integration)
     % laplace approximation
-    logL.I = - 0.5*log(det(G.val));
+    logL.I = - 0.5*log(abs(det(G.val)));
     logL.val = logL.val + logL.I;
 end
 

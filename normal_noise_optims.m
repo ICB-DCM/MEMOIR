@@ -10,7 +10,7 @@ S2 = nansum(((Y - Ym(:))).^2);
 
 if nderiv >= 0
     % J_D
-    J_D.val = 0.5*sum(ind)*(log(2*pi*S2/sum(ind)) + sum(ind));
+    J_D.val = 0.5*sum(ind)*(log(2*pi*S2/sum(ind)) + 1);
     if nderiv >= 1
         % dJ_DdY
         J_D.dY = transpose(sum(ind)*(Y-Ym(:))/S2);
