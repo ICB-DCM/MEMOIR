@@ -66,6 +66,7 @@ if isempty(p)
         RR = zeros(size(data.SCTL.T(:,:,i)));
         [ logL, bhat, Sim ] = logL_SCTL_si(xi, model, data, s, options, P, i);
         % [g,g_fd_f,g_fd_b,g_fd_c]=testGradient(xi,@(xi) logL_SCTL_si(xi, model, data, s, options, P, i),1e-3,'val','dxi')
+        % [g,g_fd_f,g_fd_b,g_fd_c]=testGradient(xi,@(xi) logL_SCTL_si(xi, model, data, s, options, P, i),1e-3,'I','Idxi')
         logLi_D(i,1) = logL.D;
         logLi_T(i,1) = logL.T;
         logLi_b(i,1) = logL.b;

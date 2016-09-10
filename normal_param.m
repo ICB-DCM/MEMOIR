@@ -14,8 +14,8 @@ if nderiv >= 0
         % dJ_bdb
         J_b.db = transpose(invD*b);
         % dJ_bddelta
-        J_b.ddelta = transpose(0.5*permute(sum(sum(bsxfun(@times,dinvDddelta,bsxfun(@times,permute(b,[2,1]),permute(b,[1,2]))),1),2),[1,3,2]) ... % 1/2*b*dinvD*b
-            +0.5*permute(sum(sum(sum(bsxfun(@times,invD.*eye(length(b)),permute(dDddelta,[4,1,2,3])),2),1),3),[1,4,3,2])); % 1/2*Tr(invD*dD)
+        J_b.ddelta = 0.5*permute(sum(sum(bsxfun(@times,dinvDddelta,bsxfun(@times,permute(b,[2,1]),permute(b,[1,2]))),1),2),[1,3,2]) ... % 1/2*b*dinvD*b
+            +0.5*permute(sum(sum(sum(bsxfun(@times,invD.*eye(length(b)),permute(dDddelta,[4,1,2,3])),2),1),3),[1,4,3,2]); % 1/2*Tr(invD*dD)
         if nderiv >= 2
             % ddJ_bdbdb
             J_b.dbdb = invD;

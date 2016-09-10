@@ -17,8 +17,12 @@ end
 % derivatives with respect to beta and delta
 %
 % testing:
-% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(beta,@(beta) getBhat( beta, delta, bhat_si0, model, data, s, i, options, P),1e-5,'val','dbeta')
-% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(delta,@(delta) getBhat( beta, delta, bhat_si0, model, data, s, i, options, P),1e-5,'val','ddelta')
+% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(beta,@(beta) getBhat_B( beta, delta, bhat_si0, model, data, s, i, options, P),1e-3,'val','dbeta')
+% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(delta,@(delta) getBhat_B( beta, delta, bhat_si0, model, data, s, i, options, P),1e-3,'val','ddelta')
+% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(beta,@(beta) getBhat_J( beta, delta, bhat_si0, model, data, s, i, options, P),1e-3,'val','dbeta')
+% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(delta,@(delta) getBhat_J( beta, delta, bhat_si0, model, data, s, i, options, P),1e-3,'val','ddelta')
+% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(beta,@(beta) getBhat_G( beta, delta, bhat_si0, model, data, s, i, options, P),1e-3,'val','dbeta')
+% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(delta,@(delta) getBhat_G( beta, delta, bhat_si0, model, data, s, i, options, P),1e-3,'val','ddelta')
 
 beta = model.beta(xi);
 delta = model.delta(xi);
@@ -50,7 +54,7 @@ if options.nderiv >= 1
     dbdxi = chainrule(dbhat_sidbeta,dbetadxi) + chainrule(dbhat_siddelta,ddeltadxi);
     bhat.dxi = dbdxi;
 
-    logL.dxi = chainrule(J.db,dbdxi);
+    logL.dxi = - chainrule(J.db,dbdxi) - chainrule(J.dbeta,dbetadxi) - chainrule(J.ddelta,ddeltadxi);
     
     if(options.integration)
         % laplace approximation
@@ -59,10 +63,10 @@ if options.nderiv >= 1
         G.dbeta = G.dbeta + chainrule(G.db,dbhat_sidbeta);
         G.ddelta = G.ddelta + chainrule(G.db,dbhat_siddelta);
         G.dxi = chainrule(G.dbeta,dbetadxi) + chainrule(G.ddelta,ddeltadxi);
-        
-        logL.dxi = logL.dxi - 0.5*permute(sum(sum(bsxfun(@times,permute(sum(bsxfun(@times,invG,permute(G.dxi,[4,1,2,3])),2),[1,3,4,2]),eye(length(bhat.val))),1),2),[1,3,2]); % 1/2*Tr(invG*dG)
+        logL.Idxi = - 0.5*permute(sum(sum(bsxfun(@times,permute(sum(bsxfun(@times,invG,permute(G.dxi,[4,1,2,3])),2),[1,3,4,2]),eye(length(bhat.val))),1),2),[1,3,2]); % 1/2*Tr(invG*dG)
+        logL.dxi = logL.dxi + logL.Idxi; 
     end
-    
+%%  
 %     if options.nderiv >= 2
 %         % second order derivatives
 %         
@@ -162,17 +166,20 @@ if options.nderiv >= 1
 %         end
 %         
 %     end
-    
+%%    
 end
 end
 
-function J = objective_phi_J_D(model,data,phi,s,i,options,nderiv)
-    [J,~] = objective_phi(model,data,phi,s,i,options,nderiv);
+function B = getBhat_B( beta, delta, bhat_si0, model, data, s, i, options, P)
+    [B,G,J,Sim] = getBhat( beta, delta, bhat_si0, model, data, s, i, options, P);
 end
 
+function G = getBhat_G( beta, delta, bhat_si0, model, data, s, i, options, P)
+    [B,G,J,Sim] = getBhat( beta, delta, bhat_si0, model, data, s, i, options, P);
+end
 
-function J = objective_phi_J_T(model,data,phi,s,i,options,nderiv)
-    [~,J] = objective_phi(model,data,phi,s,i,options,nderiv);
+function J = getBhat_J( beta, delta, bhat_si0, model, data, s, i, options, P)
+    [B,G,J,Sim] = getBhat( beta, delta, bhat_si0, model, data, s, i, options, P);
 end
 
 
