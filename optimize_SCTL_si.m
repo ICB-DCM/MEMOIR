@@ -92,7 +92,7 @@ end
 % [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(delta,@(delta) objSCTL_J(model,data,beta,bhat,delta,s,i,options,2),1e-3,'ddelta','ddeltaddelta')
 % [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(delta,@(delta) objSCTL_J(model,data,beta,bhat,delta,s,i,options,2),1e-3,'dbeta','dbetaddelta')
 %
-% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(bhat,@(bhat) objSCTL_FIM(model,data,beta,bhat,delta,s,i,options,3),1e-3,'val','db')
+% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(bhat,@(bhat) objSCTL_FIM(model,data,beta,bhat,delta,s,i,options,3),1e-4,'val','db')
 % [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(beta,@(beta) objSCTL_FIM(model,data,beta,bhat,delta,s,i,options,3),1e-3,'val','dbeta')
 % [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(delta,@(delta) objSCTL_FIM(model,data,beta,bhat,delta,s,i,options,3),1e-6,'val','ddelta')
 
