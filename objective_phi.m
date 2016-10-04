@@ -32,9 +32,9 @@ catch err
     J_D.val = Inf;
     J_T.val = Inf;
     if(nargout>=3)
-        Sim.SCTL_Y = Y.val;
-        Sim.SCTL_T = T.val(ind_t);
-        Sim.SCTL_R = R.val(ind_t);
+        Sim.SCTL_Y = NaN(size(Ym));
+        Sim.SCTL_T = NaN(size(Tm));
+        Sim.SCTL_R = NaN(size(Tm));
         Sim.SCTL_Sigma_Y = Sigma_noise.val(ind_y);
         Sim.SCTL_Sigma_T = Sigma_time.val(ind_t);
     end
