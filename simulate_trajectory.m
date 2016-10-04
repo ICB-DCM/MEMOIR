@@ -34,7 +34,7 @@
 
 function [ YY,TT,RR ] = simulate_trajectory(t,phi,Model,kappa,s,ind_t,ind_y,nderiv)
 
-optionmu.atol = 1e-8;
+optionmu.atol = 1e-7;
 optionmu.rtol = 1e-12;
 optionmu.nmaxevent = length(ind_t)+10;
 optionmu.maxsteps = 1e5;
