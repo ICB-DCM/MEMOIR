@@ -56,7 +56,7 @@ if(fms)
         @(b) objective_SCTL_s1(model,data,beta,b,delta,s,i,options,1),...
         bhat_0,[],[],[],[],-10*ones(length(bhat_0),1),10*ones(length(bhat_0),1),[],options_fmincon);
     rng(0);
-    N_MS = 50;
+    N_MS = 20;
     bhat_0_lhc = [bhat_0,6*lhsdesign(N_MS,length(bhat_0),'smooth','off')' - 3];
     OBJs = zeros(N_MS+1,1);
     OBJs(1) = OBJ;
