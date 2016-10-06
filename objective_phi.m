@@ -106,8 +106,9 @@ if nderiv >= 1
     
     if(FIMflag || nderiv >=2 )
         if(ny>0)
-            J_D.dphidY = permute(sum(bsxfun(@times,J_D.dYdY,permute(Y.dphi,[1,3,2])) ...
-                + bsxfun(@times,J_D.dYdSigma,permute(Sigma_noise.dphi,[3,1,2])),1),[3,2,1]);
+            J_D.dphidY = transpose(J_D.dYdY*Y.dphi + J_D.dYdSigma*Sigma_noise.dphi);
+            %permute(sum(bsxfun(@times,J_D.dYdY,permute(Y.dphi,[1,3,2])) ...
+            %    + bsxfun(@times,J_D.dYdSigma,permute(Sigma_noise.dphi,[3,1,2])),1),[3,2,1]);
             if(SigmaYflag)
                 J_D.dphidSigma = permute(sum(bsxfun(@times,J_D.dYdSigma,permute(Y.dphi,[1,3,2])) ...
                     + bsxfun(@times,J_D.dSigmadSigma,permute(Sigma_noise.dphi,[1,3,2])),1),[3,2,1]);
@@ -115,8 +116,9 @@ if nderiv >= 1
                 J_D.dphidSigma = zeros(nphi,ny);
             end
             
-            J_D.FIM = permute(sum(bsxfun(@times,J_D.dphidY,permute(Y.dphi,[3,1,2])) ...
-                + bsxfun(@times,J_D.dphidSigma,permute(Sigma_noise.dphi,[3,1,2])),2),[1,3,2]);
+            J_D.FIM = J_D.dphidY*Y.dphi + J_D.dphidSigma*Sigma_noise.dphi;
+            %permute(sum(bsxfun(@times,J_D.dphidY,permute(Y.dphi,[3,1,2])) ...
+            %    + bsxfun(@times,J_D.dphidSigma,permute(Sigma_noise.dphi,[3,1,2])),2),[1,3,2]);
         else
             J_D.FIM = zeros(nphi,nphi);
         end
