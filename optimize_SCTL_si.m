@@ -52,9 +52,13 @@ options_fmincon = optimset('algorithm','trust-region-reflective',...
     fms = (mod(P_old{s}.n_store,options.ms_iter)==0);
 
 if(fms)
+    try
     [bhat,OBJ,~,~,~,~,~] = fmincon(...
         @(b) objective_SCTL_s1(model,data,beta,b,delta,s,i,options,1),...
         bhat_0,[],[],[],[],-10*ones(length(bhat_0),1),10*ones(length(bhat_0),1),[],options_fmincon);
+    catch
+        OBJ = inf;
+    end
     rng(0);
     N_MS = 20;
     bhat_0_lhc = [bhat_0,6*lhsdesign(N_MS,length(bhat_0),'smooth','off')' - 3];
@@ -96,6 +100,7 @@ end
 % [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(beta,@(beta) objSCTL_FIM(model,data,beta,bhat,delta,s,i,options,3),1e-3,'val','dbeta')
 % [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(delta,@(delta) objSCTL_FIM(model,data,beta,bhat,delta,s,i,options,3),1e-6,'val','ddelta')
 
+assert(OBJ<inf);
 
 [~,~,~,J,FIM,Sim] = objective_SCTL_s1(model,data,beta,bhat,delta,s,i,options,F_diff);
 B = bhat_SCTL_si(bhat,FIM,J,b_diff);
