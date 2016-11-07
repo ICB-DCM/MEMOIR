@@ -36,7 +36,7 @@ function [ YY,TT,RR ] = simulate_trajectory(t,phi,Model,kappa,s,ind_t,ind_y,nder
 try
 optionmu = amioption();
 end
-optionmu.atol = 1e-7;
+optionmu.atol = 1e-8;
 optionmu.rtol = 1e-12;
 optionmu.nmaxevent = length(ind_t)+10;
 optionmu.maxsteps = 1e5;
@@ -56,8 +56,10 @@ elseif nderiv == 1
         dRdphi = zeros(0,sum(ind_t),length(phi));
     end
 else
+    optionmu.atol = 1e-4;
     optionmu.sensi = 2; % number of requested sensitivities
     optionmu.linsol = 9;
+    optionmu.pbar = phi*0+1e-5;
     sol = Model.model(t,phi,kappa,optionmu);
     % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(phi,@(phi) Model.model(t,phi,kappa,optionmu),1e-5,'y','sy')
     dYdphi = sol.sy(1:(end-(sum(ind_y)<length(t))),:,:);
