@@ -10,7 +10,7 @@ if ismember(1,S)
     Model.exp{s}.N = 10;
     Model.exp{s}.sigma_noise = 0.1;
     Model.exp{s}.noise_on = 1;
-    Model.exp{s}.t = [0:0.01:1]';
+    Model.exp{s}.t = [0:0.1:1]';
     
     Model.exp{s}.ind_phi = [1,2];
     Model.exp{s}.sym.phi = [beta(1);
