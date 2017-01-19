@@ -4,13 +4,13 @@
 %
 % USAGE:
 % ======
-% [Sigma_noise,dSigma_noisedphi,ddSigma_noisedphidphi,dddSigma_noisedphidphidphi,ddddSigma_noisedphidphidphidphi] = build_sigma_noise(phi,Ym,s,Model,ind_y)
+% [Sigma_noise,dSigma_noisedphi,ddSigma_noisedphidphi,dddSigma_noisedphidphidphi,ddddSigma_noisedphidphidphidphi] = build_sigma_noise(phi,Ym,s,model,ind_y)
 %
 % INPUTS:
 % =======
 % phi ... mixed effect parameter
 % Ym ... measurements
-% Model ... model definition
+% model ... model definition
 % s ... index of considered experiment
 % ind_y ... indexing of observables
 %
@@ -23,38 +23,36 @@
 % 2015/04/14 Fabian Froehlich
 
 
-function [Sigma_noise,dSigma_noisedphi,ddSigma_noisedphidphi,dddSigma_noisedphidphidphi,ddddSigma_noisedphidphidphidphi] = build_sigma_noise(phi,Ym,s,Model,ind_y)
+function [Sigma_noise] = build_sigma_noise(phi,Ym,s,model,ind_y,nderiv)
 
 nt = size(Ym,1);
 ny = size(Ym,2);
 np = length(phi);
 
-sigma_noise = Model.exp{s}.sigma_noise(phi);
+sigma_noise = model.sigma_noise(phi);
 
 if(size(sigma_noise,1) == nt)
     if(size(sigma_noise,2) == 1)
-        Sigma_noise = repmat(sigma_noise,[1,ny]);
+        Sigma_noise.val = repmat(sigma_noise,[1,ny]);
     elseif(size(sigma,2) == ny)
-        Sigma_noise = sigma_noise;
+        Sigma_noise.val = sigma_noise;
     else
         error('Incompatible size of sigma_noise parametrisation!')
     end
 elseif(size(sigma_noise,2) == ny)
     if(size(sigma_noise,1) == 1)
-        Sigma_noise = repmat(sigma_noise,[nt,1]);
+        Sigma_noise.val = repmat(sigma_noise,[nt,1]);
     else
         error('Incompatible size of sigma_noise parametrisation!')
     end
 elseif(and(size(sigma_noise,1)==1,size(sigma_noise,2)==1))
-    Sigma_noise = repmat(sigma_noise,size(Ym));
+    Sigma_noise.val = repmat(sigma_noise,size(Ym));
 else
     error('Incompatible size of sigma_noise parametrisation!')
 end
 
-if nargout >= 2 % first order derivatives
-    dsigma_noisedphi = Model.exp{s}.dsigma_noisedphi(phi);
-    dSigma_noisedphi = zeros(length(ind_y),np);
-    
+if nderiv >= 1 % first order derivatives
+    dsigma_noisedphi = model.dsigma_noisedphi(phi);
     if(size(dsigma_noisedphi,1) == nt)
         if(size(dsigma_noisedphi,2) == 1)
             dSNdphi = repmat(dsigma_noisedphi,[1,ny,1]);
@@ -69,9 +67,8 @@ if nargout >= 2 % first order derivatives
         dSNdphi = repmat(dsigma_noisedphi,[size(Ym),1]);
     end
     
-    if nargout >= 3 % second order derivatives
-        ddsigma_noisedphidphi = Model.exp{s}.ddsigma_noisedphidphi(phi);
-        ddSigma_noisedphidphi = zeros(length(ind_y),np,np);
+    if nderiv >= 2 % second order derivatives
+        ddsigma_noisedphidphi = model.ddsigma_noisedphidphi(phi);
         if(size(dsigma_noisedphi,1) == nt)
             if(size(dsigma_noisedphi,2) == 1)
                 ddSNdphidphi = repmat(ddsigma_noisedphidphi,[1,ny,1,1]);
@@ -87,9 +84,8 @@ if nargout >= 2 % first order derivatives
         end
     end
     
-    if nargout >= 4 % third order derivatives
-        dddsigma_noisedphidphidphi = Model.exp{s}.dddsigma_noisedphidphidphi(phi);
-        dddSigma_noisedphidphidphi = zeros(length(ind_y),np,np,np);
+    if nderiv >= 3 % third order derivatives
+        dddsigma_noisedphidphidphi = model.dddsigma_noisedphidphidphi(phi);
         if(size(dsigma_noisedphi,1) == nt)
             if(size(dsigma_noisedphi,2) == 1)
                 dddSNdphidphidphi = repmat(dddsigma_noisedphidphidphi,[1,ny,1,1,1]);
@@ -105,37 +101,33 @@ if nargout >= 2 % first order derivatives
         end
     end
     
-    if nargout >= 5 % fourth order derivatives
-        ddddsigma_noisedphidphidphidphi = Model.exp{s}.ddddsigma_noisedphidphidphidphi(phi);
-        ddddSigma_noisedphidphidphidphi = zeros(length(ind_y),np,np,np,np);
-        if(size(dsigma_noisedphi,1) == nt)
-            if(size(dsigma_noisedphi,2) == 1)
-                ddddSNdphidphidphidphi = repmat(ddddsigma_noisedphidphidphidphi,[1,ny,1,1,1]);
-            elseif(size(dsigma_noisedphi,2) == ny)
-                ddddSNdphidphidphidphi = ddddsigma_noisedphidphidphidphi;
-            end
-        elseif(size(dsigma_noisedphi,2) == ny)
-            if(size(dsigma_noisedphi,1) == 1)
-                ddddSNdphidphidphidphi = repmat(ddddsigma_noisedphidphidphidphi,[nt,1,1,1]);
-            end
-        elseif(and(size(dsigma_noisedphi,1)==1,size(dsigma_noisedphi,2)==1))
-            ddddSNdphidphidphidphi = repmat(ddddsigma_noisedphidphidphidphi,[size(Ym),1,1,1]);
-        end
-    end
+%     if nargout >= 5 % fourth order derivatives
+%         ddddsigma_noisedphidphidphidphi = model.ddddsigma_noisedphidphidphidphi(phi);
+%         ddddSigma_noisedphidphidphidphi = zeros(length(ind_y),np,np,np,np);
+%         if(size(dsigma_noisedphi,1) == nt)
+%             if(size(dsigma_noisedphi,2) == 1)
+%                 ddddSNdphidphidphidphi = repmat(ddddsigma_noisedphidphidphidphi,[1,ny,1,1,1]);
+%             elseif(size(dsigma_noisedphi,2) == ny)
+%                 ddddSNdphidphidphidphi = ddddsigma_noisedphidphidphidphi;
+%             end
+%         elseif(size(dsigma_noisedphi,2) == ny)
+%             if(size(dsigma_noisedphi,1) == 1)
+%                 ddddSNdphidphidphidphi = repmat(ddddsigma_noisedphidphidphidphi,[nt,1,1,1]);
+%             end
+%         elseif(and(size(dsigma_noisedphi,1)==1,size(dsigma_noisedphi,2)==1))
+%             ddddSNdphidphidphidphi = repmat(ddddsigma_noisedphidphidphidphi,[size(Ym),1,1,1]);
+%         end
+%     end
     
-    if nargout >= 2 % first order derivatives
-        tmp = reshape(dSNdphi,[numel(Ym),np]);
-        dSigma_noisedphi = tmp(ind_y,:);
-        if nargout >= 3 % second order derivatives    
-            tmp = reshape(ddSNdphidphi,[numel(Ym),np,np]);
-            ddSigma_noisedphidphi = tmp(ind_y,:,:);
-            if nargout >= 4 % third order derivatives
-                tmp = reshape(dddSNdphidphidphi,[numel(Ym),np,np,np]);
-                dddSigma_noisedphidphidphi = tmp(ind_y,:,:,:);
-                if nargout >= 5 % fourth order derivatives
-                    tmp = reshape(ddddSNdphidphidphidphi,[numel(Ym),np,np,np,np]);
-                    ddddSigma_noisedphidphidphidphi = tmp(ind_y,:,:,:,:);
-                end
+    if nderiv >= 1 % first order derivatives
+        Sigma_noise.dphi = reshape(dSNdphi(ind_y,:,:),[sum(ind_y)*size(Ym,2),np]);
+        if nderiv >= 2 % second order derivatives    
+            Sigma_noise.dphidphi = reshape(ddSNdphidphi(ind_y,:,:,:),[sum(ind_y)*size(Ym,2),np,np]);
+            if nderiv >= 3 % third order derivatives
+                Sigma_noise.dphidphidphi = reshape(dddSNdphidphidphi(ind_y,:,:,:,:),[sum(ind_y)*size(Ym,2),np,np,np]);
+%                 if nargout >= 5 % fourth order derivatives
+%                     ddddSigma_noisedphidphidphidphi = reshape(ddddSNdphidphidphidphi(ind_y,:,:,:,:,:),[sum(ind_y)*size(Ym,2),np,np,np,np]);
+%                 end
             end
         end
     end

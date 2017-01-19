@@ -21,13 +21,15 @@ if(numel(dxdy)>1)
             if(size(dydz,1)==1)
                 dxdz = bsxfun(@times,dxdy,permute(dydz,[3,1,2]));
             else
+                % nancheck
+                dxdy(isnan(dxdy)) =  0;
                 dxdz = dxdy*dydz;
             end
         else
             dxdz = permute(sum(bsxfun(@times,dxdy,permute(dydz,[d2+(1:(d1-1)),1,2:d2])),d1),[1:(d1-1),(d1+1):(d1+d2-1),d1]);
         end
     else
-        dxdz =     permute(sum(bsxfun(@times,dxdy,permute(dydz,[              1,2:d2])),d1),[1:(d1-1),(d1+1):(d1+d2-1),d1]);
+        dxdz = permute(sum(bsxfun(@times,dxdy,permute(dydz,[              1,2:d2])),d1),[1:(d1-1),(d1+1):(d1+d2-1),d1]);
     end
 elseif(numel(dxdy)==1)
     dxdz = permute(dxdy*dydz,[d2+(1:(d1-1)),2:d2,1]);
@@ -36,5 +38,5 @@ else
     s2 = size(dydz);
     dxdz = zeros([s1(1:(d1-1)),s2(2:d2)]);
 end
-dxdz = squeeze(dxdz);
+% dxdz = squeeze(dxdz);
 end

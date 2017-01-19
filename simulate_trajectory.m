@@ -9,7 +9,7 @@
 % =======
 % t ... time vector
 % phi ... mixed effect parameter
-% Model ... model definition, here only the .exp{s}.model and .integration 
+% Model ... model definition, here only the .model and .integration 
 %     field is required
 % kappa ... experimental condition
 % s ... index of considered experiment
@@ -32,48 +32,54 @@
 %
 % 2015/04/14 Fabian Froehlich
 
-function [ Y,T,R, dYdphi,dTdphi,dRdphi, ddYdphidphi,ddTdphidphi,ddRdphidphi ] = simulate_trajectory(t,phi,Model,kappa,s,ind_t,ind_y)
-
-optionmu.atol = 1e-12;
+function [ YY,TT,RR ] = simulate_trajectory(t,phi,Model,kappa,s,ind_t,ind_y,nderiv)
+try
+optionmu = amioption();
+end
+optionmu.atol = 1e-8;
 optionmu.rtol = 1e-12;
+optionmu.nmaxevent = length(ind_t)+10;
+optionmu.maxsteps = 1e5;
 
-if nargout < 4
+if nderiv == 0
     optionmu.sensi = 0; % number of requested sensitivities
-    sol = Model.exp{s}.model(t,phi,kappa,optionmu);
-elseif nargout < 7
+    sol = Model.model(t,phi,kappa,optionmu);
+elseif nderiv == 1
     optionmu.sensi = 1; % number of requested sensitivities
-    sol = Model.exp{s}.model(t,phi,kappa,optionmu);
-    dYdphi = sol.sy;
-    if(isfield(sol,'sroot'))
-        dTdphi = sol.sroot(ind_t,:,:);
-        dRdphi = sol.srootval(ind_t,:,:);
+    sol = Model.model(t,phi,kappa,optionmu);
+    dYdphi = sol.sy(1:(end-(sum(ind_y)<length(t))),:,:);
+    if(isfield(sol,'sz') && sum(ind_t)>0)
+        dTdphi = sol.sz(ind_t,:,:);
+        dRdphi = sol.srz(ind_t,:,:);
     else
         dTdphi = zeros(0,sum(ind_t),length(phi));
         dRdphi = zeros(0,sum(ind_t),length(phi));
     end
 else
+    optionmu.atol = 1e-4;
     optionmu.sensi = 2; % number of requested sensitivities
     optionmu.linsol = 9;
-    sol = Model.exp{s}.model(t,phi,kappa,optionmu);
-    % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(phi,@(phi) Model.exp{s}.model(t,phi,kappa,optionmu),1e-5,'y','sy')
-    dYdphi = sol.sy;
-    if(isfield(sol,'sroot'))
-        dTdphi = sol.sroot(ind_t,:,:);
-        dRdphi = sol.srootval(ind_t,:,:);
+    optionmu.pbar = phi*0+1e-10;
+    sol = Model.model(t,phi,kappa,optionmu);
+    % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(phi,@(phi) Model.model(t,phi,kappa,optionmu),1e-5,'y','sy')
+    dYdphi = sol.sy(1:(end-(sum(ind_y)<length(t))),:,:);
+    if(isfield(sol,'sz') && sum(ind_t)>0)
+        dTdphi = sol.sz(ind_t,:,:);
+        dRdphi = sol.srz(ind_t,:,:);
     else
         dTdphi = zeros(0,sum(ind_t),length(phi));
         dRdphi = zeros(0,sum(ind_t),length(phi));
     end
     try
-        ddYdphidphi = sol.s2y;
-        ddTdphidphi = sol.s2root(ind_t,:,:,:);
-        ddRdphidphi = sol.s2rootval(ind_t,:,:,:);
+        ddYdphidphi = sol.s2y(1:(end-(sum(ind_y)<length(t))),:,:,:);
+        ddTdphidphi = sol.s2z(ind_t,:,:,:);
+        ddRdphidphi = sol.s2rz(ind_t,:,:,:);
     catch
         % fallback if no second order sensitivities are available
         ddYdphidphi = zeros(length(t),size(sol.sy,2),length(phi),length(phi));
-        if(isfield(sol,'sroot'))
-            ddTdphidphi = zeros(sum(ind_t),size(sol.sroot,2),length(phi),length(phi));
-            ddRdphidphi = zeros(sum(ind_t),size(sol.srootval,2),length(phi),length(phi));
+        if(isfield(sol,'sz') && sum(ind_t)>0)
+            ddTdphidphi = zeros(sum(ind_t),size(sol.sz,2),length(phi),length(phi));
+            ddRdphidphi = zeros(sum(ind_t),size(sol.sz,2),length(phi),length(phi));
         else
             ddTdphidphi = zeros(sum(ind_t),1,length(phi),length(phi));
             ddRdphidphi = zeros(sum(ind_t),1,length(phi),length(phi));
@@ -81,35 +87,30 @@ else
         
     end
 end
-Y = sol.y;
-if(isfield(sol,'root'))
-    T = sol.root;
-    R = sol.rootval;
-else
-    T = zeros(0,sum(ind_t));
-    R = zeros(0,sum(ind_t));
+if(sol.status <0)
+    error('integration failed');
 end
-Y = Y(:);
+Y = sol.y(1:(end-(sum(ind_y)<length(t))),:);
+if(isfield(sol,'z'))
+    TT.val = sol.z;
+    RR.val = sol.rz;
+else
+    TT.val = zeros(0,sum(ind_t));
+    RR.val = zeros(0,sum(ind_t));
+end
+YY.val = Y(:);
 
 % Apply indexing
-Y = Y(ind_y,:);
-T = T(ind_t,:);
-R = R(ind_t,:);
+
             
-if nargout >=4
-    tempy = reshape(dYdphi,[size(dYdphi,1)*size(dYdphi,2),size(dYdphi,3)]);
-    dYdphi = tempy(ind_y,:);
-    tempt = reshape(dTdphi,[size(dTdphi,1)*size(dTdphi,2),size(dTdphi,3)]);
-    dTdphi = tempt(ind_t,:);
-    tempr = reshape(dRdphi,[size(dRdphi,1)*size(dRdphi,2),size(dRdphi,3)]);
-    dRdphi = tempr(ind_t,:);
-    if nargout >=7
-        tempy = reshape(ddYdphidphi,[size(ddYdphidphi,1)*size(ddYdphidphi,2),size(ddYdphidphi,3),size(ddYdphidphi,4)]);
-        ddYdphidphi = tempy(ind_y,:,:);
-        tempt = reshape(ddTdphidphi,[size(ddTdphidphi,1)*size(ddTdphidphi,2),size(ddTdphidphi,3),size(ddTdphidphi,4)]);
-        ddTdphidphi = tempt(ind_t,:,:);
-        tempr = reshape(ddRdphidphi,[size(ddRdphidphi,1)*size(ddRdphidphi,2),size(ddRdphidphi,3),size(ddRdphidphi,4)]);
-        ddRdphidphi = tempr(ind_t,:,:);
+if nderiv >= 1
+    YY.dphi = reshape(dYdphi,[size(dYdphi,1)*size(dYdphi,2),size(dYdphi,3)]);
+    TT.dphi = reshape(dTdphi,[size(dTdphi,1)*size(dTdphi,2),size(dTdphi,3)]);
+    RR.dphi = reshape(dRdphi,[size(dRdphi,1)*size(dRdphi,2),size(dRdphi,3)]);
+    if nderiv >= 2
+        YY.dphidphi = reshape(ddYdphidphi,[size(ddYdphidphi,1)*size(ddYdphidphi,2),size(ddYdphidphi,3),size(ddYdphidphi,4)]);
+        TT.dphidphi = reshape(ddTdphidphi,[size(ddTdphidphi,1)*size(ddTdphidphi,2),size(ddTdphidphi,3),size(ddTdphidphi,4)]);
+        RR.dphidphi = reshape(ddRdphidphi,[size(ddRdphidphi,1)*size(ddRdphidphi,2),size(ddRdphidphi,3),size(ddRdphidphi,4)]);
     end
 end
 

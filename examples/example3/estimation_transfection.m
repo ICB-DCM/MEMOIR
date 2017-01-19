@@ -104,9 +104,6 @@ S = [1];
 
 % indicate whether integration should be activated for SCTL data
 Model.integration = false;
-% indicate whether additional penalty terms should be considered for SCTL
-% data
-Model.penalty = false;
 % indicate the model name
 Model.name = model;
 
@@ -136,22 +133,21 @@ Model.prior{2}.std = 0.1;
 
 clc
 % Options for multi-start optimization
-options.fmincon = optimset('algorithm','trust-region-reflective',...
+options.fmincon = optimset('algorithm','interior-point',...
     'GradObj','on',...
     'MaxIter',1000,...
     'TolFun',1e-6,...
     'TolX',1e-8,...
     'display','iter',... %        'display','final',...
-    'MaxFunEvals',1000*parameters_MEM.number,...
-    'Hessian','user-supplied');
+    'MaxFunEvals',1000*parameters_MEM.number);
 options.n_starts = 20;
 options.comp_type = 'sequential';
 options.mode = 'visual';
 options.calc_profiles = 'true';
 parameters_MEM.true = xi;
 
-parameters_MEM = getMultiStarts(parameters_MEM,@(theta) logL_CE_w_grad_2(theta,Data,Model),options);
-parameters_MEM = getProfiles(parameters_MEM,@(theta) logL_CE_w_grad_2(theta,Data,Model),options);
+parameters_MEM = getMultiStarts(parameters_MEM,@(theta) logLMEMOIR(theta,Data,Model),options);
+parameters_MEM = getProfiles(parameters_MEM,@(theta) logLMEMOIR(theta,Data,Model),options);
 save(['./project/results/' model '/' datafile '/' date_now '/MS_MEM/S=[' strrep(num2str(S),'  ','_') ']_' filename '.mat'],...
     'parameters_MEM',...
     'Data',...

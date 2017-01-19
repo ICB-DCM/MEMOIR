@@ -2,83 +2,134 @@
 %% AUXILIARY FUNCTIONS FOR NOISE MODELS %%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-function varargout = normal_time(T,Tm,R,Sigma,ind)
-if nargout >=1
+function J_T = normal_time(T,Tm,R,Sigma,ind,nderiv)
+
+T = T(ind);
+Tm = Tm(ind);
+R = R(ind);
+Sigma = Sigma(ind);
+
+if nderiv >= 0
     % J_T
-    varargout{1} = sum(0.5*((T(ind) - Tm(ind))./Sigma(ind)).^2 + 0.5*((R(ind))./Sigma(ind)).^2 + log(2*pi*Sigma(ind).^2));
-    if nargout >= 2
+    J_T.val = sum(0.5*((T - Tm)./Sigma).^2 + 0.5*((R)./Sigma).^2 + log(2*pi*Sigma.^2));
+    if nderiv >= 1
         % dJ_TdT
-        varargout{2} = transpose((T(ind) - Tm(ind))./(Sigma(ind).^2));
+        J_T.dT = transpose((T - Tm)./(Sigma.^2));
         % dJ_TdR
-        varargout{3} = transpose(R(ind)./(Sigma(ind).^2));
+        J_T.dR = transpose(R./(Sigma.^2));
         % dJ_TdSigma
-        varargout{4} = transpose(- (((T(ind) - Tm(ind)).^2)./(Sigma(ind).^3)) - (((R(ind)).^2)./(Sigma(ind).^3)) + 2./Sigma(ind));
-        if nargout >= 5
+        J_T.dSigma = transpose(- (((T - Tm).^2)./(Sigma.^3)) - (((R).^2)./(Sigma.^3)) + 2./Sigma);
+        if nderiv >= 2
             %ddJ_TdTdT
-            varargout{5} = transpose(1./(Sigma(ind).^2));
+            J_T.dTdT = diag(1./(Sigma.^2));
             %ddJ_TdTdR
-            varargout{6} = transpose(zeros(size(T(ind))));
+            J_T.dTdR = diag(zeros(size(T)));
             %ddJ_TdRdR
-            varargout{7} = transpose(1./(Sigma(ind).^2));
+            J_T.dRdR = diag(1./(Sigma.^2));
             %ddJ_TdTdSigma
-            varargout{8} = transpose(-2*(T(ind) - Tm(ind))./(Sigma(ind).^3));
+            J_T.dTdSigma = diag(-2*(T - Tm)./(Sigma.^3));
             %ddJ_TdRdSigma
-            varargout{9} = transpose(-2*(R(ind))./(Sigma(ind).^3));
+            J_T.dRdSigma = diag(-2*(R)./(Sigma.^3));
             %ddJ_TdSigmadSigma
-            varargout{10} = transpose(3*(((T(ind) - Tm(ind)).^2)./(Sigma(ind).^4)) + 3*(((R(ind)).^2)./(Sigma(ind).^4)) - 2./(Sigma(ind).^2));
-            if nargout >= 11
+            J_T.dSigmadSigma = diag(3*(((T - Tm).^2)./(Sigma.^4)) + 3*(((R).^2)./(Sigma.^4)) - 2./(Sigma.^2));
+            if nderiv >= 3
                 %dddJ_TdTdTdT
-                varargout{11} = transpose(zeros(size(T(ind))));
+                J_T.dTdTdT = transpose(zeros(size(T)));
                 %dddJ_TdTdTdR
-                varargout{12} = transpose(zeros(size(T(ind))));
+                J_T.dTdTdR = transpose(zeros(size(T)));
                 %dddJ_TdTdRdR
-                varargout{13} = transpose(zeros(size(T(ind))));
+                J_T.dTdRdR = transpose(zeros(size(T)));
                 %dddJ_TdRdRdR
-                varargout{14} = transpose(zeros(size(T(ind))));
+                J_T.dRdRdR = transpose(zeros(size(T)));
                 %dddJ_TdTdTdSigma
-                varargout{15} = transpose(- 2./(Sigma(ind).^3));
+                J_T.dTdTdSigma = transpose(- 2./(Sigma.^3));
                 %dddJ_TdTdRdSigma
-                varargout{16} = transpose(zeros(size(T(ind))));
+                J_T.dTdRdSigma = transpose(zeros(size(T)));
                 %dddJ_TdRdRdSigma
-                varargout{17} = transpose(- 2./(Sigma(ind).^3));
+                J_T.dRdRdSigma = transpose(- 2./(Sigma.^3));
                 %dddJ_TdTdSigmadSigma
-                varargout{18} = transpose(6*(T(ind) - Tm(ind))./(Sigma(ind).^4));
+                J_T.dTdSigmadSigma = transpose(6*(T - Tm)./(Sigma.^4));
                 %dddJ_TdRdSigmadSigma
-                varargout{19} = transpose(6*(R(ind))./(Sigma(ind).^4));
+                J_T.dRdSigmadSigma = transpose(6*(R)./(Sigma.^4));
                 %dddJ_TdSigmadSigmadSigma
-                varargout{20} = transpose(- 12*(((T(ind) - Tm(ind)).^2)./(Sigma(ind).^5)) - 12*(((R(ind)).^2)./(Sigma(ind).^5)) + 4./(Sigma(ind).^3));
-                if nargout >= 20
-                    %ddddJ_TdTdTdTdT
-                    varargout{21} = transpose(zeros(size(T(ind))));
-                    %ddddJ_TdTdTdTdR
-                    varargout{22} = transpose(zeros(size(T(ind))));
-                    %ddddJ_TdTdTdRdR
-                    varargout{23} = transpose(zeros(size(T(ind))));
-                    %ddddJ_TdTdRdRdR
-                    varargout{24} = transpose(zeros(size(T(ind))));
-                    %ddddJ_TdRdRdRdR
-                    varargout{25} = transpose(zeros(size(T(ind))));
-                    %ddddJ_TdTdTdTdSigma
-                    varargout{26} = transpose(zeros(size(T(ind))));
-                    %ddddJ_TdTdTdRdSigma
-                    varargout{27} = transpose(zeros(size(T(ind))));
-                    %ddddJ_TdTdRdRdSigma
-                    varargout{28} = transpose(zeros(size(T(ind))));
-                    %ddddJ_TdRdRdRdSigma
-                    varargout{29} = transpose(zeros(size(T(ind))));
-                    %ddddJ_TdTdTdSigmadSigma
-                    varargout{30} = transpose(6./(Sigma(ind).^4));
-                    %ddddJ_TdTdRdSigmadSigma
-                    varargout{31} = transpose(zeros(size(T(ind))));
-                    %ddddJ_TdRdRdSigmadSigma
-                    varargout{32} = transpose(6./(Sigma(ind).^4));
-                    %ddddJ_TdTdSigmadSigmadSigma
-                    varargout{33} = transpose(- 24*((T(ind) - Tm(ind))./(Sigma(ind).^5)));
-                    %ddddJ_TdRdSigmadSigmadSigma
-                    varargout{34} = transpose(- 24*((R(ind))./(Sigma(ind).^5)));
-                    %ddddJ_TdSigmadSigmadSigmadSigma
-                    varargout{35} = transpose(60*(((T(ind) - Tm(ind)).^2)./(Sigma(ind).^6)) + 60*(((R(ind)).^2)./(Sigma(ind).^6)) - 12./(Sigma(ind).^4));
-                end
+                J_T.dSigmadSigmadSigma = transpose(- 12*(((T - Tm).^2)./(Sigma.^5)) - 12*(((R).^2)./(Sigma.^5)) + 4./(Sigma.^3));
+%                 if nargout >= 20
+%                     %ddddJ_TdTdTdTdT
+%                     varargout{21} = transpose(zeros(size(T)));
+%                     if(isempty(varargout{21}))
+%                         varargout{21} = zeros(1,0);
+%                     end
+%                     %ddddJ_TdTdTdTdR
+%                     varargout{22} = transpose(zeros(size(T)));
+%                     if(isempty(varargout{22}))
+%                         varargout{22} = zeros(1,0);
+%                     end
+%                     %ddddJ_TdTdTdRdR
+%                     varargout{23} = transpose(zeros(size(T)));
+%                     if(isempty(varargout{23}))
+%                         varargout{23} = zeros(1,0);
+%                     end
+%                     %ddddJ_TdTdRdRdR
+%                     varargout{24} = transpose(zeros(size(T)));
+%                     if(isempty(varargout{24}))
+%                         varargout{24} = zeros(1,0);
+%                     end
+%                     %ddddJ_TdRdRdRdR
+%                     varargout{25} = transpose(zeros(size(T)));
+%                     if(isempty(varargout{25}))
+%                         varargout{25} = zeros(1,0);
+%                     end
+%                     %ddddJ_TdTdTdTdSigma
+%                     varargout{26} = transpose(zeros(size(T)));
+%                     if(isempty(varargout{26}))
+%                         varargout{26} = zeros(1,0);
+%                     end
+%                     %ddddJ_TdTdTdRdSigma
+%                     varargout{27} = transpose(zeros(size(T)));
+%                     if(isempty(varargout{27}))
+%                         varargout{27} = zeros(1,0);
+%                     end
+%                     %ddddJ_TdTdRdRdSigma
+%                     varargout{28} = transpose(zeros(size(T)));
+%                     if(isempty(varargout{28}))
+%                         varargout{28} = zeros(1,0);
+%                     end
+%                     %ddddJ_TdRdRdRdSigma
+%                     varargout{29} = transpose(zeros(size(T)));
+%                     if(isempty(varargout{29}))
+%                         varargout{29} = zeros(1,0);
+%                     end
+%                     %ddddJ_TdTdTdSigmadSigma
+%                     varargout{30} = transpose(6./(Sigma.^4));
+%                     if(isempty(varargout{30}))
+%                         varargout{30} = zeros(1,0);
+%                     end
+%                     %ddddJ_TdTdRdSigmadSigma
+%                     varargout{31} = transpose(zeros(size(T)));
+%                     if(isempty(varargout{31}))
+%                         varargout{31} = zeros(1,0);
+%                     end
+%                     %ddddJ_TdRdRdSigmadSigma
+%                     varargout{32} = transpose(6./(Sigma.^4));
+%                     if(isempty(varargout{32}))
+%                         varargout{32} = zeros(1,0);
+%                     end
+%                     %ddddJ_TdTdSigmadSigmadSigma
+%                     varargout{33} = transpose(- 24*((T - Tm)./(Sigma.^5)));
+%                     if(isempty(varargout{33}))
+%                         varargout{33} = zeros(1,0);
+%                     end
+%                     %ddddJ_TdRdSigmadSigmadSigma
+%                     varargout{34} = transpose(- 24*((R)./(Sigma.^5)));
+%                     if(isempty(varargout{34}))
+%                         varargout{34} = zeros(1,0);
+%                     end
+%                     %ddddJ_TdSigmadSigmadSigmadSigma
+%                     varargout{35} = transpose(60*(((T - Tm).^2)./(Sigma.^6)) + 60*(((R).^2)./(Sigma.^6)) - 12./(Sigma.^4));
+%                     if(isempty(varargout{35}))
+%                         varargout{35} = zeros(1,0);
+%                     end
+%                 end
             end
         end
     end

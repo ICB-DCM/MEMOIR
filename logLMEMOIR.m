@@ -132,7 +132,7 @@
 %      value between multistarts for the inner optimisation problem for SCTL
 %      data, for optimisation this is typically the number of iterations
 %      between multistarts
-%          0 ... multistart every iteration 
+%          0 ... multistart every iteration
 %          X ... multistart every X iterations (default = 10)
 %        Inf ... Only one multistart in the beginning
 %  extract_flag ... flag indicating whether the values of random effect
@@ -162,302 +162,278 @@
 %
 % 2015/04/14 Fabian Froehlich
 
-function varargout = logL_CE_w_grad_2(varargin)
-
-%% Load old values
-persistent tau
-persistent P_old
-persistent logL_old
-persistent xi_old
-persistent fp
-persistent fl
-persistent n_store
-
-if isempty(tau)
-    tau = clock;
-end
-
-%% Initialization
-xi = varargin{1};
-Data = varargin{2};
-Model = varargin{3};
-
-% Options
-options.tau_update = 0;
-options.plot = 1;
-options.ms_iter = 10;
-if nargin >= 4
-    if(isstruct(varargin{4}))
-        options = setdefault(varargin{4},options);
+function varargout = logLMEMOIR(varargin)
+    
+    %% Load old values
+    persistent tau
+    persistent P_old
+    persistent logL_old
+    
+    if isempty(tau)
+        tau = clock;
     end
-end
-
-if nargin >= 5
-    extract_flag = varargin{5};
-else
-    extract_flag = false;
-end
-
-nderiv = max(nargout-1,0);
-
-% initialise storage
-if(isempty(logL_old))
-    logL_old = -Inf;
-    xi_old = zeros(size(xi));
-    n_store = 0;
+    
+    %% Initialization
+    xi = varargin{1};
+    Data = varargin{2};
+    Model = varargin{3};
+    
+    % Options
+    options.tau_update = 0;
+    options.plot = 1;
+    options.ms_iter = 10;
+    options.events = 1;
+    options.rescaleSCTL = 0;
+    options.optimal_sigma = 1;
+    if nargin >= 4
+        if(isstruct(varargin{4}))
+            options = setdefault(varargin{4},options);
+        end
+    end
+    if nargin >= 5
+        extract_flag = varargin{5};
+    else
+        extract_flag = false;
+    end
+    if nargin >= 6
+        P_old = varargin{6};
+        logL_old = -Inf;
+    end
+    options.nderiv = max(nargout-1,0);
+    
+    
+    % initialise storage
+    if(isempty(logL_old))
+        logL_old = -Inf;
+        for s = 1:length(Data)
+            P_old{s}.n_store = 0;
+            P_old{s}.xi = zeros(size(xi));
+            if isfield(Data{s},'SCTL')
+                P_old{s}.SCTL.bhat = zeros(length(Model.exp{s}.ind_b),size(Data{s}.SCTL.Y,3));
+                P_old{s}.SCTL.dbdxi = zeros(length(Model.exp{s}.ind_b),length(xi),size(Data{s}.SCTL.Y,3));
+            end
+        end
+    end
+    P = P_old;
+    
+    % Plot options
+    if (etime(clock,tau) > options.tau_update) && (options.plot == 1)
+        options.plot = 30;
+        tau = clock;
+    else
+        options.plot = 0;
+    end
+    
+    %% Evaluation of likelihood function
+    % Initialization
+    logL = 0;
+    if options.nderiv >= 1
+        dlogLdxi = zeros(length(xi),1);
+        if options.nderiv >= 2
+            ddlogLdxidxi = zeros(length(xi));
+        end
+    end
+    
+    options.type_D = Model.type_D;
+    options.integration = Model.integration;
+    
+    % Loop: Experiments/Experimental Conditions
     for s = 1:length(Data)
+        
+        %% Single cell time-lapse data - Individuals
         if isfield(Data{s},'SCTL')
-            P_old{s}.SCTL.bhat = zeros(length(Model.exp{s}.ind_b),size(Data{s}.SCTL.Y,3));
-            P_old{s}.SCTL.dbdxi = zeros(length(Model.exp{s}.ind_b),length(xi),size(Data{s}.SCTL.Y,3));
-        else
-            P_old{s} = [];
-        end
-    end
-end
-    
-
-% Plot options
-if (etime(clock,tau) > options.tau_update) && (options.plot == 1)
-    options.plot = 30;
-    tau = clock;
-else
-    options.plot = 0;
-end
-
-%% Evaluation of likelihood function
-% Initialization
-logL = 0;
-if nderiv >= 2
-    dlogLdxi = zeros(length(xi),1);
-    if nderiv >= 3
-        ddlogLdxidxi = zeros(length(xi));
-    end
-end
-
-% definition of possible datatypes
-data_type = {'SCTL','SCSH','SCTLstat','PA'};
-
-ms_iter = options.ms_iter;
-
-% Loop: Experiments/Experimental Conditions
-for s = 1:length(Data)
-    
-    %% Assignment of global variables
-    type_D = Model.type_D;
-    
-    n_b = length(Model.exp{s}.ind_b);
-    
-    %% Construct fixed effects and covariance matrix
-    beta = Model.exp{s}.beta(xi);
-    delta = Model.exp{s}.delta(xi);
-    
-    n_beta = length(Model.exp{s}.beta(xi));
-    
-    [D,~,~,~,~,~] = xi2D(delta,type_D);
-    
-    % debugging:
-    % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(delta,@(x) xi2D(x,type_D),1e-4,1,3)
-    % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(delta,@(x) xi2D(x,type_D),1e-4,3,5)
-    % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(delta,@(x) xi2D(x,type_D),1e-4,2,4)
-    % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(delta,@(x) xi2D(x,type_D),1e-4,4,6)
-    
-    %% Construction of time vector
-    t_s = [];
-    for dtype = 1:length(data_type)
-        if isfield(Data{s},data_type{dtype})
-            t_s = union(eval(['Data{s}.' data_type{dtype} '.time']),t_s);
-        end
-    end
-    
-    %% Single cell time-lapse data - Individuals
-    if isfield(Data{s},'SCTL')
-        
-        switch(nderiv)
-            case 0
-                [P,logL_sc] = logL_SCTL(xi, Model, Data, s, options, P);
-            case 1
-                [P,logL_sc,dlogL_scdxi] = logL_SCTL(xi, Model, Data, s, options, P);
-            case 2
-                [P,logL_sc,dlogL_scdxi,ddlogL_scdxi2] = logL_SCTL(xi, Model, Data, s, options ,P);
-        end
-        
-        logL = logL + sum(bsxfun(@times,Model.SCTLscale,logL_sc),2);
-        if nderiv <= 2
-            dlogLdxi = dlogLdxi + sum(bsxfun(@times,Model.SCTLscale,dlogL_scdxi),2);
-            if nderiv <= 3
-                ddlogLdxidxi = ddlogLdxidxi + sum(bsxfun(@times,Model.SCTLscale,ddlogL_scdxi2),2);
+            switch(options.nderiv)
+                case 0
+                    [P,logL_sc] = logL_SCTL(xi, Model.exp{s}, Data{s}, s, options, P);
+                case 1
+                    [P,logL_sc,dlogL_scdxi] = logL_SCTL(xi, Model.exp{s}, Data{s}, s, options, P);
+                    % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(xi,@(xi) logL_SCTL(xi, Model.exp{s}, Data{s}, s, options, P),1e-3,2,3)
+                case 2
+                    [P,logL_sc,dlogL_scdxi,ddlogL_scdxi2] = logL_SCTL(xi, Model.exp{s}, Data{s}, s, options ,P);
             end
-        end
-
-
-    end
-    
-    %% Single cell time-lapse data - Statistics
-    if isfield(Data{s},'SCTLstat')
-        % Simulation using sigma points
-        op_SP.nderiv = nderiv;
-        op_SP.req = [0,0,0,1,1,1,0];
-        op_SP.type_D = Model.type_D;
-        if(extract_flag)
-            SP = testSigmaPointApp(@(phi) simulateForSP(Model.exp{s}.model,Data{s}.SCTLstat.time,phi,Data{s}.condition),xi,Model.exp{s},op_SP);
-        else
-            SP = getSigmaPointApp(@(phi) simulateForSP(Model.exp{s}.model,Data{s}.SCTLstat.time,phi,Data{s}.condition),xi,Model.exp{s},op_SP);
-        end
-        
-        % Evaluation of likelihood, likelihood gradient and hessian
-        
-        % Mean
-        logL_mz = - 0.5*sum(nansum(((Data{s}.SCTLstat.mz - SP.mz)./Data{s}.SCTLstat.Sigma_mz).^2,1),2);
-        if nderiv >= 2
-            dlogL_mzdxi = permute(nansum(bsxfun(@times,(Data{s}.SCTLstat.mz - SP.mz)./Data{s}.SCTLstat.Sigma_mz.^2,SP.dmzdxi),1),[2,1]);
-            if nderiv >= 3
-                wdmz_SP = bsxfun(@times,1./Data{s}.SCTLstat.Sigma_mz,SP.dmzdxi);
-                %                     wdmz_SP = reshape(wdmz_SP,[numel(SP.mz),size(SP.dmdxizdxi,3)]);
-                ddlogL_mzdxi2 = -wdmz_SP'*wdmz_SP;
+            
+            if(options.rescaleSCTL)
+                scaling = 1/size(Data{s}.SCTL.Y,3);
+            else
+                scaling = 1;
+            end
+            
+            logL = logL + scaling*sum(logL_sc);
+            if options.nderiv >= 1
+                dlogLdxi = dlogLdxi + transpose(scaling*sum(dlogL_scdxi));
+                if options.nderiv >= 2
+                    ddlogLdxidxi = ddlogLdxidxi + permute(scaling*sum(ddlogL_scdxi2),[2,3,1]);
+                end
             end
         end
         
-        
-        % Covariance
-        logL_Cz = - 0.5*sum(nansum(nansum(((Data{s}.SCTLstat.Cz - SP.Cz)./Data{s}.SCTLstat.Sigma_Cz).^2,1),2),3);
-        if nderiv >= 2
-            dlogL_Czdxi = squeeze(nansum(nansum(bsxfun(@times,(Data{s}.SCTLstat.Cz - SP.Cz)./Data{s}.SCTLstat.Sigma_Cz.^2,SP.dCzdxi),1),2));
-            if nderiv >= 3
-                wdCzdxi = bsxfun(@times,1./Data{s}.SCTLstat.Sigma_Cz,SP.dCzdxi);
-                wdCzdxi = reshape(wdCzdxi,[numel(SP.Cz),size(SP.dCzdxi,3)]);
-                ddlogL_Czdxi2 = -wdCzdxi'*wdCzdxi;
+        %% Single cell time-lapse data - Statistics
+        if isfield(Data{s},'SCTLstat')
+            % Simulation using sigma points
+            op_SP.options.nderiv = options.nderiv;
+            op_SP.req = [0,0,0,1,1,1,0];
+            op_SP.type_D = Model.type_D;
+            if(extract_flag)
+                SP = testSigmaPointApp(@(phi) simulateForSP(Model.exp{s}.model,Data{s}.SCTLstat.time,phi,Data{s}.condition),xi,Model.exp{s},op_SP);
+            else
+                SP = getSigmaPointApp(@(phi) simulateForSP(Model.exp{s}.model,Data{s}.SCTLstat.time,phi,Data{s}.condition),xi,Model.exp{s},op_SP);
             end
-        end
-        
-        % Summation
-        logL = logL + logL_mz + logL_Cz;
-        if nderiv >=2
-            dlogLdxi = dlogLdxi + dlogL_mzdxi + dlogL_Czdxi;
-            if nderiv >=3
-                ddlogLdxidxi = ddlogLdxidxi + ddlogL_mzdxi2 + ddlogL_Czdxi2;
+            
+            % Evaluation of likelihood, likelihood gradient and hessian
+            
+            % Mean
+            logL_mz = - 0.5*sum(nansum(((Data{s}.SCTLstat.mz - SP.mz)./Data{s}.SCTLstat.Sigma_mz).^2,1),2);
+            if options.nderiv >= 2
+                dlogL_mzdxi = permute(nansum(bsxfun(@times,(Data{s}.SCTLstat.mz - SP.mz)./Data{s}.SCTLstat.Sigma_mz.^2,SP.dmzdxi),1),[2,1]);
+                if options.nderiv >= 3
+                    wdmz_SP = bsxfun(@times,1./Data{s}.SCTLstat.Sigma_mz,SP.dmzdxi);
+                    %                     wdmz_SP = reshape(wdmz_SP,[numel(SP.mz),size(SP.dmdxizdxi,3)]);
+                    ddlogL_mzdxi2 = -wdmz_SP'*wdmz_SP;
+                end
             end
+            
+            
+            % Covariance
+            logL_Cz = - 0.5*sum(nansum(nansum(((Data{s}.SCTLstat.Cz - SP.Cz)./Data{s}.SCTLstat.Sigma_Cz).^2,1),2),3);
+            if options.nderiv >= 2
+                dlogL_Czdxi = squeeze(nansum(nansum(bsxfun(@times,(Data{s}.SCTLstat.Cz - SP.Cz)./Data{s}.SCTLstat.Sigma_Cz.^2,SP.dCzdxi),1),2));
+                if options.nderiv >= 3
+                    wdCzdxi = bsxfun(@times,1./Data{s}.SCTLstat.Sigma_Cz,SP.dCzdxi);
+                    wdCzdxi = reshape(wdCzdxi,[numel(SP.Cz),size(SP.dCzdxi,3)]);
+                    ddlogL_Czdxi2 = -wdCzdxi'*wdCzdxi;
+                end
+            end
+            
+            % Summation
+            logL = logL + logL_mz + logL_Cz;
+            if options.nderiv >=2
+                dlogLdxi = dlogLdxi + dlogL_mzdxi + dlogL_Czdxi;
+                if options.nderiv >=3
+                    ddlogLdxidxi = ddlogLdxidxi + ddlogL_mzdxi2 + ddlogL_Czdxi2;
+                end
+            end
+            
+            % Visulization
+            if options.plot
+                Sim_SCTLstat.mz = SP.mz;
+                Sim_SCTLstat.Cz = SP.Cz;
+                Model.exp{s}.plot(Data{s},Sim_SCTLstat,s);
+            end
+            
+            P{s}.SCTLstat.SP = SP;
+            
         end
         
-        % Visulization
-        if options.plot
-            Sim_SCTLstat.mz = SP.mz;
-            Sim_SCTLstat.Cz = SP.Cz;
-            Model.exp{s}.plot(Data{s},Sim_SCTLstat,s);
+        %% Single cell snapshot data
+        if isfield(Data{s},'SCSH')
+            
+            switch(options.nderiv)
+                case 0
+                    [SP,logL_m,logL_C] = logL_PA(xi, Model, Data, s, options);
+                case 1
+                    [SP,logL_m,logL_C,dlogL_mdxi,dlogL_Cdxi] = logL_PA(xi, Model, Data, s, options);
+                case 2
+                    [SP,logL_m,logL_C,dlogL_mdxi,dlogL_Cdxi,ddlogL_mdxi2,ddlogL_Cdxi2] = logL_PA(xi, Model, Data, s, options);
+            end
+            
+            % Summation
+            logL = logL + logL_m + logL_C;
+            if options.nderiv >= 2
+                dlogLdxi = dlogLdxi + dlogL_mdxi + dlogL_Cdxi;
+                if options.nderiv >= 3
+                    ddlogLdxidxi = ddlogLdxidxi + ddlogL_mdxi2 + ddlogL_Cdxi2;
+                end
+            end
+            
+            P{s}.SCSH.SP = SP;
+            
         end
         
-        P{s}.SCTLstat.SP = SP;
-        
+        %% Population average data
+        if isfield(Data{s},'PA')
+            
+            switch(options.nderiv)
+                case 0
+                    [SP,logL_m] = logL_PA(xi, Model, Data, s, options);
+                case 1
+                    [SP,logL_m,dlogL_mdxi] = logL_PA(xi, Model, Data, s, options);
+                    % [g,g_fd_f,g_fd_b,g_fd_c]=testGradient(xi,@(xi) logL_PA(xi, Model, Data, s, options),1e-3,2,3)
+                case 2
+                    [SP,logL_m,dlogL_mdxi,ddlogL_mdxi2] = logL_PA(xi, Model, Data, s, options);
+            end
+            
+            % Summation
+            logL = logL + logL_m;
+            if options.nderiv >= 1
+                dlogLdxi = dlogLdxi + dlogL_mdxi;
+                if options.nderiv >= 2
+                    ddlogLdxidxi = ddlogLdxidxi + ddlogL_mdxi2;
+                end
+            end
+            
+            P{s}.PA.SP = SP;
+        end
     end
     
-    %% Single cell snapshot data
-    if isfield(Data{s},'SCSH')
-        
-        switch(nderiv)
-            case 0
-            [SP,logL_m,logL_C] = logL_PA(xi, Model, Data, s, options);
-            case 1
-            [SP,logL_m,logL_C,dlogL_mdxi,dlogL_Cdxi] = logL_PA(xi, Model, Data, s, options);
-            case 2
-            [SP,logL_m,logL_C,dlogL_mdxi,dlogL_Cdxi,ddlogL_mdxi2,ddlogL_Cdxi2] = logL_PA(xi, Model, Data, s, options);
+    % updated stored value
+    if(logL > logL_old)
+        logL_old = logL;
+        P_old = P;
+        for s = 1:length(Data)
+            P_old{s}.xi = xi;
+            P_old{s}.n_store = P_old{s}.n_store + 1;
         end
-        
-        % Summation
-        logL = logL + logL_m + logL_C;
-        if nderiv >= 2
-            dlogLdxi = dlogLdxi + dlogL_mdxi + dlogL_Cdxi;
-            if nderiv >= 3
-                ddlogLdxidxi = ddlogLdxidxi + ddlogL_mdxi2 + ddlogL_Cdxi2;
-            end
-        end
-
-        P{s}.SCSH.SP = SP;
-        
     end
     
-    %% Population average data
-    if isfield(Data{s},'PA')
-        
-        switch(nderiv)
-            case 0
-            [SP,logL_m] = logL_PA(xi, Model, Data, s, options);
-            case 1
-            [SP,logL_m,dlogL_mdxi] = logL_PA(xi, Model, Data, s, options);
-            case 2
-            [SP,logL_m,dlogL_mdxi,ddlogL_mdxi2] = logL_PA(xi, Model, Data, s, options);
-        end
-        
-        % Summation
-        logL = logL + logL_m;
-        if nderiv >= 1
-            dlogLdxi = dlogLdxi + dlogL_mdxi;
-            if nderiv >= 2
-                ddlogLdxidxi = ddlogLdxidxi + ddlogL_mdxi2;
-            end
-        end
-        
-        P{s}.PA.SP = SP;
-    end
-   
-end
-
-% updated stored value
-if(logL > logL_old)
-    logL_old = logL;
-    P_old = P;
-    xi_old = xi;
-    n_store = n_store + 1;
-end
-
-%% Output
-
-if extract_flag
-    varargout{1} = P;
-    return
-end
-
-%% Prior
-
-if isfield(Model,'prior')
-    if(iscell(Model.prior))
-        if(length(Model.prior) <= length(xi))
-            for ixi = 1:length(Model.prior)
-                if(isfield(Model.prior{ixi},'mu') && isfield(Model.prior{ixi},'std'))
-                    if nderiv >= 1
-                        % One output
-                        logL =  logL - 0.5*((xi(ixi)-Model.prior{ixi}.mu)/Model.prior{ixi}.std)^2;
-                        if nderiv >= 2
-                            % Two outputs
-                            dlogLdxi(ixi) =  dlogLdxi(ixi) - ((xi(ixi)-Model.prior{ixi}.mu)/Model.prior{ixi}.std^2);
-                            if nderiv >= 3
+    
+    %% Prior
+    
+    if isfield(Model,'prior')
+        if(iscell(Model.prior))
+            if(length(Model.prior) <= length(xi))
+                for ixi = 1:length(Model.prior)
+                    if(isfield(Model.prior{ixi},'mu') && isfield(Model.prior{ixi},'std'))
+                        if options.nderiv >= 1
+                            % One output
+                            logL =  logL - 0.5*((xi(ixi)-Model.prior{ixi}.mu)/Model.prior{ixi}.std)^2;
+                            if options.nderiv >= 2
                                 % Two outputs
-                                ddlogLdxidxi(ixi,ixi) =  ddlogLdxidxi(ixi,ixi) - 1/Model.prior{ixi}.std^2;
+                                dlogLdxi(ixi) =  dlogLdxi(ixi) - ((xi(ixi)-Model.prior{ixi}.mu)/Model.prior{ixi}.std^2);
+                                if options.nderiv >= 3
+                                    % Two outputs
+                                    ddlogLdxidxi(ixi,ixi) =  ddlogLdxidxi(ixi,ixi) - 1/Model.prior{ixi}.std^2;
+                                end
                             end
                         end
                     end
                 end
+            else
+                error('length of Model.prior must agree with length of optimization parameter')
             end
         else
-            error('length of Model.prior must agree with length of optimization parameter')
+            error('Model.prior must be a cell array')
         end
-    else
-        error('Model.prior must be a cell array')
     end
-end
-
-
-%%
-
-if nderiv >= 1
-    % One output
-    varargout{1} =  logL;
-    if nderiv >= 2
-        % Two outputs
-        varargout{2} =  dlogLdxi;
-        if nderiv >= 3
+    
+    
+    %% OUTPUT
+    
+    if extract_flag
+        varargout{1} = P;
+        return
+    end
+    
+    if nargout >= 1
+        % One output
+        varargout{1} =  logL;
+        if nargout >= 2
             % Two outputs
-            varargout{3} =  ddlogLdxidxi;
+            varargout{2} =  dlogLdxi;
+            if nargout >= 3
+                % Two outputs
+                varargout{3} =  ddlogLdxidxi;
+            end
         end
     end
-end
-
+    
 end

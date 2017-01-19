@@ -30,7 +30,7 @@ function Data = data_transfection(Data,Model,xi,S,datafile)
         end
         
         % Visualization
-        Model.exp{s}.plot(Data{s},[],Model.exp{s}.fh);
+        Model.exp{s}.plot(Data{s},[],s);
     end
     
     % Transfection experiment: Population snapshot

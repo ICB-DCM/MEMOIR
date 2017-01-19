@@ -529,13 +529,8 @@ for s = 1:length(Data)
         % Simulation using sigma points
         op_SP.nderiv = nderiv;
         op_SP.req = [1,1,0,0,0,1,0];
-        if(nderiv>0)
-            dbetadxi = Model.exp{s}.dbetadxi(xi);
-            ddeltadxi = Model.exp{s}.ddeltadxi(xi);
-            SP = getSigmaPointApp(@(phi) simulateForSP(Model.exp{s}.model,Data{s}.SCSH.time,phi,Data{s}.condition),beta,D,Model.exp{s},op_SP,dDddelta,ddeltadxi,dbetadxi);
-        else
-            SP = getSigmaPointApp(@(phi) simulateForSP(Model.exp{s}.model,Data{s}.SCSH.time,phi,Data{s}.condition),beta,D,Model.exp{s},op_SP);
-        end
+        op_SP.type_D = Model.type_D;
+        SP = testSigmaPointApp(@(phi) simulateForSP(Model.exp{s}.model,Data{s}.SCSH.time,phi,Data{s}.condition),xi,Model.exp{s},op_SP);
         
         % Evaluation of likelihood, likelihood gradient and hessian
         % Mean
