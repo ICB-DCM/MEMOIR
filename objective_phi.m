@@ -2,7 +2,7 @@ function [J_D,J_T,Sim] = objective_phi(model,data,phi,s,i,options,nderiv,FIMflag
 
 Ym = data.SCTL.Y(:,:,i);
 ind_y = data.SCTL.ind_y(:,i);
-ny = sum(ind_y);
+ny = sum(ind_y)*size(Ym,2);
 Tm  = data.SCTL.T(:,:,i);
 ind_t = data.SCTL.ind_t(:,i);
 nt = sum(ind_t);
@@ -249,11 +249,11 @@ end
 
 if(nargout>=3)
     Sim.SCTL_Y = Y.val;
-    Sim.SCTL_T = T.val(ind_t);
+    Sim.SCTL_T = T.val(ind_t,:);
     
-    Sim.SCTL_R = R.val(ind_t);
-    Sim.SCTL_Sigma_Y = Sigma_noise.val(ind_y);
-    Sim.SCTL_Sigma_T = Sigma_time.val(ind_t);
+    Sim.SCTL_R = R.val(ind_t,:);
+    Sim.SCTL_Sigma_Y = Sigma_noise.val(ind_y,:);
+    Sim.SCTL_Sigma_T = Sigma_time.val(ind_t,:);
 end
 
 end

@@ -79,11 +79,11 @@ if isempty(p)
             dbdxi(i,:,:) = bhat.dxi;
             dlogL_scdxi(i,:) = logL.dxi;
         end
-        YY(data.SCTL.ind_y(:,i),:) = Sim.SCTL_Y;
-        SY(data.SCTL.ind_y(:,i),:) = Sim.SCTL_Sigma_Y;
-        TT(data.SCTL.ind_t(:,i),:) = Sim.SCTL_T;
-        ST(data.SCTL.ind_t(:,i),:) = Sim.SCTL_Sigma_T;
-        RR(data.SCTL.ind_t(:,i),:) = Sim.SCTL_R;
+        YY(data.SCTL.ind_y(:,i),:) = reshape(Sim.SCTL_Y,size(YY(data.SCTL.ind_y(:,i),:)));
+        SY(data.SCTL.ind_y(:,i),:) = reshape(Sim.SCTL_Sigma_Y,size(SY(data.SCTL.ind_y(:,i),:)));
+        TT(data.SCTL.ind_t(:,i),:) = reshape(Sim.SCTL_T,size(TT(data.SCTL.ind_t(:,i),:)));
+        ST(data.SCTL.ind_t(:,i),:) = reshape(Sim.SCTL_Sigma_T,size(ST(data.SCTL.ind_t(:,i),:)));
+        RR(data.SCTL.ind_t(:,i),:) = reshape(Sim.SCTL_R,size(RR(data.SCTL.ind_t(:,i),:)));
         Sim_SCTL_Y(:,:,i) = YY;
         Sim_SCTL_SIGMAY(:,:,i) = SY;
         Sim_SCTL_T(:,:,i) = TT;
@@ -110,11 +110,11 @@ else
             dbdxi(i,:,:) = bhat.dxi;
             dlogL_scdxi(i,:) = logL.dxi;
         end
-        YY(data.SCTL.ind_y(:,i),:) = Sim.SCTL_Y;
-        SY(data.SCTL.ind_y(:,i),:) = Sim.SCTL_Sigma_Y;
-        TT(data.SCTL.ind_t(:,i),:) = Sim.SCTL_T;
-        ST(data.SCTL.ind_t(:,i),:) = Sim.SCTL_Sigma_T;
-        RR(data.SCTL.ind_t(:,i),:) = Sim.SCTL_R;
+        YY(data.SCTL.ind_y(:,i),:) = reshape(Sim.SCTL_Y,size(YY(data.SCTL.ind_y(:,i),:)));
+        SY(data.SCTL.ind_y(:,i),:) = reshape(Sim.SCTL_Sigma_Y,size(SY(data.SCTL.ind_y(:,i),:)));
+        TT(data.SCTL.ind_t(:,i),:) = reshape(Sim.SCTL_T,size(TT(data.SCTL.ind_t(:,i),:)));
+        ST(data.SCTL.ind_t(:,i),:) = reshape(Sim.SCTL_Sigma_T,size(ST(data.SCTL.ind_t(:,i),:)));
+        RR(data.SCTL.ind_t(:,i),:) = reshape(Sim.SCTL_R,size(RR(data.SCTL.ind_t(:,i),:)));
         Sim_SCTL_Y(:,:,i) = YY;
         Sim_SCTL_SIGMAY(:,:,i) = SY;
         Sim_SCTL_T(:,:,i) = TT;

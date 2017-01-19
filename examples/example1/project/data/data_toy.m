@@ -30,7 +30,7 @@ function Data = data_exp_decay(Data,Model,xi,S,datafile)
         end
         
         % Visualization
-        Model.exp{s}.plot(Data{s},[],Model.exp{s}.fh);
+        Model.exp{s}.plot(Data{s},[],s);
     end
 
 end
