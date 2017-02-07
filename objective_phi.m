@@ -31,7 +31,13 @@ catch err
     % if simulation fails, return Inf
     J_D.val = Inf;
     J_T.val = Inf;
+    if(nargout>=2)
+        J_D.dphi = NaN(1,nphi);
+        J_T.dphi = NaN(1,nphi);
+    end
     if(nargout>=3)
+        J_D.FIM = NaN(nphi,nphi);
+        J_T.FIM = NaN(nphi,nphi);
         Sim.SCTL_Y = NaN(size(Ym));
         Sim.SCTL_T = NaN(size(Tm));
         Sim.SCTL_R = NaN(size(Tm));
