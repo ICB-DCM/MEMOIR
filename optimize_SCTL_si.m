@@ -56,7 +56,7 @@ if(fms)
     [bhat,OBJ,~,~,~,~,~] = fmincon(...
         @(b) objective_SCTL_s1(model,data,beta,b,delta,s,i,options,1),...
         bhat_0,[],[],[],[],-10*ones(length(bhat_0),1),10*ones(length(bhat_0),1),[],options_fmincon);
-    catch
+    catch err
         OBJ = inf;
     end
     rng(0);

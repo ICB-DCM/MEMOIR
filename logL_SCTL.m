@@ -42,9 +42,11 @@ if options.nderiv >= 1
 end
 
 tmp = arrayfun(@(x) any(~isnan(data.SCTL.Y(:,:,x)),2),1:size(data.SCTL.Y,3),'UniformOutput',false);
-data.SCTL.ind_y = [tmp{:}];
+data.SCTL.ind_y = false(size(data.SCTL.Y,1),size(data.SCTL.Y,3));
+data.SCTL.ind_y(:,:) = [tmp{:}];
 tmp = arrayfun(@(x) any(~isnan(data.SCTL.T(:,:,x)),2),1:size(data.SCTL.T,3),'UniformOutput',false);
-data.SCTL.ind_t = [tmp{:}];
+data.SCTL.ind_t = false(size(data.SCTL.T,1),size(data.SCTL.T,3));
+data.SCTL.ind_t(:,:) = [tmp{:}];
 
 Sim_SCTL_Y = zeros([length(data.SCTL.ind_y),size(data.SCTL.Y,2),size(data.SCTL.Y,3)]);
 Sim_SCTL_SIGMAY = zeros([length(data.SCTL.ind_y),size(data.SCTL.Y,2),size(data.SCTL.Y,3)]);

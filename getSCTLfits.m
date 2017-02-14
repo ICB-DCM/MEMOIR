@@ -13,7 +13,7 @@ for iData = 1:length(Data)
     optionsMultistart = PestoOptions();
     optionsMultistart.n_starts = n_starts;
     optionsMultistart.comp_type = 'sequential';
-    optionsMultistart.mode = 'text';
+    optionsMultistart.mode = 'visual';
     optionsMultistart.obj_type = 'log-posterior';
     
     if(isfield(Data{iData},'SCTL'))
@@ -36,4 +36,3 @@ end
 
 
 end
-

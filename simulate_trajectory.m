@@ -92,8 +92,8 @@ if(sol.status <0)
 end
 Y = sol.y(1:(end-(sum(ind_y)<length(t))),:);
 if(isfield(sol,'z'))
-    TT.val = sol.z;
-    RR.val = sol.rz;
+    TT.val = sol.z(ind_t,:);
+    RR.val = sol.rz(ind_t,:);
 else
     TT.val = zeros(0,sum(ind_t));
     RR.val = zeros(0,sum(ind_t));
