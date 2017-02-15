@@ -27,11 +27,11 @@ figure(fh(s));
 % Options
 options.data.col = 'b';
 options.data.area_col = [0.7,0.7,1];
-options.data.ls = '-';
+options.data.ls = 'none';
 options.data.mean_lw = 2;
 options.data.bound_lw = 1;
 options.sim.col = 'r';
-options.sim.ls = '--';
+options.sim.ls = '-';
 options.sim.mean_lw = 2;
 options.sim.bound_lw = 1;
 options.error.col = 'b';
@@ -60,7 +60,7 @@ if ~isempty(Sim)
         % Data and simulation 
         subplot(nr,nc,2*(j-1)+1); hold off;
         
-        lh(1) = plot(Data.PA.time,Data.PA.m(:,j),'-',...
+        lh(1) = plot(Data.PA.time,Data.PA.m(:,j),'+',...
               'linewidth',options.data.mean_lw,...
               'linestyle',options.data.ls,...
               'color',options.data.col); hold on;
@@ -77,7 +77,7 @@ if ~isempty(Sim)
         end
         
         subplot(nr,nc,2*(j-1)+2); hold off;
-            plot(Data.PA.time,Data.PA.m(:,j)-Sim.m(:,j),'-',...
+            plot(Data.PA.time,Data.PA.m(:,j)-Sim.m(:,j),'o',...
                 'linewidth',options.error.lw,...
                 'linestyle',options.error.ls,...
                 'color',options.error.col); hold on;
@@ -92,7 +92,7 @@ if isempty(Sim)
     % Loop: measurands
     for j = 1:n_y
         subplot(nr,nc,j); hold off;
-        plot(Data.PA.time,Data.PA.m(:,j),'-',...
+        plot(Data.PA.time,Data.PA.m(:,j),'o',...
               'linewidth',options.data.mean_lw,...
               'linestyle',options.data.ls,...
               'color',options.data.col); hold on;
