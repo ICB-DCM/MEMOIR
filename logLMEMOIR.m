@@ -269,59 +269,60 @@ function varargout = logLMEMOIR(varargin)
         
         %% Single cell time-lapse data - Statistics
         if isfield(Data{s},'SCTLstat')
-            % Simulation using sigma points
-            op_SP.options.nderiv = options.nderiv;
-            op_SP.req = [0,0,0,1,1,1,0];
-            op_SP.type_D = Model.type_D;
-            if(extract_flag)
-                SP = testSigmaPointApp(@(phi) simulateForSP(Model.exp{s}.model,Data{s}.SCTLstat.time,phi,Data{s}.condition),xi,Model.exp{s},op_SP);
-            else
-                SP = getSigmaPointApp(@(phi) simulateForSP(Model.exp{s}.model,Data{s}.SCTLstat.time,phi,Data{s}.condition),xi,Model.exp{s},op_SP);
-            end
-            
-            % Evaluation of likelihood, likelihood gradient and hessian
-            
-            % Mean
-            logL_mz = - 0.5*sum(nansum(((Data{s}.SCTLstat.mz - SP.mz)./Data{s}.SCTLstat.Sigma_mz).^2,1),2);
-            if options.nderiv >= 2
-                dlogL_mzdxi = permute(nansum(bsxfun(@times,(Data{s}.SCTLstat.mz - SP.mz)./Data{s}.SCTLstat.Sigma_mz.^2,SP.dmzdxi),1),[2,1]);
-                if options.nderiv >= 3
-                    wdmz_SP = bsxfun(@times,1./Data{s}.SCTLstat.Sigma_mz,SP.dmzdxi);
-                    %                     wdmz_SP = reshape(wdmz_SP,[numel(SP.mz),size(SP.dmdxizdxi,3)]);
-                    ddlogL_mzdxi2 = -wdmz_SP'*wdmz_SP;
-                end
-            end
-            
-            
-            % Covariance
-            logL_Cz = - 0.5*sum(nansum(nansum(((Data{s}.SCTLstat.Cz - SP.Cz)./Data{s}.SCTLstat.Sigma_Cz).^2,1),2),3);
-            if options.nderiv >= 2
-                dlogL_Czdxi = squeeze(nansum(nansum(bsxfun(@times,(Data{s}.SCTLstat.Cz - SP.Cz)./Data{s}.SCTLstat.Sigma_Cz.^2,SP.dCzdxi),1),2));
-                if options.nderiv >= 3
-                    wdCzdxi = bsxfun(@times,1./Data{s}.SCTLstat.Sigma_Cz,SP.dCzdxi);
-                    wdCzdxi = reshape(wdCzdxi,[numel(SP.Cz),size(SP.dCzdxi,3)]);
-                    ddlogL_Czdxi2 = -wdCzdxi'*wdCzdxi;
-                end
-            end
-            
-            % Summation
-            logL = logL + logL_mz + logL_Cz;
-            if options.nderiv >=2
-                dlogLdxi = dlogLdxi + dlogL_mzdxi + dlogL_Czdxi;
-                if options.nderiv >=3
-                    ddlogLdxidxi = ddlogLdxidxi + ddlogL_mzdxi2 + ddlogL_Czdxi2;
-                end
-            end
-            
-            % Visulization
-            if options.plot
-                Sim_SCTLstat.mz = SP.mz;
-                Sim_SCTLstat.Cz = SP.Cz;
-                Model.exp{s}.plot(Data{s},Sim_SCTLstat,s);
-            end
-            
-            P{s}.SCTLstat.SP = SP;
-            
+            error('currently not properly implemented');
+%             % Simulation using sigma points
+%             op_SP.options.nderiv = options.nderiv;
+%             op_SP.req = [0,0,0,1,1,1,0];
+%             op_SP.type_D = Model.type_D;
+%             if(extract_flag)
+%                 SP = testSigmaPointApp(@(phi) simulateForSP(Model.exp{s}.model,Data{s}.SCTLstat.time,phi,Data{s}.condition),xi,Model.exp{s},op_SP);
+%             else
+%                 SP = getSigmaPointApp(@(phi) simulateForSP(Model.exp{s}.model,Data{s}.SCTLstat.time,phi,Data{s}.condition),xi,Model.exp{s},op_SP);
+%             end
+%             
+%             % Evaluation of likelihood, likelihood gradient and hessian
+%             
+%             % Mean
+%             logL_mz = - 0.5*sum(nansum(((Data{s}.SCTLstat.mz - SP.mz)./Data{s}.SCTLstat.Sigma_mz).^2,1),2);
+%             if options.nderiv >= 2
+%                 dlogL_mzdxi = permute(nansum(bsxfun(@times,(Data{s}.SCTLstat.mz - SP.mz)./Data{s}.SCTLstat.Sigma_mz.^2,SP.dmzdxi),1),[2,1]);
+%                 if options.nderiv >= 3
+%                     wdmz_SP = bsxfun(@times,1./Data{s}.SCTLstat.Sigma_mz,SP.dmzdxi);
+%                     %                     wdmz_SP = reshape(wdmz_SP,[numel(SP.mz),size(SP.dmdxizdxi,3)]);
+%                     ddlogL_mzdxi2 = -wdmz_SP'*wdmz_SP;
+%                 end
+%             end
+%             
+%             
+%             % Covariance
+%             logL_Cz = - 0.5*sum(nansum(nansum(((Data{s}.SCTLstat.Cz - SP.Cz)./Data{s}.SCTLstat.Sigma_Cz).^2,1),2),3);
+%             if options.nderiv >= 2
+%                 dlogL_Czdxi = squeeze(nansum(nansum(bsxfun(@times,(Data{s}.SCTLstat.Cz - SP.Cz)./Data{s}.SCTLstat.Sigma_Cz.^2,SP.dCzdxi),1),2));
+%                 if options.nderiv >= 3
+%                     wdCzdxi = bsxfun(@times,1./Data{s}.SCTLstat.Sigma_Cz,SP.dCzdxi);
+%                     wdCzdxi = reshape(wdCzdxi,[numel(SP.Cz),size(SP.dCzdxi,3)]);
+%                     ddlogL_Czdxi2 = -wdCzdxi'*wdCzdxi;
+%                 end
+%             end
+%             
+%             % Summation
+%             logL = logL + logL_mz + logL_Cz;
+%             if options.nderiv >=2
+%                 dlogLdxi = dlogLdxi + dlogL_mzdxi + dlogL_Czdxi;
+%                 if options.nderiv >=3
+%                     ddlogLdxidxi = ddlogLdxidxi + ddlogL_mzdxi2 + ddlogL_Czdxi2;
+%                 end
+%             end
+%             
+%             % Visulization
+%             if options.plot
+%                 Sim_SCTLstat.mz = SP.mz;
+%                 Sim_SCTLstat.Cz = SP.Cz;
+%                 Model.exp{s}.plot(Data{s},Sim_SCTLstat,s);
+%             end
+%             
+%             P{s}.SCTLstat.SP = SP;
+%             
         end
         
         %% Single cell snapshot data
@@ -329,7 +330,7 @@ function varargout = logLMEMOIR(varargin)
             
             switch(options.nderiv)
                 case 0
-                    [SP,logL_m,logL_C] = logL_PA(xi, Model, Data, s, options);
+                    [SP,logL_m,logL_C] = logL_SCSH(xi, Model, Data, s, options);
                 case 1
                     [SP,logL_m,logL_C,dlogL_mdxi,dlogL_Cdxi] = logL_PA(xi, Model, Data, s, options);
                 case 2
@@ -357,7 +358,7 @@ function varargout = logLMEMOIR(varargin)
                     [SP,logL_m] = logL_PA(xi, Model, Data, s, options);
                 case 1
                     [SP,logL_m,dlogL_mdxi] = logL_PA(xi, Model, Data, s, options);
-                    % [g,g_fd_f,g_fd_b,g_fd_c]=testGradient(xi,@(xi) logL_PA(xi, Model, Data, s, options),1e-3,2,3)
+                    % [g,g_fd_f,g_fd_b,g_fd_c]=testGradient(xi,@(xi) logL_PA(xi, Model, Data, s, options),1e-3,2,3,true)
                 case 2
                     [SP,logL_m,dlogL_mdxi,ddlogL_mdxi2] = logL_PA(xi, Model, Data, s, options);
             end

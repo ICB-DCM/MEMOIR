@@ -15,6 +15,7 @@ for iData = 1:length(Data)
     optionsMultistart.comp_type = 'sequential';
     optionsMultistart.mode = 'visual';
     optionsMultistart.obj_type = 'log-posterior';
+    optionsMultistart.MCMC.nsimu_run = 1e6;
     
     if(isfield(Data{iData},'SCTL'))
         if(~isfield(Data{iData}.SCTL,'T'))
@@ -28,6 +29,8 @@ for iData = 1:length(Data)
             objective_function = @(phi) objective_phi_wrapper(phi,Model,Data,iData,icl);
             
             parameters_SCTL{iD,icl} = getMultiStarts(parameters, objective_function, optionsMultistart);
+%             parameters_SCTL{iD,icl} = getParameterProfiles(parameters_SCTL{iD,icl}, objective_function, optionsMultistart);
+            parameters_SCTL{iD,icl} = getParameterSamples(parameters_SCTL{iD,icl}, objective_function, optionsMultistart);
         end
         
        iD = iD+1; 
