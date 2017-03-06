@@ -48,11 +48,11 @@ tmp = arrayfun(@(x) any(~isnan(data.SCTL.T(:,:,x)),2),1:size(data.SCTL.T,3),'Uni
 data.SCTL.ind_t = false(size(data.SCTL.T,1),size(data.SCTL.T,3));
 data.SCTL.ind_t(:,:) = [tmp{:}];
 
-Sim_SCTL_Y = zeros([length(data.SCTL.ind_y),size(data.SCTL.Y,2),size(data.SCTL.Y,3)]);
-Sim_SCTL_SIGMAY = zeros([length(data.SCTL.ind_y),size(data.SCTL.Y,2),size(data.SCTL.Y,3)]);
-Sim_SCTL_T = zeros([length(data.SCTL.ind_t),size(data.SCTL.T,2),size(data.SCTL.T,3)]);
-Sim_SCTL_SIGMAT = zeros([length(data.SCTL.ind_t),size(data.SCTL.T,2),size(data.SCTL.T,3)]);
-Sim_SCTL_R = zeros([length(data.SCTL.ind_t),size(data.SCTL.T,2),size(data.SCTL.T,3)]);
+Sim_SCTL_Y = zeros(size(data.SCTL.Y));
+Sim_SCTL_SIGMAY = zeros(size(data.SCTL.Y));
+Sim_SCTL_T = zeros(size(data.SCTL.T));
+Sim_SCTL_SIGMAT = zeros(size(data.SCTL.T));
+Sim_SCTL_R = zeros(size(data.SCTL.T));
 % check wether there is a parallel pool available
 try
     p = gcp('nocreate');
@@ -99,7 +99,7 @@ else
         TT = zeros(size(data.SCTL.T(:,:,i)));
         ST = zeros(size(data.SCTL.T(:,:,i)));
         RR = zeros(size(data.SCTL.T(:,:,i)));
-        [ logL,bhat, Sim ] = logL_SCTL_si(xi, model, data, s, options, P, i);
+        [ logL, bhat, Sim ] = logL_SCTL_si(xi, model, data, s, options, P, i);
         logLi_D(i,1) = logL.D;
         logLi_T(i,1) = logL.T;
         logLi_b(i,1) = logL.b;
