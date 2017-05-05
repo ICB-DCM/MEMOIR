@@ -164,6 +164,8 @@
 
 function varargout = logLMEMOIR(varargin)
     
+    tic;
+
     %% Load old values
     persistent tau
     persistent P_old
@@ -436,4 +438,5 @@ function varargout = logLMEMOIR(varargin)
         end
     end
     
+    disp(toc);
 end
