@@ -6,8 +6,8 @@ function [SP,logL_m,dlogL_mdxi,ddlogL_mdxi2] = logL_PA(xi, Model, Data, s, optio
     else
         [SP,my] = getSimulationPA(xi, Model, Data, s);
     end
-    %         [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(xi,@(theta) getSimulationPA(theta, Model, Data, s),1e-4,2,3);
-    
+
+%     Log-Transformed Version
 %     if(nargout >= 3)
 %         for j = 1 : size(dmydxi,3)
 %             dmydxi(:,:,j) = dmydxi(:,:,j) ./ (my(:,:) * log(10));
