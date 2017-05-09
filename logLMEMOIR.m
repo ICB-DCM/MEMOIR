@@ -331,18 +331,18 @@ function varargout = logLMEMOIR(varargin)
             
             switch(options.nderiv)
                 case 0
-                    [SP,logL_m,logL_C] = logL_PA(xi, Model, Data, s, options);
+                    [SP,logL_m,logL_C] = lolL_SCSH(xi, Model, Data, s, options);
                 case 1
-                    [SP,logL_m,logL_C,dlogL_mdxi,dlogL_Cdxi] = logL_PA(xi, Model, Data, s, options);
+                    [SP,logL_m,logL_C,dlogL_mdxi,dlogL_Cdxi] = lolL_SCSH(xi, Model, Data, s, options);
                 case 2
-                    [SP,logL_m,logL_C,dlogL_mdxi,dlogL_Cdxi,ddlogL_mdxi2,ddlogL_Cdxi2] = logL_PA(xi, Model, Data, s, options);
+                    [SP,logL_m,logL_C,dlogL_mdxi,dlogL_Cdxi,ddlogL_mdxi2,ddlogL_Cdxi2] = lolL_SCSH(xi, Model, Data, s, options);
             end
             
             % Summation
             logL = logL + logL_m + logL_C;
-            if options.nderiv >= 2
+            if options.nderiv >= 1
                 dlogLdxi = dlogLdxi + dlogL_mdxi + dlogL_Cdxi;
-                if options.nderiv >= 3
+                if options.nderiv >= 2
                     ddlogLdxidxi = ddlogLdxidxi + ddlogL_mdxi2 + ddlogL_Cdxi2;
                 end
             end

@@ -14,7 +14,11 @@ function [SP,logL_m,dlogL_mdxi,ddlogL_mdxi2] = logL_PA(xi, Model, Data, s, optio
 %         end
 %     end
 %     my = log10(my);
-    
+
+
+
+    %% Processing of simulation results, in the case that data points are missing, doubled, or multiple conditions are measured
+
     % Duplicate values in my if more than one data point at one time point
     if (size(Data{s}.condition,1) == 1)
         % If we do not have a dose response experiment
@@ -61,6 +65,10 @@ function [SP,logL_m,dlogL_mdxi,ddlogL_mdxi2] = logL_PA(xi, Model, Data, s, optio
         end
     end
     
+    
+    
+    %% Evaluation of the Likelihood
+    
     % Evaluation of likelihood, likelihood gradient and hessian
     logL_m = - 0.5*nansum(nansum(((Data{s}.PA.m - my)./Data{s}.PA.Sigma_m).^2,1),2);
     fprintf('Nr: %2i,  LogL: %12.5f \n', s, logL_m);
@@ -75,9 +83,8 @@ function [SP,logL_m,dlogL_mdxi,ddlogL_mdxi2] = logL_PA(xi, Model, Data, s, optio
     
     % Visulization
     if options.plot
-        Sim_PA.m = my;
+        % Sim_PA.m = my;
         % Model.exp{s}.plot(Data{s},Sim_PA,s);
     end
     
 end
-
