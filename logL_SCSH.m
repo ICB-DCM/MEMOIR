@@ -22,7 +22,7 @@ function [SP,logL_m,logL_C,dlogL_mdxi,dlogL_Cdxi,ddlogL_mdxi2,ddlogL_Cdxi2] = lo
             k = 0;
             oldT = nan;
             tmp_my = nan(size(Data{s}.SCSH.time,1), size(my,2));
-            if(nargout >= 3)
+            if(nargout >= 4)
                 tmp_dmydxi = nan(size(Data{s}.SCSH.time,1), size(my,2), size(dmydxi,3));
             end
             for j = 1 : size(Data{s}.SCSH.time,1)
@@ -30,13 +30,13 @@ function [SP,logL_m,logL_C,dlogL_mdxi,dlogL_Cdxi,ddlogL_mdxi2,ddlogL_Cdxi2] = lo
                     k = k + 1;
                 end
                 tmp_my(j,:) = my(k,:);
-                if(nargout >= 3)
+                if(nargout >= 4)
                     tmp_dmydxi(j,:,:) = dmydxi(k,:,:);
                 end
                 oldT = Data{s}.SCSH.time(j);
             end
             my = tmp_my;
-            if(nargout >= 3)
+            if(nargout >= 4)
                 dmydxi = tmp_dmydxi;
             end
         end
@@ -44,21 +44,21 @@ function [SP,logL_m,logL_C,dlogL_mdxi,dlogL_Cdxi,ddlogL_mdxi2,ddlogL_Cdxi2] = lo
         % If we have a dose response experiment and multiple data points for one time point
         tmp_my = nan(size(Data{s}.condition,1), size(my,2));
         thisUniqueCondition = unique(Data{s}.condition, 'rows');
-        if(nargout >= 3)
+        if(nargout >= 4)
             tmp_dmydxi = nan(size(Data{s}.condition,1), size(my,2), size(dmydxi,3));
         end
         for j = 1 : size(Data{s}.condition,1) % number of conditions
             for iDose = 1 : size(thisUniqueCondition,1)
                 if all(thisUniqueCondition(iDose,:)==Data{s}.condition(j,:))
                     tmp_my(j,:) =  my(iDose,:);
-                    if(nargout >= 3)
+                    if(nargout >= 4)
                         tmp_dmydxi(j,:,:) = dmydxi(iDose,:,:);
                     end
                 end
             end
         end
         my = tmp_my;
-        if(nargout >= 3)
+        if(nargout >= 4)
             dmydxi = tmp_dmydxi;
         end
     end
