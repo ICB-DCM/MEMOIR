@@ -163,14 +163,11 @@
 % 2015/04/14 Fabian Froehlich
 
 function varargout = logLMEMOIR(varargin)
-    
-    tic;
-
     %% Load old values
     persistent tau
     persistent P_old
     persistent logL_old
-    
+    tic;
     if isempty(tau)
         tau = clock;
     end
@@ -331,11 +328,11 @@ function varargout = logLMEMOIR(varargin)
             
             switch(options.nderiv)
                 case 0
-                    [SP,logL_m,logL_C] = lolL_SCSH(xi, Model, Data, s, options);
+                    [SP,logL_m,logL_C] = logL_SCSH(xi, Model, Data, s, options);
                 case 1
-                    [SP,logL_m,logL_C,dlogL_mdxi,dlogL_Cdxi] = lolL_SCSH(xi, Model, Data, s, options);
+                    [SP,logL_m,logL_C,dlogL_mdxi,dlogL_Cdxi] = logL_SCSH(xi, Model, Data, s, options);
                 case 2
-                    [SP,logL_m,logL_C,dlogL_mdxi,dlogL_Cdxi,ddlogL_mdxi2,ddlogL_Cdxi2] = lolL_SCSH(xi, Model, Data, s, options);
+                    [SP,logL_m,logL_C,dlogL_mdxi,dlogL_Cdxi,ddlogL_mdxi2,ddlogL_Cdxi2] = logL_SCSH(xi, Model, Data, s, options);
             end
             
             % Summation
@@ -437,6 +434,5 @@ function varargout = logLMEMOIR(varargin)
             end
         end
     end
-    
     disp(toc);
 end

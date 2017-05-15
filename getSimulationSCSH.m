@@ -45,7 +45,7 @@ function [SP,my,Cy,dmydxi,dCydxi]  = getSimulationSCSH(xi,Model,Data,s)
                 
             case 'lin'
                 my = [my; SP.my];
-                Cy = [my; SP.Cy];
+                Cy = [Cy; SP.Cy];
         end
 
         % Store gradients of means and variances

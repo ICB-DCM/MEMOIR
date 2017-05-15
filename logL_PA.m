@@ -1,5 +1,7 @@
 function [SP,logL_m,dlogL_mdxi,ddlogL_mdxi2] = logL_PA(xi, Model, Data, s, options)
 
+    nderiv = nargout-2;
+    
     % Simulation
     if(nargout >= 3)
         [SP,my,dmydxi] = getSimulationPA(xi, Model, Data, s);
@@ -69,17 +71,40 @@ function [SP,logL_m,dlogL_mdxi,ddlogL_mdxi2] = logL_PA(xi, Model, Data, s, optio
     
     %% Evaluation of the Likelihood
     
-    % Evaluation of likelihood, likelihood gradient and hessian
-    logL_m = - 0.5*nansum(nansum(((Data{s}.PA.m - my)./Data{s}.PA.Sigma_m).^2,1),2);
-    fprintf('Nr: %2i,  LogL: %12.5f \n', s, logL_m);
-    if nargout >= 3
-        dlogL_mdxi = squeeze(nansum(nansum(bsxfun(@times,(Data{s}.PA.m - my)./Data{s}.PA.Sigma_m.^2,dmydxi),1),2));
-        if nargout >= 4
-            wdmdxi = bsxfun(@times,1./Data{s}.PA.Sigma_m,SP.dmydxi);
-            wdmdxi = reshape(wdmdxi,[numel(SP.my),size(SP.dmydxi,3)]);
-            ddlogL_mdxi2 = -wdmdxi'*wdmdxi;
-        end
+    % Post-process data
+    if isfield(Data{s}, 'PA_post_processing')
+        data_m = Data{s}.PA_post_processing(Data{s}.PA.m);
     end
+    
+    % Compute likelihood and derivatives for the mean
+    switch Model.exp{s}.noise_model
+        case 'normal'
+            J_D = normal_noise(my(:), data_m, Data{s}.PA.Sigma_m, 1:size(data_m, 1), nderiv);
+        case 'lognormal'
+            J_D = lognormal_noise(my(:), data_m, Data{s}.PA.Sigma_m, 1:size(data_m, 1), nderiv);
+    end
+    
+    % Write values to output
+    logL_m = -J_D.val;
+    if (nderiv >= 1)
+        dlogL_mdy = reshape(-J_D.dY, size(data_m));
+        dlogL_mdxi = squeeze(nansum(nansum(repmat(dlogL_mdy, [1 1 size(dmydxi, 3)]) .* dmydxi, 2), 1)); 
+    end
+
+%     % Evaluation of likelihood, likelihood gradient and hessian
+%     logL_m = - 0.5*nansum(nansum(((data_m - my)./Data{s}.PA.Sigma_m).^2,1),2);
+%     fprintf('Nr: %2i,  LogL: %12.5f \n', s, logL_m);
+%     if nargout >= 3
+%         dlogL_mdxi = squeeze(nansum(nansum(bsxfun(@times,(data_m - my)./Data{s}.PA.Sigma_m.^2,dmydxi),1),2));
+%         if nargout >= 4
+%             wdmdxi = bsxfun(@times,1./Data{s}.PA.Sigma_m,SP.dmydxi);
+%             wdmdxi = reshape(wdmdxi,[numel(SP.my),size(SP.dmydxi,3)]);
+%             ddlogL_mdxi2 = -wdmdxi'*wdmdxi;
+%         end
+%     end
+%     
+%     % Modern way of doing things:
+%     logL_m = -J_D.val; 
     
     % Visulization
     if options.plot
