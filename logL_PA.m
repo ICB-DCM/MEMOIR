@@ -108,8 +108,15 @@ function [SP,logL_m,dlogL_mdxi,ddlogL_mdxi2] = logL_PA(xi, Model, Data, s, optio
     
     % Visulization
     if options.plot
-        % Sim_PA.m = my;
-        % Model.exp{s}.plot(Data{s},Sim_PA,s);
+        Sim_PA.m = my;
+        if isfield(Model.exp{s},'PA_post_processing_SP')
+            Sim_PA.SP_max = SP.SP_max;
+            Sim_PA.SP_min = SP.SP_min;
+        else
+            Sim_PA.SP_max = [];
+            Sim_PA.SP_min = [];
+        end
+        Model.exp{s}.plot(Data{s}, Sim_PA, s);
     end
     
 end

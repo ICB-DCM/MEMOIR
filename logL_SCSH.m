@@ -126,12 +126,19 @@ function [SP,logL_m,logL_C,dlogL_mdxi,dlogL_Cdxi,ddlogL_mdxi2,ddlogL_Cdxi2] = lo
 %             ddlogL_Cdxi2 = -wdCdxi'*wdCdxi;
 %         end
 %     end
-    
+
     % Visulization
     if options.plot
-        % Sim_SCSH.m = my;
-        % Sim_SCSH.C = Cy;
-        % Model.exp{s}.plot(Data{s},Sim_SCSH,s);
+        Sim_SCSH.m = my;
+        Sim_SCSH.C = Cy;
+        if isfield(Model.exp{s},'SCSH_post_processing_SP')
+            Sim_SCSH.SP_max = SP.SP_max;
+            Sim_SCSH.SP_min = SP.SP_min;
+        else
+            Sim_SCSH.SP_max = [];
+            Sim_SCSH.SP_min = [];
+        end
+        Model.exp{s}.plot(Data{s}, Sim_SCSH, s);
     end
     
 end

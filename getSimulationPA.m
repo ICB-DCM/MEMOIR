@@ -93,5 +93,7 @@ function [SP,my,dmydxi]  = getSimulationPA(xi,Model,Data,s )
         end
         [my,dmydxi] = Model.exp{s}.PA_post_processing(my,dmydxi);
     end
-    
+    if isfield(Model.exp{s},'PA_post_processing_SP')
+        SP = Model.exp{s}.PA_post_processing_SP(SP);
+    end
 end
