@@ -434,5 +434,4 @@ function varargout = logLMEMOIR(varargin)
          end
       end
    end
-   disp(toc);
 end
