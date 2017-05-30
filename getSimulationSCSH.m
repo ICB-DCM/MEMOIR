@@ -37,7 +37,7 @@ function [SP,my,Cy,dmydxi,dCydxi]  = getSimulationSCSH(xi,Model,Data,s)
                 Cy = [Cy; exp(tmpCy) .*  (exp(SP.Cy) - ones(size(SP.Cy)))];
                 
             case 'log10'
-                tmp = arrayfun(@(x) diag(squeeze(SP.Cy(x,:,:))), 1:size(SP.Cy,1),'UniformOutput',false);
+                tmp = arrayfun(@(x) diag(squeeze(SP.my(x,:,:))), 1:size(SP.my,1),'UniformOutput',false);
                 tmp = transpose([tmp{:}])/2;
                 my = [my; 10.^(SP.my + tmp)];
                 tmpCy = bsxfun(@plus, repmat(tmp, 1, 1, size(SP.Cy,3)), permute(repmat(tmp, 1, 1, size(SP.Cy,3)), [1,3,2]));

@@ -91,8 +91,14 @@ function [SP,logL_m,logL_C,dlogL_mdxi,dlogL_Cdxi,ddlogL_mdxi2,ddlogL_Cdxi2] = lo
     end
     
     % Write values to output
-    logL_m = -J_D_m.val;
-    logL_C = -J_D_C.val;
+    logL_m = -J_D_m.val
+    logL_C = -J_D_C.val
+    if (logL_m == 0)
+        logL_m = nan;
+    end
+    if (logL_C == 0)
+        logL_C = nan;
+    end
     if (nderiv >= 1)
         dlogL_mdy = reshape(-J_D_m.dY, size(data_m));
         dlogL_mdxi = squeeze(nansum(nansum(repmat(dlogL_mdy, [1 1 size(dmydxi, 3)]) .* dmydxi, 2), 1)); 

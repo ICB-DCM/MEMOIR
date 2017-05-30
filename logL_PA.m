@@ -85,7 +85,10 @@ function [SP,logL_m,dlogL_mdxi,ddlogL_mdxi2] = logL_PA(xi, Model, Data, s, optio
     end
     
     % Write values to output
-    logL_m = -J_D.val;
+    logL_m = -J_D.val
+    if (logL_m == 0)
+        logL_m = nan;
+    end
     if (nderiv >= 1)
         dlogL_mdy = reshape(-J_D.dY, size(data_m));
         dlogL_mdxi = squeeze(nansum(nansum(repmat(dlogL_mdy, [1 1 size(dmydxi, 3)]) .* dmydxi, 2), 1)); 

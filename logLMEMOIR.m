@@ -167,7 +167,7 @@ function varargout = logLMEMOIR(varargin)
     persistent tau
     persistent P_old
     persistent logL_old
-    tic;
+    
     if isempty(tau)
         tau = clock;
     end
@@ -176,6 +176,7 @@ function varargout = logLMEMOIR(varargin)
     xi = varargin{1};
     Data = varargin{2};
     Model = varargin{3};
+    batchIndices = length(Data);
     
     % Options
     options.tau_update = 0;
@@ -184,22 +185,24 @@ function varargout = logLMEMOIR(varargin)
     options.events = 1;
     options.rescaleSCTL = 0;
     options.optimal_sigma = 1;
-    if nargin >= 4
+    if nargin >= 4 && ~isempty(varargin{6})
         if(isstruct(varargin{4}))
             options = setdefault(varargin{4},options);
         end
     end
-    if nargin >= 5
+    if nargin >= 5 && ~isempty(varargin{6})
         extract_flag = varargin{5};
     else
         extract_flag = false;
     end
-    if nargin >= 6
+    if nargin >= 6 && ~isempty(varargin{6})
         P_old = varargin{6};
         logL_old = -Inf;
     end
+    if nargin >= 7
+        batchIndices = varargin{7};
+    end
     options.nderiv = max(nargout-1,0);
-    
     
     % initialise storage
     if(isempty(logL_old))
@@ -237,7 +240,7 @@ function varargout = logLMEMOIR(varargin)
     options.integration = Model.integration;
     
     % Loop: Experiments/Experimental Conditions
-    for s = 1:length(Data)
+    for s = 1:batchIndices
         
         %% Single cell time-lapse data - Individuals
         if isfield(Data{s},'SCTL')
@@ -434,5 +437,4 @@ function varargout = logLMEMOIR(varargin)
             end
         end
     end
-    disp(toc);
 end
