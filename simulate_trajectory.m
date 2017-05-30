@@ -61,7 +61,7 @@ else
     optionmu.linsol = 9;
     optionmu.pbar = phi*0+1e-10;
     sol = Model.model(t,phi,kappa,optionmu);
-    % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(phi,@(phi) Model.model(t,phi,kappa,optionmu),1e-5,'y','sy')
+    % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(phi,@(phi) Model.model(t,phi,kappa,optionmu),1e-5,'y','sy',true)
     dYdphi = sol.sy(1:(end-(sum(ind_y)<length(t))),:,:);
     if(isfield(sol,'sz') && sum(ind_t)>0)
         dTdphi = sol.sz(ind_t,:,:);
@@ -87,13 +87,21 @@ else
         
     end
 end
+
+% [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(phi,@(phi) Model.model(t,phi,kappa,optionmu),1e-3,'y','sy',true)
+% [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(phi,@(phi) Model.model(t,phi,kappa,optionmu),1e-3,'sy','s2y',true)
+% [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(phi,@(phi) Model.model(t,phi,kappa,optionmu),1e-3,'z','sz',true)
+% [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(phi,@(phi) Model.model(t,phi,kappa,optionmu),1e-3,'sz','s2z',true)
+% [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(phi,@(phi) Model.model(t,phi,kappa,optionmu),1e-3,'rz','srz',true)
+% [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(phi,@(phi) Model.model(t,phi,kappa,optionmu),1e-3,'srz','s2rz',true)
+
 if(sol.status <0)
     error('integration failed');
 end
 Y = sol.y(1:(end-(sum(ind_y)<length(t))),:);
 if(isfield(sol,'z'))
-    TT.val = sol.z;
-    RR.val = sol.rz;
+    TT.val = sol.z(ind_t,:);
+    RR.val = sol.rz(ind_t,:);
 else
     TT.val = zeros(0,sum(ind_t));
     RR.val = zeros(0,sum(ind_t));

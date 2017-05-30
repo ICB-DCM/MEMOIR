@@ -42,15 +42,17 @@ if options.nderiv >= 1
 end
 
 tmp = arrayfun(@(x) any(~isnan(data.SCTL.Y(:,:,x)),2),1:size(data.SCTL.Y,3),'UniformOutput',false);
-data.SCTL.ind_y = [tmp{:}];
+data.SCTL.ind_y = false(size(data.SCTL.Y,1),size(data.SCTL.Y,3));
+data.SCTL.ind_y(:,:) = [tmp{:}];
 tmp = arrayfun(@(x) any(~isnan(data.SCTL.T(:,:,x)),2),1:size(data.SCTL.T,3),'UniformOutput',false);
-data.SCTL.ind_t = [tmp{:}];
+data.SCTL.ind_t = false(size(data.SCTL.T,1),size(data.SCTL.T,3));
+data.SCTL.ind_t(:,:) = [tmp{:}];
 
-Sim_SCTL_Y = zeros([length(data.SCTL.ind_y),size(data.SCTL.Y,2),size(data.SCTL.Y,3)]);
-Sim_SCTL_SIGMAY = zeros([length(data.SCTL.ind_y),size(data.SCTL.Y,2),size(data.SCTL.Y,3)]);
-Sim_SCTL_T = zeros([length(data.SCTL.ind_t),size(data.SCTL.T,2),size(data.SCTL.T,3)]);
-Sim_SCTL_SIGMAT = zeros([length(data.SCTL.ind_t),size(data.SCTL.T,2),size(data.SCTL.T,3)]);
-Sim_SCTL_R = zeros([length(data.SCTL.ind_t),size(data.SCTL.T,2),size(data.SCTL.T,3)]);
+Sim_SCTL_Y = zeros(size(data.SCTL.Y));
+Sim_SCTL_SIGMAY = zeros(size(data.SCTL.Y));
+Sim_SCTL_T = zeros(size(data.SCTL.T));
+Sim_SCTL_SIGMAT = zeros(size(data.SCTL.T));
+Sim_SCTL_R = zeros(size(data.SCTL.T));
 % check wether there is a parallel pool available
 try
     p = gcp('nocreate');
@@ -65,8 +67,8 @@ if isempty(p)
         ST = zeros(size(data.SCTL.T(:,:,i)));
         RR = zeros(size(data.SCTL.T(:,:,i)));
         [ logL, bhat, Sim ] = logL_SCTL_si(xi, model, data, s, options, P, i);
-        % [g,g_fd_f,g_fd_b,g_fd_c]=testGradient(xi,@(xi) logL_SCTL_si(xi, model, data, s, options, P, i),1e-3,'val','dxi')
-        % [g,g_fd_f,g_fd_b,g_fd_c]=testGradient(xi,@(xi) logL_SCTL_si(xi, model, data, s, options, P, i),1e-3,'I','Idxi')
+        % [g,g_fd_f,g_fd_b,g_fd_c]=testGradient(xi,@(xi) logL_SCTL_si(xi, model, data, s, options, P, i),1e-3,'val','dxi',true)
+        % [g,g_fd_f,g_fd_b,g_fd_c]=testGradient(xi,@(xi) logL_SCTL_si(xi, model, data, s, options, P, i),1e-3,'I','Idxi',true)
         logLi_D(i,1) = logL.D;
         logLi_T(i,1) = logL.T;
         logLi_b(i,1) = logL.b;
@@ -97,7 +99,7 @@ else
         TT = zeros(size(data.SCTL.T(:,:,i)));
         ST = zeros(size(data.SCTL.T(:,:,i)));
         RR = zeros(size(data.SCTL.T(:,:,i)));
-        [ logL,bhat, Sim ] = logL_SCTL_si(xi, model, data, s, options, P, i);
+        [ logL, bhat, Sim ] = logL_SCTL_si(xi, model, data, s, options, P, i);
         logLi_D(i,1) = logL.D;
         logLi_T(i,1) = logL.T;
         logLi_b(i,1) = logL.b;

@@ -120,7 +120,7 @@ hold on
 
 clc
 % Options for multi-start optimization
-options.fmincon = optimset('algorithm','interior-point',...
+options.localOptimizerOptions = optimset('algorithm','interior-point',...
     'GradObj','on',...
     'MaxIter',1000,...
     'TolFun',1e-8,...
@@ -130,7 +130,9 @@ options.fmincon = optimset('algorithm','interior-point',...
 options.n_starts = 20;
 options.comp_type = 'sequential';
 options.mode = 'visual';
-options.calc_profiles = 'true';
+options.calc_profiles = true;
+options.parameter_index = [3,4];
+options = PestoOptions(options);
 parameters_MEM.true = xi;
 
 parameters_MEM = getMultiStarts(parameters_MEM,@(theta) logLMEMOIR(theta,Data,Model),options);
