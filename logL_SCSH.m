@@ -79,20 +79,20 @@ function [SP,logL_m,logL_C,dlogL_mdxi,dlogL_Cdxi,ddlogL_mdxi2,ddlogL_Cdxi2] = lo
         case 'normal'
             J_D_m = normal_noise(my(:), data_m, Data{s}.SCSH.Sigma_m, 1:size(data_m, 1), nderiv);
         case 'lognormal'
-            J_D_m = lognormal_noise(my(:), data_m, Data{s}.SCSH.Sigma_m, 1:size(data_m, 1), nderiv);
+            J_D_m = lognormal_noise(my(:), log(data_m), Data{s}.SCSH.Sigma_m, 1:size(data_m, 1), nderiv);
     end
     
     % Compute likelihood and derivatives from biol. variability
     switch Model.exp{s}.variance_noise_model
         case 'normal'
-            J_D_C = normal_noise(Cy(:), data_C, Data{s}.SCSH.Sigma_m, 1:size(data_m, 1), nderiv);
+            J_D_C = normal_noise(Cy(:), data_C, Data{s}.SCSH.Sigma_C, 1:size(data_m, 1), nderiv);
         case 'lognormal'
             J_D_C = lognormal_noise(Cy(:), data_C, Data{s}.SCSH.Sigma_C, 1:size(data_m, 1), nderiv);
     end
     
     % Write values to output
-    logL_m = -J_D_m.val
-    logL_C = -J_D_C.val
+    logL_m = -J_D_m.val;
+    logL_C = -J_D_C.val;
     if (logL_m == 0)
         logL_m = nan;
     end
