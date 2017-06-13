@@ -73,13 +73,13 @@ function [SP,logL_m,dlogL_mdxi,ddlogL_mdxi2] = logL_PA(xi, Model, Data, s, optio
     
     % Post-process data
     if isfield(Data{s}, 'PA_post_processing')
-        data_m = Data{s}.PA_post_processing(Data{s}.PA.m);
+        [data_m, Sigma_m] = Data{s}.PA_post_processing(Data{s}.PA.m,  Data{s}.PA.Sigma_m);
     end
     
     % Compute likelihood and derivatives for the mean
     switch Model.exp{s}.noise_model
         case 'normal'
-            J_D = normal_noise(my(:), data_m, Data{s}.PA.Sigma_m, 1:size(data_m, 1), nderiv);
+            J_D = normal_noise(my(:), data_m, Sigma_m, 1:size(data_m, 1), nderiv);
         case 'lognormal'
             J_D = lognormal_noise(my(:), data_m, Data{s}.PA.Sigma_m, 1:size(data_m, 1), nderiv);
     end
@@ -109,7 +109,7 @@ function [SP,logL_m,dlogL_mdxi,ddlogL_mdxi2] = logL_PA(xi, Model, Data, s, optio
 %     % Modern way of doing things:
 %     logL_m = -J_D.val; 
     
-    % Visulization
+    % Visualization
     if options.plot
         Sim_PA.m = my;
         if isfield(Model.exp{s},'PA_post_processing_SP')
