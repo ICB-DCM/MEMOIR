@@ -68,41 +68,47 @@ function [SP,logL_m,logL_C,dlogL_mdxi,dlogL_Cdxi,ddlogL_mdxi2,ddlogL_Cdxi2] = lo
     
     
     %% Evaluation of the Likelihood
+    Sigma_m = Model.exp{s}.sigma_noise(Model.exp{s}.phi(Model.exp{s}.beta(xi), Model.exp{s}.delta(xi)));
+    Sigma_m = repmat(Sigma_m, [size(Data{s}.SCSH.m,1) 1]);
     
     % Post-process data
-    if isfield(Data{s}, 'SCSH_post_processing')
-        [data_m, Sigma_m, data_C] = Data{s}.SCSH_post_processing(Data{s}.SCSH.m, Data{s}.SCSH.Sigma_m, Data{s}.SCSH.C);
-    end
+%     if isfield(Data{s}, 'SCSH_post_processing')
+%         [data_m, Sigma_m, data_C] = Data{s}.SCSH_post_processing(Data{s}.SCSH.m, Data{s}.SCSH.Sigma_m, Data{s}.SCSH.C);
+%     end
     
     % Compute likelihood and derivatives for the mean
     switch Model.exp{s}.noise_model
         case 'normal'
-            J_D_m = normal_noise(my(:), data_m, Sigma_m, 1:size(data_m, 1), nderiv);
+            J_D_m = normal_noise(my(:), Data{s}.SCSH.m, Sigma_m, 1:size(Data{s}.SCSH.m, 1), nderiv);
         case 'lognormal'
-            J_D_m = lognormal_noise(my(:), log(data_m), Sigma_m, 1:size(data_m, 1), nderiv);
+            J_D_m = lognormal_noise(my(:), log(Data{s}.SCSH.m), Sigma_m, 1:size(Data{s}.SCSH.m, 1), nderiv);
     end
     
     % Compute likelihood and derivatives from biol. variability
     switch Model.exp{s}.variance_noise_model
         case 'normal'
-            J_D_C = normal_noise(Cy(:), data_C, Data{s}.SCSH.Sigma_C, 1:size(data_m, 1), nderiv);
+            J_D_C = normal_noise(Cy(:), Data{s}.SCSH.C, Data{s}.SCSH.Sigma_C, 1:size(Data{s}.SCSH.C, 1), nderiv);
         case 'lognormal'
-            J_D_C = lognormal_noise(Cy(:), data_C, Data{s}.SCSH.Sigma_C, 1:size(data_m, 1), nderiv);
+            J_D_C = lognormal_noise(Cy(:), Data{s}.SCSH.C, Data{s}.SCSH.Sigma_C, 1:size(Data{s}.SCSH.C, 1), nderiv);
     end
     
     % Write values to output
-    logL_m = -J_D_m.val
-    logL_C = -J_D_C.val
-    if (logL_m == 0)
-        logL_m = nan;
-    end
-    if (logL_C == 0)
-        logL_C = nan;
-    end
+    logL_m = -J_D_m.val;
+    logL_C = -J_D_C.val;
+
     if (nderiv >= 1)
-        dlogL_mdy = reshape(-J_D_m.dY, size(data_m));
-        dlogL_mdxi = squeeze(nansum(nansum(repmat(dlogL_mdy, [1 1 size(dmydxi, 3)]) .* dmydxi, 2), 1)); 
-        dlogL_Cdy = reshape(-J_D_C.dY, size(data_C));
+        dlogL_mdy = reshape(-J_D_m.dY, size(Data{s}.SCSH.m));
+        dlogL_mdxi = squeeze(nansum(nansum(repmat(dlogL_mdy, [1 1 size(dmydxi, 3)]) .* dmydxi, 2), 1));
+        
+        dlogL_mdSigma = reshape(-J_D_m.dSigma, size(Data{s}.SCSH.m));
+        phi = Model.exp{s}.phi(Model.exp{s}.beta(xi), Model.exp{s}.delta(xi));
+        dSigmadphi = Model.exp{s}.dsigma_noisedphi(phi);
+        dSigmadbeta = permute(dSigmadphi, [2 3 1]) * Model.exp{s}.dphidbeta(Model.exp{s}.beta(xi), Model.exp{s}.delta(xi));
+        dSigmadxi = repmat(permute(dSigmadbeta * Model.exp{s}.dbetadxi(xi), [3 1 2]), [size(dlogL_mdSigma,1) 1 1]);
+        dlogL_mdxi_SigmaPart = squeeze(nansum(nansum(repmat(dlogL_mdSigma, [1 1 length(xi)]) .* dSigmadxi, 2), 1));
+        dlogL_mdxi = dlogL_mdxi + dlogL_mdxi_SigmaPart;
+        
+        dlogL_Cdy = reshape(-J_D_C.dY, size(Data{s}.SCSH.C));
         dlogL_Cdxi = squeeze(nansum(nansum(nansum(dCydxi .* repmat(dlogL_Cdy, [1 1 1 size(dmydxi, 3)]), 3), 2), 1)); 
     end
     

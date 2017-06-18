@@ -10,10 +10,10 @@ function J_D = lognormal_noise(Y,Ym,Sigma,ind,nderiv)
     
     if nderiv >=0
         % J_D
-        J_D.val = nansum(0.5*((log(Y(:)) - Ym(:))./Sigma(:)).^2 + 0.5*log(sqrt(2*pi)*(Sigma(:).^2).*(Y(:).^2)));
+        J_D.val = nansum(0.5*((log(Y(:)) - Ym(:))./Sigma(:)).^2 +  0.5*log(2*pi*Sigma(:).^2)); % 0.5*log(sqrt(2*pi)*(Sigma(:).^2).*(Y(:).^2)));
         if nderiv >= 1
             % dJ_DdY
-            J_D.dY = transpose((log(Y(:)) - Ym(:))./(Sigma(:).^2).*(1./Y) + 1./Y(:));
+            J_D.dY = transpose((log(Y(:)) - Ym(:))./(Sigma(:).^2).*(1./Y(:))); % + 1./Y(:));
             % dJ_DdSigma
             J_D.dSigma = transpose(- (((log(Y(:)) - Ym(:)).^2)./(Sigma(:).^3)) + 1./Sigma(:));
             if nderiv >= 2

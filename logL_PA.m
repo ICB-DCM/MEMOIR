@@ -70,18 +70,14 @@ function [SP,logL_m,dlogL_mdxi,ddlogL_mdxi2] = logL_PA(xi, Model, Data, s, optio
     
     
     %% Evaluation of the Likelihood
-    
-    % Post-process data
-    if isfield(Data{s}, 'PA_post_processing')
-        [data_m, Sigma_m] = Data{s}.PA_post_processing(Data{s}.PA.m,  Data{s}.PA.Sigma_m);
-    end
-    
+    Sigma = Model.exp{s}.sigma_noise(Model.exp{s}.phi(Model.exp{s}.beta(xi), Model.exp{s}.delta(xi)));
+    Sigma = repmat(Sigma, [size(Data{s}.PA.m,1) 1]);
     % Compute likelihood and derivatives for the mean
     switch Model.exp{s}.noise_model
         case 'normal'
-            J_D = normal_noise(my(:), data_m, Sigma_m, 1:size(data_m, 1), nderiv);
+            J_D = normal_noise(my(:), Data{s}.PA.m, Sigma, 1:size(Data{s}.PA.m, 1), nderiv);
         case 'lognormal'
-            J_D = lognormal_noise(my(:), data_m, Data{s}.PA.Sigma_m, 1:size(data_m, 1), nderiv);
+            J_D = lognormal_noise(my(:), Data{s}.PA.m, Sigma, 1:size(Data{s}.PA.m, 1), nderiv);
     end
     
     % Write values to output
@@ -90,10 +86,18 @@ function [SP,logL_m,dlogL_mdxi,ddlogL_mdxi2] = logL_PA(xi, Model, Data, s, optio
         logL_m = nan;
     end
     if (nderiv >= 1)
-        dlogL_mdy = reshape(-J_D.dY, size(data_m));
-        dlogL_mdxi = squeeze(nansum(nansum(repmat(dlogL_mdy, [1 1 size(dmydxi, 3)]) .* dmydxi, 2), 1)); 
+        dlogL_mdy = reshape(-J_D.dY, size(Data{s}.PA.m));
+        dlogL_mdxi = squeeze(nansum(nansum(repmat(exp(dlogL_mdy), [1 1 size(dmydxi, 3)]) .* dmydxi, 2), 1));
+        
+        dlogL_mdSigma = reshape(-J_D.dSigma, size(Data{s}.PA.m));
+        phi = Model.exp{s}.phi(Model.exp{s}.beta(xi), Model.exp{s}.delta(xi));
+        dSigmadphi = Model.exp{s}.dsigma_noisedphi(phi);
+        dSigmadbeta = permute(dSigmadphi, [2 3 1]) * Model.exp{s}.dphidbeta(Model.exp{s}.beta(xi), Model.exp{s}.delta(xi));
+        dSigmadxi = repmat(permute(dSigmadbeta * Model.exp{s}.dbetadxi(xi), [3 1 2]), [size(dlogL_mdSigma,1) 1 1]);
+        dlogL_mdxi_SigmaPart = squeeze(nansum(nansum(repmat(dlogL_mdSigma, [1 1 length(xi)]) .* dSigmadxi, 2), 1));
+        dlogL_mdxi = dlogL_mdxi + dlogL_mdxi_SigmaPart;
     end
-
+    
 %     % Evaluation of likelihood, likelihood gradient and hessian
 %     logL_m = - 0.5*nansum(nansum(((data_m - my)./Data{s}.PA.Sigma_m).^2,1),2);
 %     fprintf('Nr: %2i,  LogL: %12.5f \n', s, logL_m);
