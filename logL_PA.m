@@ -72,6 +72,7 @@ function [SP,logL_m,dlogL_mdxi,ddlogL_mdxi2] = logL_PA(xi, Model, Data, s, optio
     %% Evaluation of the Likelihood
     Sigma = Model.exp{s}.sigma_noise(Model.exp{s}.phi(Model.exp{s}.beta(xi), Model.exp{s}.delta(xi)));
     Sigma = repmat(Sigma, [size(Data{s}.PA.m,1) 1]);
+    
     % Compute likelihood and derivatives for the mean
     switch Model.exp{s}.noise_model
         case 'normal'
