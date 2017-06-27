@@ -68,8 +68,19 @@ function [SP,logL_m,logL_C,dlogL_mdxi,dlogL_Cdxi,ddlogL_mdxi2,ddlogL_Cdxi2] = lo
     
     
     %% Evaluation of the Likelihood
-    Sigma_m = Model.exp{s}.sigma_noise(Model.exp{s}.phi(Model.exp{s}.beta(xi), Model.exp{s}.delta(xi)));
-    Sigma_m = repmat(Sigma_m, [size(Data{s}.SCSH.m,1) 1]);
+    switch options.estimate_sigma
+        case 0 
+            % no estimation of noise parameters
+            Sigma_m = Data{s}.SCSH.Sigma_m;
+            Sigma_C = Data{s}.SCSH.C;
+        case 1
+            % standard estimation of noise parameters
+            Sigma_m = Model.exp{s}.sigma_noise(Model.exp{s}.phi(Model.exp{s}.beta(xi), Model.exp{s}.delta(xi)));
+            Sigma_m = repmat(Sigma_m, [size(Data{s}.SCSH.m,1) 1]);
+            Sigma_C = Data{s}.SCSH.C;
+        case 2
+            % optimal analytic computation of noise parameters
+    end
     
     % Post-process data
 %     if isfield(Data{s}, 'SCSH_post_processing')
@@ -87,9 +98,9 @@ function [SP,logL_m,logL_C,dlogL_mdxi,dlogL_Cdxi,ddlogL_mdxi2,ddlogL_Cdxi2] = lo
     % Compute likelihood and derivatives from biol. variability
     switch Model.exp{s}.variance_noise_model
         case 'normal'
-            J_D_C = normal_noise(Cy(:), Data{s}.SCSH.C, Data{s}.SCSH.Sigma_C, 1:size(Data{s}.SCSH.C, 1), nderiv);
+            J_D_C = normal_noise(Cy(:), Data{s}.SCSH.C, Sigma_C, 1:size(Data{s}.SCSH.C, 1), nderiv);
         case 'lognormal'
-            J_D_C = lognormal_noise(Cy(:), Data{s}.SCSH.C, Data{s}.SCSH.Sigma_C, 1:size(Data{s}.SCSH.C, 1), nderiv);
+            J_D_C = lognormal_noise(Cy(:), Data{s}.SCSH.C, Sigma_C, 1:size(Data{s}.SCSH.C, 1), nderiv);
     end
     
     % Write values to output
@@ -109,7 +120,36 @@ function [SP,logL_m,logL_C,dlogL_mdxi,dlogL_Cdxi,ddlogL_mdxi2,ddlogL_Cdxi2] = lo
         dlogL_mdxi = dlogL_mdxi + dlogL_mdxi_SigmaPart;
         
         dlogL_Cdy = reshape(-J_D_C.dY, size(Data{s}.SCSH.C));
-        dlogL_Cdxi = squeeze(nansum(nansum(nansum(dCydxi .* repmat(dlogL_Cdy, [1 1 1 size(dmydxi, 3)]), 3), 2), 1)); 
+        dlogL_Cdxi = squeeze(nansum(nansum(nansum(dCydxi .* repmat(dlogL_Cdy, [1 1 1 size(dmydxi, 3)]), 3), 2), 1));
+        
+        if (nderiv >= 2)
+            switch Model.exp{s}.noise_model
+                case 'normal'
+                    % Use FIM in the sense of J'*J
+                    dres_mdxi = ((1 ./ Sigma_m(:)) * ones(1,length(xi))) .* reshape(dmydxi, numel(Data{s}.SCSH.m), length(xi));
+                    dres_Cdxi = ((1 ./ Sigma_C(:)) * ones(1,length(xi))) .* reshape(dCydxi, numel(Data{s}.SCSH.C), length(xi));
+                    
+                    if (options.estimate_sigma == 1)
+                        % If noise is to be estimated
+                        dres_mdxi1 = (((my(:) - Data{s}.SCSH.m(:)) ./ Sigma_m(:).^2) * ones(1,length(xi))) .* reshape(dSigmadxi, numel(Data{s}.SCSH.m), length(xi));
+                        nan_ind = isnan(Data{s}.SCSH.m(:));
+                        dres_mdxi1(nan_ind,:) = 0;
+                        Sigma_Res = sqrt(log(2*pi*Sigma_m(:).^2) - log(eps));
+                        Sigma_Res(nan_ind,:) = 0;
+                        dres_mdxi2 = ((1 ./ (Sigma_Res .* Sigma_m(:))) * ones(1,length(xi))) .* reshape(dSigmadxi, numel(Data{s}.SCSH.m), length(xi));
+                        dres_mdxi2(nan_ind,:) = 0;
+                        dres_mdxi = [dres_mdxi - dres_mdxi1; dres_mdxi2];
+                    end
+                    
+                     ddlogL_mdxi2 = -transpose(dres_mdxi) * dres_mdxi;
+                     ddlogL_Cdxi2 = -transpose(dres_Cdxi) * dres_Cdxi;
+                    
+                case 'lognormal'
+                    % To be done!
+            end
+            
+            
+        end
     end
     
 %     % Evaluation of likelihood, gradient and hessian from simulation

@@ -1,4 +1,4 @@
-function [SP,my,dmydxi]  = getSimulationPA(xi,Model,Data,s )
+function [SP,my,dmydxi]  = getSimulationPA(xi,Model,Data,s)
     %GETSIMULATIONPA Summary of this function goes here
     %   Detailed explanation goes here
     % Simulation using sigma points
@@ -38,10 +38,12 @@ function [SP,my,dmydxi]  = getSimulationPA(xi,Model,Data,s )
         % Store the simulation results
         switch Model.exp{s}.scale
             case 'log'
-                tmp = arrayfun(@(x) diag(squeeze(SP.Cy(x,:,:))), 1:size(SP.Cy,1),'UniformOutput',false);
+                % TBD!
+                tmp = arrayfun(@(x) diag(squeeze(SP.my(x,:,:))), 1:size(SP.Cy,1),'UniformOutput',false);
                 my = [my; exp(SP.my + transpose([tmp{:}])/2)];
 
             case 'log10'
+                % TBD!
                 tmp = arrayfun(@(x) diag(squeeze(SP.Cy(x,:,:))), 1:size(SP.Cy,1),'UniformOutput',false);
                 my = [my; 10.^(SP.my + transpose([tmp{:}])/2)];
                 
@@ -53,9 +55,10 @@ function [SP,my,dmydxi]  = getSimulationPA(xi,Model,Data,s )
         if(nderiv>0)
             switch Model.exp{s}.scale
                 case 'log'
-                    nt = size(SP.dCydxi,1);
-                    np = size(SP.dCydxi,4);
-                    ny = size(SP.dCydxi,2);
+                    nt = size(SP.dmydxi,1);
+                    np = size(SP.dmydxi,4);
+                    ny = size(SP.dmydxi,2);
+                    % To be checked!
                     dtmpdxi = arrayfun(@(x,y) diag(squeeze(SP.dCydxi(x,:,:,y))),repmat(1:nt,[np,1]),...
                         repmat(transpose(1:np),[1,nt]),'UniformOutput',false);
                     dmydxi = bsxfun(@times,my,SP.dmydxi) ...
@@ -64,6 +67,7 @@ function [SP,my,dmydxi]  = getSimulationPA(xi,Model,Data,s )
                     dmydxi(isnan(dmydxi)) = 0;
 
                 case 'log10'
+                    % To be checked!
                     tmp = arrayfun(@(x) diag(squeeze(SP.Cy(x,:,:))), 1:size(SP.Cy,1),'UniformOutput',false);
                     [my, 10.^(SP.my + transpose([tmp{:}])/2)];
 

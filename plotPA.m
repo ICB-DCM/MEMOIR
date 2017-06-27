@@ -76,12 +76,12 @@ if ~isempty(Sim)
             options.data.area_col, ...
             0, 0.8);
         hold on;
-         
+        
         lh(2) = plot(Data.PA.time, Data.PA.m(:,j), '+',...
               'linewidth',options.data.mean_lw,...
               'linestyle',options.data.ls,...
               'color',options.data.col);
-
+        
         lh(3) = plot(Data.PA.time, Sim.m(:,j),'-',...
               'linewidth',options.sim.mean_lw,...
               'linestyle',options.sim.ls,...
@@ -90,7 +90,7 @@ if ~isempty(Sim)
         xlabel('time'); ylabel(Data.measurands{j});
         xlim(Data.PA.time([1,end]));
         if j == 1
-            legend(lh,{'data','model'});
+            legend(lh,{'noise', 'data', 'model'});
         end
         
         subplot(nr,nc,2*(j-1)+2); hold off;

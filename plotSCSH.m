@@ -13,6 +13,7 @@ end
 
 % Figure handle
 s = varargin{3};
+fh = [];
 if(isempty(fh))
     fh(s) = figure;
 else

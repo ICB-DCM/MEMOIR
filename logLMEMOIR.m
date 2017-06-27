@@ -185,12 +185,12 @@ function varargout = logLMEMOIR(varargin)
     options.events = 1;
     options.rescaleSCTL = 0;
     options.optimal_sigma = 1;
-    if nargin >= 4 && ~isempty(varargin{6})
+    if nargin >= 4 && ~isempty(varargin{4})
         if(isstruct(varargin{4}))
-            options = setdefault(varargin{4},options);
+            options = varargin{4};
         end
     end
-    if nargin >= 5 && ~isempty(varargin{6})
+    if nargin >= 5 && ~isempty(varargin{5})
         extract_flag = varargin{5};
     else
         extract_flag = false;
