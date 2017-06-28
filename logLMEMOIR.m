@@ -179,7 +179,7 @@ function varargout = logLMEMOIR(varargin)
    
    % Options
    options.tau_update = 0;
-   options.plot = 1;
+   options.plot = 0;
    options.ms_iter = 10;
    options.events = 1;
    options.rescaleSCTL = 0;
@@ -272,11 +272,12 @@ function varargout = logLMEMOIR(varargin)
          op_SP.nderiv = options.nderiv;
          op_SP.req = [0,0,0,1,1,1,0];
          op_SP.type_D = Model.type_D;
-         if(extract_flag)
-            SP = testSigmaPointApp(@(phi) simulateForSP(Model.exp{s}.model,Data{s}.SCTLstat.time,phi,Data{s}.condition,'lin'),xi,Model.exp{s},op_SP);
-         else
+         % op_SP.approx = 'sample';
+%          if(extract_flag)
+%             SP = testSigmaPointApp(@(phi) simulateForSP(Model.exp{s}.model,Data{s}.SCTLstat.time,phi,Data{s}.condition,'lin'),xi,Model.exp{s},op_SP);
+%          else
             SP = getSigmaPointApp(@(phi) simulateForSP(Model.exp{s}.model,Data{s}.SCTLstat.time,phi,Data{s}.condition,'lin'),xi,Model.exp{s},op_SP);
-         end
+%          end
          
          % Evaluation of likelihood, likelihood gradient and hessian
          
@@ -305,6 +306,7 @@ function varargout = logLMEMOIR(varargin)
          
          % Summation
          logL = logL + logL_mz + logL_Cz;
+%          disp([num2str(s) '     ' num2str(logL) '     ' num2str(logL_mz) '     ' num2str(logL_Cz)])
          if options.nderiv >= 1
             dlogLdxi = dlogLdxi + dlogL_mzdxi + dlogL_Czdxi;
             if options.nderiv >= 2
