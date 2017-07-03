@@ -30,10 +30,13 @@
 %   .exp{s} ... contains all information with respect to experiment number
 %   s
 %       .N ... number of single cells measured in the experiment
-%       .sigma_noise ... noise level in this experiment (used in data
-%       generation)
+%       .sigma_noise ... single-cell noise level in this experiment (used 
+%       in data generation and for fitting)
+%       .sigma_mean ... noise level for mean measurements, used for fitting
+%       .sigma_cov ... noise level of covariance and cross-covariance, used
 %       .sigma_time ... noise level for event data (used in data
 %       generation)
+%       in fitting
 %       .sigma_on ... flag indicating whether noise should be added during
 %       data generation
 %       .t ... vector of timepoints at which the system is observed
@@ -146,7 +149,7 @@ try
         %             eval(['Model.exp{s}.ddddsigma_noisedphidphidphidphi = @MEMdddds_ndpdpdpdp_' filename '_' num2str(S(s)) ';']);
         %             end
         loadold = true;
-        disp(['Loading previous model definition files!'])
+        disp('Loading previous model definition files!');
         disp(['To regenerate model, abort and delete ' mdir 'models/' filename ]);
     end
 catch
@@ -304,6 +307,34 @@ if(~loadold)
         %             eval(['Model.exp{s}.ddddsigma_noisedphidphidphidphi = @MEMdddds_ndpdpdpdp_' num2str(S(s)) ';']);
         %         end
         
+        % sigma_mean(phi)
+        mfun(Model.exp{s}.sym.sigma_mean,'file',fullfile(mdir,'models',filename,['MEMsigma_mean_' filename '_' num2str(S(s))]),'vars',{phi});
+        eval(['Model.exp{s}.sigma_mean = @MEMsigma_mean_' filename '_' num2str(S(s)) ';']);
+        
+        % dsigma_meandphi
+        Model.exp{s}.sym.dsigma_meandphi = sym(zeros(size(Model.exp{s}.sym.sigma_mean,1),size(Model.exp{s}.sym.sigma_mean,2),n_phi));
+        for j = 1:size(Model.exp{s}.sym.sigma_mean,1)
+            for k = 1:size(Model.exp{s}.sym.sigma_mean,2)
+                Model.exp{s}.sym.dsigma_meandphi(j,k,:) = jacobian(Model.exp{s}.sym.sigma_mean(j,k),phi);
+            end
+        end
+        mfun(Model.exp{s}.sym.dsigma_meandphi,'file',fullfile(mdir,'models',filename,['MEMds_mdp_' filename '_' num2str(S(s))]),'vars',{phi});
+        eval(['Model.exp{s}.dsigma_meandphi = @MEMds_mdp_' filename '_' num2str(S(s)) ';']);
+        
+        % sigma_cov(phi)
+        mfun(Model.exp{s}.sym.sigma_cov,'file',fullfile(mdir,'models',filename,['MEMsigma_cov_' filename '_' num2str(S(s))]),'vars',{phi});
+        eval(['Model.exp{s}.sigma_cov = @MEMsigma_cov_' filename '_' num2str(S(s)) ';']);
+        
+        % dsigma_covdphi
+        Model.exp{s}.sym.dsigma_covdphi = sym(zeros(size(Model.exp{s}.sym.sigma_cov,1),size(Model.exp{s}.sym.sigma_cov,2),n_phi));
+        for j = 1:size(Model.exp{s}.sym.sigma_cov,1)
+            for k = 1:size(Model.exp{s}.sym.sigma_cov,2)
+                Model.exp{s}.sym.dsigma_covdphi(j,k,:) = jacobian(Model.exp{s}.sym.sigma_cov(j,k),phi);
+            end
+        end
+        mfun(Model.exp{s}.sym.dsigma_covdphi,'file',fullfile(mdir,'models',filename,['MEMds_cdp_' filename '_' num2str(S(s))]),'vars',{phi});
+        eval(['Model.exp{s}.dsigma_covdphi = @MEMds_cdp_' filename '_' num2str(S(s)) ';']);
+        
         % sigma_time(phi)
         if(~isfield(Model.exp{s}.sym,'sigma_time'))
             Model.exp{s}.sym.sigma_time = sym.empty(0,1);
@@ -444,7 +475,7 @@ else
         Cs = C(Model.exp{s}.ind_b,Model.exp{s}.ind_b);
         Model.exp{s}.ind_delta =  find(ismember(Model.sym.delta,symvar(Cs)));
         
-        % constructe reduced parameters
+        % construct reduced parameters
         Model.exp{s}.sym.beta = Model.sym.beta(Model.exp{s}.ind_beta);
         Model.exp{s}.sym.b = Model.sym.b(Model.exp{s}.ind_b);
         Model.exp{s}.sym.delta = Model.sym.delta(Model.exp{s}.ind_delta);
@@ -459,6 +490,10 @@ else
         end
         eval(['Model.exp{s}.sigma_noise = @MEMsigma_noise_' filename '_' num2str(S(s)) ';']);
         eval(['Model.exp{s}.dsigma_noisedphi = @MEMds_ndp_' filename '_' num2str(S(s)) ';']);
+        eval(['Model.exp{s}.sigma_mean = @MEMsigma_mean_' filename '_' num2str(S(s)) ';']);
+        eval(['Model.exp{s}.dsigma_meandphi = @MEMds_mdp_' filename '_' num2str(S(s)) ';']);
+        eval(['Model.exp{s}.sigma_cov = @MEMsigma_cov_' filename '_' num2str(S(s)) ';']);
+        eval(['Model.exp{s}.dsigma_covdphi = @MEMds_cdp_' filename '_' num2str(S(s)) ';']);
         if(~onlyPA)
             eval(['Model.exp{s}.ddsigma_noisedphidphi = @MEMdds_ndpdp_' filename '_' num2str(S(s)) ';']);
             eval(['Model.exp{s}.dddsigma_noisedphidphidphi = @MEMddds_ndpdpdp_' filename '_' num2str(S(s)) ';']);

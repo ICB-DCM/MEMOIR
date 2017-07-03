@@ -6,7 +6,7 @@ function [SP,my,dmydxi]  = getSimulationPA(xi,Model,Data,s)
     % Set options for sigma point routine
     nderiv = nargout-2;
     op_SP.nderiv = nderiv;
-    op_SP.req = [1,1,0,0,0,1,0];
+    op_SP.req = [1,0,0,0,0,1,0]; % [1,1,0,0,0,1,0];
     op_SP.type_D = Model.type_D;
     
     % Check, if sigma points or sampling are to be used (so far, only sigma
