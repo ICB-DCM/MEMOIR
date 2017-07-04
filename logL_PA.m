@@ -2,6 +2,7 @@ function [SP,logL_m,dlogL_mdxi,ddlogL_mdxi2] = logL_PA(xi, Model, Data, s, optio
 
     nderiv = nargout-2;
     
+    
     % Simulation
     if (nargout >= 3)
         [SP,my,dmydxi] = getSimulationPA(xi, Model, Data, s);
@@ -23,7 +24,7 @@ function [SP,logL_m,dlogL_mdxi,ddlogL_mdxi2] = logL_PA(xi, Model, Data, s, optio
 
     % Duplicate values in my if more than one data point at one time point
     if (size(Data{s}.condition,1) == 1)
-        % If we do not have a dose response experiment
+        % No dose response experiment
         if (size(Data{s}.PA.time,1) ~= size(my,1))
             k = 0;
             oldT = nan;
@@ -45,7 +46,7 @@ function [SP,logL_m,dlogL_mdxi,ddlogL_mdxi2] = logL_PA(xi, Model, Data, s, optio
             end
         end
     else
-        % If we have a dose response experiment and multiple data points for one time point
+        % Dose response experiment
         tmp_my = nan(size(Data{s}.condition,1), size(my,2));
         thisUniqueCondition = unique(Data{s}.condition, 'rows');
         if(nargout >= 3)
@@ -66,7 +67,6 @@ function [SP,logL_m,dlogL_mdxi,ddlogL_mdxi2] = logL_PA(xi, Model, Data, s, optio
             dmydxi = tmp_dmydxi;
         end
     end
-    
     
     
     %% Evaluation of the Likelihood
@@ -151,6 +151,8 @@ function [SP,logL_m,dlogL_mdxi,ddlogL_mdxi2] = logL_PA(xi, Model, Data, s, optio
     % Visualization
     if options.plot
         Sim_PA.m = my;
+        Sim_PA.Sigma_m = Sigma;
+        Sim_PA.t = Data{s}.PA.time;
         if isfield(Model.exp{s},'PA_post_processing_SP')
             Sim_PA.SP_max = SP.SP_max;
             Sim_PA.SP_min = SP.SP_min;

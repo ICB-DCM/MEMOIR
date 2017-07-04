@@ -211,6 +211,9 @@ function [SP,logL_m,logL_C,dlogL_mdxi,dlogL_Cdxi,ddlogL_mdxi2,ddlogL_Cdxi2] = lo
     if options.plot
         Sim_SCSH.m = my;
         Sim_SCSH.C = Cy;
+        Sim_SCSH.Sigma_m = Sigma_m;
+        Sim_SCSH.Sigma_C = Sigma_C;
+        Sim_SCSH.t = Data{s}.SCSH.time;
         if isfield(Model.exp{s},'SCSH_post_processing_SP')
             Sim_SCSH.SP_max = SP.SP_max;
             Sim_SCSH.SP_min = SP.SP_min;
