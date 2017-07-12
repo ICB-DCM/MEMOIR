@@ -1,12 +1,16 @@
-function varargout = simulateForSP(model, tout, phi, kappa, scale)
+function varargout = simulateForSP(model, tout, phi, kappa, scale, amiopt)
+   
+   if isempty(amiopt)
+      amiopt = amioption('sensi',0,'maxsteps',1e4,'atol',1e-12,'rtol',1e-8);
+   end      
    
    % Simulate model
    if(nargout<2)
-      options_simu = amioption('sensi',0,'maxsteps',1e6,'atol',1e-12,'rtol',1e-8);
-      sol = model(tout,phi,kappa,options_simu);
+      amiopt.sensi = 0;
+      sol = model(tout,phi,kappa,amiopt);
    else
-      options_simu = amioption('sensi',1,'maxsteps',1e6,'atol',1e-12,'rtol',1e-8);
-      sol = model(tout,phi,kappa,options_simu);
+      amiopt.sensi = 1;      
+      sol = model(tout,phi,kappa,amiopt);
    end
    
    % Switch for the scale of the simulation

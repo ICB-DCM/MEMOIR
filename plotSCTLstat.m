@@ -163,9 +163,17 @@ function plotSCTLstat(varargin)
       
       subplot(ny+1,2*ny,I); hold off;
       imagesc(Data.SCTLstat.Cz,Cz_abs_max*[-1,1]); hold on;
-      xlabel('column'); ylabel('row');
+      xlabel('time index'); ylabel('time index');
       colorbar;
       caxis([min(min(min(Data.SCTLstat.Cz,Cz_abs_max))),max(max(max(Data.SCTLstat.Cz,Cz_abs_max)))])
+      set(gca,...
+         'xlim',[min(find(~isnan(Data.SCTLstat.mz(:,i)))),...
+                max(find(~isnan(Data.SCTLstat.mz(:,i))))],...
+         'ylim',[min(find(~isnan(Data.SCTLstat.mz(:,i)))),...
+                max(find(~isnan(Data.SCTLstat.mz(:,i))))],...
+          'xcolor','none');
+      
+      
       % Covariances - Simulation
       I = [];
       for i = 1:ny
@@ -173,10 +181,16 @@ function plotSCTLstat(varargin)
       end
       subplot(ny+1,2*ny,I); hold off;
       imagesc(Sim.Cz,Cz_abs_max*[-1,1]); hold on;
-      xlabel('column'); ylabel('row');
+      xlabel('time index'); ylabel('time index');
       colorbar;
       caxis([min(min(min(Sim.Cz,Cz_abs_max))),max(max(max(Sim.Cz,Cz_abs_max)))])
       
+      set(gca,...
+         'xlim',[min(find(~isnan(Data.SCTLstat.mz(:,i)))),...
+                max(find(~isnan(Data.SCTLstat.mz(:,i))))],...
+         'ylim',[min(find(~isnan(Data.SCTLstat.mz(:,i)))),...
+                max(find(~isnan(Data.SCTLstat.mz(:,i))))]...
+                );
    end
    
    %% Visualization: Data

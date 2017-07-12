@@ -176,8 +176,9 @@ function varargout = logLMEMOIR(varargin)
    xi = varargin{1};
    Data = varargin{2};
    Model = varargin{3};
+   amiopt = varargin{7};
    
-   % Options
+   % Options   
    options.tau_update = 0;
    options.plot = 0;
    options.ms_iter = 10;
@@ -194,7 +195,7 @@ function varargout = logLMEMOIR(varargin)
    else
       extract_flag = false;
    end
-   if nargin >= 6
+   if nargin >= 6 && ~isempty(varargin{6})
       P_old = varargin{6};
       logL_old = -Inf;
    end
@@ -270,13 +271,13 @@ function varargout = logLMEMOIR(varargin)
       if isfield(Data{s},'SCTLstat')
          % Simulation using sigma points
          op_SP.nderiv = options.nderiv;
-         op_SP.req = [0,0,0,1,1,1,0];
+         op_SP.req = [0,0,0,1,1,1,0]; % Comment Benny: There are only the first 5 defined!
          op_SP.type_D = Model.type_D;
          % op_SP.approx = 'sample';
 %          if(extract_flag)
 %             SP = testSigmaPointApp(@(phi) simulateForSP(Model.exp{s}.model,Data{s}.SCTLstat.time,phi,Data{s}.condition,'lin'),xi,Model.exp{s},op_SP);
 %          else
-            SP = getSigmaPointApp(@(phi) simulateForSP(Model.exp{s}.model,Data{s}.SCTLstat.time,phi,Data{s}.condition,'lin'),xi,Model.exp{s},op_SP);
+            SP = getSigmaPointApp(@(phi) simulateForSP(Model.exp{s}.model,Data{s}.SCTLstat.time,phi,Data{s}.condition,'lin',amiopt),xi,Model.exp{s},op_SP);
 %          end
          
          % Evaluation of likelihood, likelihood gradient and hessian
