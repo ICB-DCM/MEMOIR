@@ -3,6 +3,41 @@ function getSimulationMEMOIR(xi, Model, Data, ind_exp, ind_xi, options)
 % fine time grid and analyzes relative sensitivities for a given parameter 
 % set (ind_xi)
 
+    %% Preprocess inputs
+    
+    if (options.sensi > 0)
+        % Collect all measurands
+        measurands = cell(1,0);
+        for s = ind_exp
+            measurands = {measurands{1:size(measurands,2)}, Data{s}.measurands{1:length(Data{s}.measurands)}};
+        end
+        measurands = unique(measurands);
+        
+        % Get length of parameter vector
+        parameters = 1 : length(Model.param);
+    
+        % Check validity of parameters for sensitivities to be computed
+        for j = 1 : length(ind_xi)
+            if ~any(parameters == ind_xi(j));
+                error('The vector of parameter indices for sensitivity analysis is invalid.');
+            end
+        end
+        
+        % Check validity of observables for sensitivities to be computed
+        for iMeas = options.measurands
+            if ~any(strcmp(measurands, iMeas));
+                err_msg = ['The observable '  iMeas{1,1} ...
+                    ' for which sensitivity is requested can not be found among the observables of the specified experiments.'];
+                error(err_msg);
+            end
+        end
+        
+        %intSensiExp
+    end
+    
+
+    %% Perform run through all experiments
+    
     for s = ind_exp
     % --- Loop over experiments -------------------------------------------
  
@@ -98,19 +133,27 @@ function getSimulationMEMOIR(xi, Model, Data, ind_exp, ind_xi, options)
                             + bsxfun(@times,my,permute(reshape([dtmpdxi{:}]/2,...
                             [ny,np,nt]),[3,1,2]));
                         dmydxi(isnan(dmydxi)) = 0;
+                        if strcmp(exp_type, 'SCSH')
+                        end
 
                     case 'log10'
                         % To be checked!
                         tmp = arrayfun(@(x) diag(squeeze(SP.Cy(x,:,:))), 1:size(SP.Cy,1),'UniformOutput',false);
                         my = 10.^(SP.my + transpose([tmp{:}])/2);
+                        if strcmp(exp_type, 'SCSH')
+                        end
 
                     case 'lin'
                         dmydxi = SP.dmydxi;
-                        % dCydxi = SP.dCydxi;
+                        if strcmp(exp_type, 'SCSH')
+                            dCydxi = SP.dCydxi;
+                        end
                 end
             else
                 dmydxi = zeros([size(my,1),size(my,2),length(xi)]);
-                % dCydxi = zeros([size(my,1),size(my,2),size(my,2),length(xi)]);
+                if strcmp(exp_type, 'SCSH')
+                    dCydxi = zeros([size(my,1),size(my,2),size(my,2),length(xi)]);
+                end
             end
             
             % Apply additional user-defined post-processing
@@ -119,8 +162,37 @@ function getSimulationMEMOIR(xi, Model, Data, ind_exp, ind_xi, options)
                     SP.dmydxi = zeros([size(SP.my) size(xi,1)]);
                 end
                 [my,dmydxi] = feval(Model.exp{s}.(post_proc), my, dmydxi);
+                if strcmp(exp_type, 'SCSH')
+                    [my,Cy,dmydxi,dCydxi] = feval(Model.exp{s}.(post_proc), my, Cy, dmydxi, dCydxi);
+                end
             end
-
+            
+            
+            %% Do sensitivity analysis
+            
+            if (options.sensi > 0)
+                % Find indices of measurands for this experiment
+                measInd = [];
+                for iMeas = options.measurands
+                    for j = 1 : length(Data{s}.measurands)
+                        if strcmp(Data{s}.measurands{j}, iMeas)
+                            measInd = [measInd, j];
+                        end
+                    end
+                end
+                
+                % Compute relative sensitivities by (very simple) intgeration
+                for iT = 1:size(dCydxi,1)
+                    tmp = permute(dCydxi(iT,1,1,:), [4 1 2 3]);
+                    tmp_dCydxi(iT,1,:) = permute(tmp, [2 3 1]);
+                end
+                dAlldxi = [dmydxi, tmp_dCydxi];
+                relSensiExp = dAlldxi(:,measInd,ind_xi);% ./ repmat(my, [1 1 length(ind_xi)]);
+                intSensiExp = zeros(size(relSensiExp,2),size(relSensiExp,3));
+                for j = 1 : size(relSensiExp,1)
+                    intSensiExp = intSensiExp + (Sim.t(j+1)-Sim.t(j)) * 0.5 * permute((relSensiExp(j,:,:)+relSensiExp(j+1,:,:)), [2 3 1]);
+                end
+            end
             
             %% Plotting of fine simulation
             % Assign values for plotting
@@ -139,6 +211,8 @@ function getSimulationMEMOIR(xi, Model, Data, ind_exp, ind_xi, options)
             
             % Plotting
             Model.exp{s}.plot(Data{s}, Sim, s);
+            
+            
             
         % --- End of no dose response experiment --------------------------
         end
