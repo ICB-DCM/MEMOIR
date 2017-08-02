@@ -176,7 +176,7 @@ function varargout = logLMEMOIR(varargin)
     xi = varargin{1};
     Data = varargin{2};
     Model = varargin{3};
-    batchIndices = length(Data);
+    batchIndices = 1:length(Data);
     
     % Options
     options.tau_update = 0;
