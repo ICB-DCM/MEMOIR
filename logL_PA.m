@@ -128,8 +128,6 @@ function [SP,logL_m,dlogL_mdxi,ddlogL_mdxi2] = logL_PA(xi, Model, Data, s, optio
                 case 'lognormal'
                     % To be done!
             end
-            
-            
         end
     end
     

@@ -156,7 +156,7 @@ if ~isempty(Sim)
         xlabel('time'); ylabel([Data.measurands{j} ' - variability']);
         xlim(Data.SCSH.time([1,end]));
         if j == 1
-            legend(lh2,{'noise', 'variance', 'model variability'});
+            legend(lh2,{'noise', 'data variance', 'model variability'});
         end
         
         % Error of variance

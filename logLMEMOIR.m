@@ -176,7 +176,7 @@ function varargout = logLMEMOIR(varargin)
     xi = varargin{1};
     Data = varargin{2};
     Model = varargin{3};
-    batchIndices = length(Data);
+    batchIndices = 1:length(Data);
     
     % Options
     options.tau_update = 0;
@@ -201,6 +201,7 @@ function varargout = logLMEMOIR(varargin)
     end
     if nargin >= 7
         batchIndices = varargin{7};
+        batchIndices = batchIndices';
     end
     options.nderiv = max(nargout-1,0);
     
@@ -240,7 +241,7 @@ function varargout = logLMEMOIR(varargin)
     options.integration = Model.integration;
     
     % Loop: Experiments/Experimental Conditions
-    for s = 1:batchIndices
+    for s = batchIndices
         
         %% Single cell time-lapse data - Individuals
         if isfield(Data{s},'SCTL')
