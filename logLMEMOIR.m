@@ -293,20 +293,24 @@ function varargout = logLMEMOIR(varargin)
             end
          end
          
+         % Variance
+         stdCovData = Data{s}.SCTLstat.Sigma_Cz;
+         logL_Cz_diag = - 0.5*sum(nansum(nansum((diag(Data{s}.SCTLstat.Cz - SP.Cz)./diag(stdCovData)).^2,1),2),3);
          
          % Covariance
-         logL_Cz = - 0.5*sum(nansum(nansum(((Data{s}.SCTLstat.Cz - SP.Cz)./Data{s}.SCTLstat.Sigma_Cz).^2,1),2),3);
+         stdCovData = Data{s}.SCTLstat.Sigma_Cz;
+         logL_Cz = - 0.5*sum(nansum(nansum(((Data{s}.SCTLstat.Cz - SP.Cz)./stdCovData).^2,1),2),3);
          if options.nderiv >= 1
-            dlogL_Czdxi = squeeze(nansum(nansum(bsxfun(@times,(Data{s}.SCTLstat.Cz - SP.Cz)./Data{s}.SCTLstat.Sigma_Cz.^2,SP.dCzdxi),1),2));
+            dlogL_Czdxi = squeeze(nansum(nansum(bsxfun(@times,(Data{s}.SCTLstat.Cz - SP.Cz)./stdCovData.^2,SP.dCzdxi),1),2));
             if options.nderiv >= 2
-               wdCzdxi = bsxfun(@times,1./Data{s}.SCTLstat.Sigma_Cz,SP.dCzdxi);
+               wdCzdxi = bsxfun(@times,1./stdCovData,SP.dCzdxi);
                wdCzdxi = reshape(wdCzdxi,[numel(SP.Cz),size(SP.dCzdxi,3)]);
                ddlogL_Czdxi2 = -wdCzdxi'*wdCzdxi;
             end
          end
          
          % Summation
-         logL = logL + logL_mz + logL_Cz;
+         logL = logL + logL_mz + (logL_Cz-logL_Cz_diag)/2 + logL_Cz_diag;
 %          disp([num2str(s) '     ' num2str(logL) '     ' num2str(logL_mz) '     ' num2str(logL_Cz)])
          if options.nderiv >= 1
             dlogLdxi = dlogLdxi + dlogL_mzdxi + dlogL_Czdxi;
