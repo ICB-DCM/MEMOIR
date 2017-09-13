@@ -161,9 +161,10 @@ function getSimulationMEMOIR(xi, Model, Data, ind_exp, ind_xi, options)
                 if(options.sensi > 0)
                     SP.dmydxi = zeros([size(SP.my) size(xi,1)]);
                 end
-                [my,dmydxi] = feval(Model.exp{s}.(post_proc), my, dmydxi);
-                if strcmp(exp_type, 'SCSH')
-                    [my,Cy,dmydxi,dCydxi] = feval(Model.exp{s}.(post_proc), my, Cy, dmydxi, dCydxi);
+                if strcmp(exp_type, 'PA')
+                    [my,dmydxi] = feval(Model.exp{s}.(post_proc), my, dmydxi);
+                elseif strcmp(exp_type, 'SCSH')
+                    [Cy,dmydxi,dCydxi] = feval(Model.exp{s}.(post_proc), my, Cy, dmydxi, dCydxi);
                 end
             end
             
@@ -252,9 +253,9 @@ function SigmaStruct = processSigma(thisData, mdata, Cdata, type)
     end
     SigmaStruct.Sigma_m = Sigma_m;
         
-    if strcmp(type, 'SCSH')
-        % Single-Cell snapshot sigma
-        sigma_C = thisData.(type).Sigma_C(1,:);
+    if (strcmp(type, 'SCSH') && ~isempty(Cdata))
+        % Single-Cell snapshotsigma
+        sigma_C = thisData.(type).Sigma_C(1,:,:);
         
         if(size(sigma_C,1) == size(Cdata,1))
             if(size(sigma_C,2) == 1)
@@ -295,14 +296,23 @@ function Sim = processSimulation(Sim, t_ind, thisData, type)
         k = 0;
         oldT = nan;
         tmp_my = nan(size(thisData.(type).time,1), size(Sim.m,2));
+        if strcmp(type, 'SCSH')
+            tmp_Cy = nan(size(thisData.(type).time,1), size(Sim.C,2));
+        end
         for j = 1 : size(thisData.(type).time,1)
             if (thisData.(type).time(j) ~= oldT)
                 k = k + 1; 
             end
             tmp_my(j,:) = Sim.m(k,:);
+            if strcmp(type, 'SCSH')
+                tmp_Cy(j,:) = Sim.C(k,:);
+            end
             oldT = thisData.(type).time(j);
         end
         Sim.m = tmp_my;
+        if strcmp(type, 'SCSH')
+            Sim.C = tmp_Cy;
+        end
     end
 
 end

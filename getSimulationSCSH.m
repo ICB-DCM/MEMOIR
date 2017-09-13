@@ -101,7 +101,7 @@ function [SP,my,Cy,dmydxi,dCydxi]  = getSimulationSCSH(xi,Model,Data,s)
             SP.dmydxi = zeros([size(SP.my) size(xi,1)]);
             SP.dCydxi = zeros([size(SP.Cy) size(xi,1)]);
         end
-        [my, Cy, dmydxi, dCydxi] = Model.exp{s}.SCSH_post_processing(xi, my, Cy, dmydxi, dCydxi);
+        [my, Cy, dmydxi, dCydxi] = Model.exp{s}.SCSH_post_processing(my, Cy, dmydxi, dCydxi);
     end
     
 end

@@ -24,22 +24,28 @@ function [SP,logL_m,logL_C,dlogL_mdxi,dlogL_Cdxi,ddlogL_mdxi2,ddlogL_Cdxi2] = lo
             k = 0;
             oldT = nan;
             tmp_my = nan(size(Data{s}.SCSH.time,1), size(my,2));
+            tmp_Cy = nan(size(Data{s}.SCSH.time,1), size(Cy,2));
             if(nargout >= 4)
                 tmp_dmydxi = nan(size(Data{s}.SCSH.time,1), size(my,2), size(dmydxi,3));
+                tmp_dCydxi = nan(size(Data{s}.SCSH.time,1), size(dCydxi,2), size(dCydxi,3));
             end
             for j = 1 : size(Data{s}.SCSH.time,1)
                 if (Data{s}.SCSH.time(j) ~= oldT)
                     k = k + 1;
                 end
                 tmp_my(j,:) = my(k,:);
+                tmp_Cy(j,:) = Cy(k,:);
                 if(nargout >= 4)
                     tmp_dmydxi(j,:,:) = dmydxi(k,:,:);
+                    tmp_dCydxi(j,:,:) = dCydxi(k,:,:);
                 end
                 oldT = Data{s}.SCSH.time(j);
             end
             my = tmp_my;
+            Cy = tmp_Cy;
             if(nargout >= 4)
                 dmydxi = tmp_dmydxi;
+                dCydxi = tmp_dCydxi;
             end
         end
     else
@@ -129,7 +135,7 @@ function [SP,logL_m,logL_C,dlogL_mdxi,dlogL_Cdxi,ddlogL_mdxi2,ddlogL_Cdxi2] = lo
         % Compute derivative for dynamic parameters, scalings, offsets and
         % sigma_noise parameters
         dlogL_Cdy = reshape(-J_D_C.dY, size(Data{s}.SCSH.C));
-        dlogL_Cdxi = squeeze(nansum(nansum(nansum(dCydxi .* repmat(dlogL_Cdy, [1 1 1 size(dmydxi, 3)]), 3), 2), 1));
+        dlogL_Cdxi = squeeze(nansum(nansum(dCydxi .* repmat(dlogL_Cdy, [1 1 size(dmydxi, 3)]), 2), 1));
         
         % Compute derivative for simga_cov parameters
         dlogL_CdSigma_C = reshape(-J_D_C.dSigma, size(Data{s}.SCSH.C));
