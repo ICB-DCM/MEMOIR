@@ -92,12 +92,7 @@ function [SP,logL_m,logL_C,dlogL_mdxi,dlogL_Cdxi,ddlogL_mdxi2,ddlogL_Cdxi2] = lo
         case 2
             % optimal analytic computation of noise parameters
     end
-    
-    % Post-process data
-%     if isfield(Data{s}, 'SCSH_post_processing')
-%         [data_m, Sigma_m, data_C] = Data{s}.SCSH_post_processing(Data{s}.SCSH.m, Data{s}.SCSH.Sigma_m, Data{s}.SCSH.C);
-%     end
-    
+  
     % Compute likelihood and derivatives for the mean
     switch Model.exp{s}.noise_model
         case 'normal'
@@ -183,33 +178,6 @@ function [SP,logL_m,logL_C,dlogL_mdxi,dlogL_Cdxi,ddlogL_mdxi2,ddlogL_Cdxi2] = lo
             end
         end
     end
-    
-%     % Evaluation of likelihood, gradient and hessian from simulation
-%     logL_m = - 0.5*nansum(nansum(((data_m - my)./Data{s}.SCSH.Sigma_m).^2,1),2);
-%     fprintf('Nr: %2i,  LogL: %12.5f \n', s, logL_m);
-%     if nargout >= 4
-%         dlogL_mdxi = squeeze(nansum(nansum(bsxfun(@times,(data_m - my) ./ Data{s}.SCSH.Sigma_m.^2,dmydxi),1),2));
-%         
-%         if nargout >= 6
-%             wdmdxi = bsxfun(@times,1./Data{s}.SCSH.Sigma_m,SP.dmydxi);
-%             wdmdxi = reshape(wdmdxi,[numel(SP.my),size(SP.dmydxi,3)]);
-%             ddlogL_mdxi2 = -wdmdxi'*wdmdxi;
-%         end
-%     end
-%     
-%     % Evaluation of likelihood, gradient and hessian from biol. variability
-%     logL_C = - 0.5*nansum(nansum(nansum(((Data{s}.SCSH.C - Cy) ./ Data{s}.SCSH.Sigma_C).^2,1),2),3);
-%     fprintf('Nr: %2i,  LogL: %12.5f \n', s, logL_m);
-%     if nargout >= 4
-%         dlogL_Cdxi = squeeze(nansum(nansum(nansum(bsxfun(@times,(Data{s}.SCSH.C - Cy) ./ Data{s}.SCSH.Sigma_C.^2,dCydxi),1),2),3));
-%         
-%         if nargout >= 6
-%             % This will probably fail due to wrong dimensions...
-%             wdCdxi = bsxfun(@times,1./Data{s}.SCSH.Sigma_C,SP.dmydxi);
-%             wdCdxi = reshape(wdCdxi,[numel(SP.my),size(SP.dmydxi,3)]);
-%             ddlogL_Cdxi2 = -wdCdxi'*wdCdxi;
-%         end
-%     end
 
     % Visulization
     if options.plot

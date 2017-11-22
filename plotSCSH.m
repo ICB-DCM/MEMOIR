@@ -15,6 +15,13 @@ if nargin >= 2
     if ~isfield(Sim, 'CFine')
         Sim.CFine = Sim.C;
     end
+    
+    % If also sampling results should be plottet vs sigma points
+    if ~isfield(Sim, 'mFineTrue')
+        samples_vs_sp = 0;
+    else
+        samples_vs_sp = 1;
+    end
 else
     error('Not enough inputs.')
 end
@@ -52,6 +59,12 @@ options.sim_C.border_col = [0.3,0.4,0.9];
 options.sim_C.area_col = [0.5,0.6,1];
 options.sim_C.mean_lw = 2;
 options.sim_C.bound_lw = 1;
+options.sim_true.col = 'g';
+options.sim_true.area_col = [0.2,0.7,0.2];
+options.sim_true.border_col = [0,0.6,0];
+options.sim_true.ls = '--';
+options.sim_true.mean_lw = 2;
+options.sim_true.bound_lw = 1;
 options.error.col = 'b';
 options.error.ls = '-';
 options.error.lw = 1;
@@ -78,8 +91,10 @@ if ~isempty(Sim)
         % Data and simulation - mean
         subplot(nr,nc,6*(j-1)+[1,2]); hold off;
         
+        lhCount = 1;
+        
         % Plot noise
-        lh(1) = fill([Sim.t(1:end); Sim.t(end:-1:1)],...
+        lh(lhCount) = fill([Sim.t(1:end); Sim.t(end:-1:1)],...
              [Sim.mFine(1:end,j) - Sim.Sigma_m(1:end,j);...
               Sim.mFine(end:-1:1,j) + Sim.Sigma_m(end:-1:1,j)],...
               options.sim_m.area_col);  
@@ -93,24 +108,57 @@ if ~isempty(Sim)
               'linewidth',options.sim_m.bound_lw,...
               'linestyle',options.sim_m.ls,...
               'color',options.sim_m.border_col);
+          
+        if samples_vs_sp
+            % Plot noise
+            lhCount = lhCount + 1;
+            lh(lhCount) = fill([Sim.t(1:end); Sim.t(end:-1:1)],...
+                 [Sim.mFineTrue(1:end,j) - Sim.Sigma_m(1:end,j);...
+                  Sim.mFineTrue(end:-1:1,j) + Sim.Sigma_m(end:-1:1,j)],...
+                  options.sim_true.area_col);  
+            plot(Sim.t, Sim.mFineTrue(:,j) - Sim.Sigma_m(:,j),'-',...
+                  'linewidth',options.sim_true.bound_lw,...
+                  'linestyle',options.sim_true.ls,...
+                  'color',options.sim_true.border_col);
+            plot(Sim.t, Sim.mFineTrue(:,j) + Sim.Sigma_m(:,j),'-',...
+                  'linewidth',options.sim_true.bound_lw,...
+                  'linestyle',options.sim_true.ls,...
+                  'color',options.sim_true.border_col);
+            alpha(0.5);
+        end
         
-        % Plot data 
-        lh(2) = plot(Data.SCSH.time, Data.SCSH.m(:,j),'+',...
+        % Plot data
+        lhCount = lhCount + 1;
+        lh(lhCount) = plot(Data.SCSH.time, Data.SCSH.m(:,j),'+',...
               'linewidth',options.data_m.mean_lw,...
               'linestyle',options.data_m.ls,...
               'color',options.data_m.col);
 
         % Plot simulation
-        lh(3) = plot(Sim.t, Sim.mFine(:,j),'-',...
+        lhCount = lhCount + 1;
+        lh(lhCount) = plot(Sim.t, Sim.mFine(:,j),'-',...
               'linewidth',options.sim_m.mean_lw,...
               'linestyle',options.sim_m.ls,...
               'color',options.sim_m.col);
         
+        if samples_vs_sp
+            % Plot simulation
+            lhCount = lhCount + 1;
+            lh(lhCount) = plot(Sim.t, Sim.mFineTrue(:,j),'-',...
+                'linewidth',options.sim_true.mean_lw,...
+                'linestyle',options.sim_true.ls,...
+                'color',options.sim_true.col);
+        end
+          
         xlabel('time'); ylabel(Data.measurands{j});
         xlim(Data.SCSH.time([1,end]));
-        if j == 1
-            legend(lh,{'noise', 'data', 'model mean'});
-        end
+        if (j == 1)
+            if samples_vs_sp
+                legend(lh,{'noise (SP)', 'noise (Sam)', 'data', 'model mean (SP)', 'model meam (Sam)'});
+            else
+                legend(lh,{'noise', 'data', 'model mean'});
+            end
+        end 
         
         % Error of mean
         subplot(nr,nc,6*(j-1)+3); hold off;
@@ -126,7 +174,8 @@ if ~isempty(Sim)
         subplot(nr,nc,6*(j-1)+[4,5]); hold off;
         
         % Plot noise of variability
-        lh2(1) = fill([Sim.t(1:end); Sim.t(end:-1:1)],...
+        lh2Count = 1;
+        lh2(lh2Count) = fill([Sim.t(1:end); Sim.t(end:-1:1)],...
              [Sim.CFine(1:end,j) - Sim.Sigma_C(1:end,j);...
               Sim.CFine(end:-1:1,j) + Sim.Sigma_C(end:-1:1,j)],...
               options.sim_C.area_col); 
@@ -141,23 +190,56 @@ if ~isempty(Sim)
               'linestyle',options.sim_C.ls,...
               'color',options.sim_C.border_col);
           
+        if samples_vs_sp
+            % Plot noise
+            lh2Count = lh2Count + 1;
+            lh2(lh2Count) = fill([Sim.t(1:end); Sim.t(end:-1:1)],...
+                 [Sim.CFineTrue(1:end,j) - Sim.Sigma_C(1:end,j);...
+                  Sim.CFineTrue(end:-1:1,j) + Sim.Sigma_C(end:-1:1,j)],...
+                  options.sim_true.area_col);  
+            plot(Sim.t, Sim.CFineTrue(:,j) - Sim.Sigma_C(:,j),'-',...
+                  'linewidth',options.sim_true.bound_lw,...
+                  'linestyle',options.sim_true.ls,...
+                  'color',options.sim_true.border_col);
+            plot(Sim.t, Sim.CFineTrue(:,j) + Sim.Sigma_C(:,j),'-',...
+                  'linewidth',options.sim_true.bound_lw,...
+                  'linestyle',options.sim_true.ls,...
+                  'color',options.sim_true.border_col);
+            alpha(0.5);
+        end
+          
         % Plot data 
-        lh2(2) = plot(Data.SCSH.time, Data.SCSH.C(:,j),'k+',...
+        lh2Count = lh2Count + 1;
+        lh2(lh2Count) = plot(Data.SCSH.time, Data.SCSH.C(:,j),'k+',...
               'linewidth',options.data_C.mean_lw,...
               'linestyle',options.data_C.ls,...
               'color',options.data_C.col);
 
         % Plot simulation
-        lh2(3) = plot(Sim.t, Sim.CFine(:,j),'-',...
+        lh2Count = lh2Count + 1;
+        lh2(lh2Count) = plot(Sim.t, Sim.CFine(:,j),'-',...
               'linewidth',options.sim_C.mean_lw,...
               'linestyle',options.sim_C.ls,...
               'color',options.sim_C.col);
           
+        if samples_vs_sp
+            % Plot simulation
+            lh2Count = lh2Count + 1;
+            lh2(lh2Count) = plot(Sim.t, Sim.CFineTrue(:,j),'-',...
+                'linewidth',options.sim_true.mean_lw,...
+                'linestyle',options.sim_true.ls,...
+                'color',options.sim_true.col);
+        end
+          
         xlabel('time'); ylabel([Data.measurands{j} ' - variability']);
         xlim(Data.SCSH.time([1,end]));
-        if j == 1
-            legend(lh2,{'noise', 'data variance', 'model variability'});
-        end
+        if (j == 1)
+            if samples_vs_sp
+                legend(lh2,{'noise (SP)', 'noise (Sam)', 'data variance', 'model variability (SP)', 'model variability (Sam)'});
+            else
+                legend(lh2,{'noise', 'data variance', 'model variability'});
+            end
+        end 
         
         % Error of variance
         subplot(nr,nc,6*(j-1)+6); hold off;

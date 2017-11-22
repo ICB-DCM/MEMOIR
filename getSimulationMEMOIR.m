@@ -5,6 +5,16 @@ function getSimulationMEMOIR(xi, Model, Data, ind_exp, ind_xi, options)
 
     %% Preprocess inputs
     
+    if (~isfield(options, 'sensi'))
+        options.sensi = 0;
+    end
+    if (~isfield(options, 'fine'))
+        options.fine = 1;
+    end
+    if (~isfield(options, 'approx'))
+        options.approx = 'sp';
+    end
+    
     if (options.sensi > 0)
         % Collect all measurands
         measurands = cell(1,0);
@@ -81,12 +91,27 @@ function getSimulationMEMOIR(xi, Model, Data, ind_exp, ind_xi, options)
             op_SP.req = req;
             op_SP.type_D = Model.type_D;
             op_SP.approx = 'sp';
-
-            % Call simulation
-            SP = getSigmaPointApp(@(phi) simulateForSP(Model.exp{s}.model, t_sim, phi, Data{s}.condition, Model.exp{s}.scale), ...  = nonfun (in getSigmaPointApp)
-                xi, ...
-                Model.exp{s}, ... = estruct (in getSigmaPointApp)
-                op_SP);
+            op_SP.plot = 0;
+            
+            if strcmp(options.approx, 'sp')
+                % Call simulation
+                SP = getSigmaPointApp(@(phi) simulateForSP(Model.exp{s}.model, t_sim, phi, Data{s}.condition, Model.exp{s}.scale), ...  = nonfun (in getSigmaPointApp)
+                    xi, ...
+                    Model.exp{s}, ... = estruct (in getSigmaPointApp)
+                    op_SP);
+            elseif strcmp(options.approx, 'sampling')
+                % Call simulation
+                SP = getSamplingApp(@(phi) simulateForSP(Model.exp{s}.model, t_sim, phi, Data{s}.condition, Model.exp{s}.scale), ...  = nonfun (in getSigmaPointApp)
+                    xi, ...
+                    Model.exp{s}, ... = estruct (in getSigmaPointApp)
+                    op_SP);
+            elseif strcmp(options.approx, 'both')
+                % Call simulation
+                SP = testSigmaPointApp(@(phi) simulateForSP(Model.exp{s}.model, t_sim, phi, Data{s}.condition, Model.exp{s}.scale), ...  = nonfun (in getSigmaPointApp)
+                    xi, ...
+                    Model.exp{s}, ... = estruct (in getSigmaPointApp)
+                    op_SP);
+            end
             
             
             %% Post-processing
@@ -96,9 +121,18 @@ function getSimulationMEMOIR(xi, Model, Data, ind_exp, ind_xi, options)
                     % TBD!
                     tmp = arrayfun(@(x) diag(squeeze(SP.my(x,:,:))), 1:size(SP.Cy,1),'UniformOutput',false);
                     my = exp(SP.my + transpose([tmp{:}])/2);
+                    if ~strcmp(options.approx, 'sp')
+                        tmp_true = arrayfun(@(x) diag(squeeze(SP.my_true(x,:,:))), 1:size(SP.Cy,1),'UniformOutput',false);
+                        my_true = exp(SP.my_true + transpose([tmp_true{:}])/2);
+                    end
+                    
                     if strcmp(exp_type, 'SCSH')
                         tmpCy = bsxfun(@plus, repmat(tmp, 1, 1, size(SP.Cy,3)), permute(repmat(tmp, 1, 1, size(SP.Cy,3)), [1,3,2]));
                         Cy = exp(tmpCy) .*  (exp(SP.Cy) - ones(size(SP.Cy)));
+                        if ~strcmp(options.approx, 'sp')
+                            tmpCy_true = bsxfun(@plus, repmat(tmp_true, 1, 1, size(SP.Cy_true,3)), permute(repmat(tmp_true, 1, 1, size(SP.Cy_true,3)), [1,3,2]));
+                            Cy = exp(tmpCy_true) .*  (exp(SP.Cy_true) - ones(size(SP.Cy_true)));
+                        end
                     end
 
                 case 'log10'
@@ -112,8 +146,14 @@ function getSimulationMEMOIR(xi, Model, Data, ind_exp, ind_xi, options)
 
                 case 'lin'
                     my = SP.my;
+                    if ~strcmp(options.approx, 'sp')
+                        my_true = SP.my_true;
+                    end
                     if strcmp(exp_type, 'SCSH')
                         Cy = SP.Cy;
+                        if ~strcmp(options.approx, 'sp')
+                            Cy_true = SP.Cy_true;
+                        end
                     end
             end
             
@@ -163,8 +203,14 @@ function getSimulationMEMOIR(xi, Model, Data, ind_exp, ind_xi, options)
                 end
                 if strcmp(exp_type, 'PA')
                     [my,dmydxi] = feval(Model.exp{s}.(post_proc), my, dmydxi);
+                    if ~strcmp(options.approx, 'sp')
+                        [my_true,~] = feval(Model.exp{s}.(post_proc), my_true, dmydxi);
+                    end
                 elseif strcmp(exp_type, 'SCSH')
-                    [Cy,dmydxi,dCydxi] = feval(Model.exp{s}.(post_proc), my, Cy, dmydxi, dCydxi);
+                    [my,Cy,dmydxi,dCydxi] = feval(Model.exp{s}.(post_proc), my, Cy, dmydxi, dCydxi);
+                    if ~strcmp(options.approx, 'sp')
+                        [my_true,Cy_true,~,~] = feval(Model.exp{s}.(post_proc), my_true, Cy_true, dmydxi, dCydxi);
+                    end
                 end
             end
             
@@ -197,11 +243,17 @@ function getSimulationMEMOIR(xi, Model, Data, ind_exp, ind_xi, options)
             
             %% Plotting of fine simulation
             % Assign values for plotting
+            if ~strcmp(options.approx, 'sp')
+                Sim.mFineTrue = my_true;
+            end
             Sim.mFine = my;
             Sim.t = unique(t_sim);
             SigmaStruct = processSigma(Data{s}, Sim.mFine, [], exp_type);
             Sim.Sigma_m = SigmaStruct.Sigma_m;
             if strcmp(exp_type, 'SCSH')
+                if ~strcmp(options.approx, 'sp')
+                    Sim.CFineTrue = Cy_true;
+                end
                 Sim.CFine = Cy;
                 SigmaStruct = processSigma(Data{s}, Sim.mFine, Cy, exp_type);
                 Sim.Sigma_C = SigmaStruct.Sigma_C;

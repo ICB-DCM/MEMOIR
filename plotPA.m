@@ -12,6 +12,13 @@ if nargin >= 2
     if ~isfield(Sim, 'mFine')
         Sim.mFine = Sim.m;
     end
+    
+    % If also sampling results should be plottet vs sigma points
+    if ~isfield(Sim, 'mFineTrue')
+        samples_vs_sp = 0;
+    else
+        samples_vs_sp = 1;
+    end
 else
     error('Not enough inputs.')
 end
@@ -46,8 +53,14 @@ options.sim.col = 'r';
 options.sim.area_col = [0.7,0.7,0.7];
 options.sim.border_col = [0.6,0.6,0.6];
 options.sim.ls = '-';
-options.sim.mean_lw = 1;
+options.sim.mean_lw = 2;
 options.sim.bound_lw = 1;
+options.sim_true.col = 'g';
+options.sim_true.area_col = [0.2,0.7,0.2];
+options.sim_true.border_col = [0,0.6,0];
+options.sim_true.ls = '--';
+options.sim_true.mean_lw = 2;
+options.sim_true.bound_lw = 1;
 options.error.col = 'b';
 options.error.ls = 'none';
 options.error.lw = 1;
@@ -75,8 +88,10 @@ if ~isempty(Sim)
         subplot(nr, nc, 2*(j-1)+1); 
         hold off;
         
+        lhCount = 1;
+        
         % Plot noise
-        lh(1) = fill([Sim.t(1:end); Sim.t(end:-1:1)],...
+        lh(lhCount) = fill([Sim.t(1:end); Sim.t(end:-1:1)],...
              [Sim.mFine(1:end,j) - Sim.Sigma_m(1:end,j);...
               Sim.mFine(end:-1:1,j) + Sim.Sigma_m(end:-1:1,j)],...
               options.sim.area_col);  
@@ -91,23 +106,56 @@ if ~isempty(Sim)
               'color',options.sim.border_col);
         alpha(0.5);
         
+        if samples_vs_sp
+            % Plot noise
+            lhCount = lhCount + 1;
+            lh(lhCount) = fill([Sim.t(1:end); Sim.t(end:-1:1)],...
+                 [Sim.mFineTrue(1:end,j) - Sim.Sigma_m(1:end,j);...
+                  Sim.mFineTrue(end:-1:1,j) + Sim.Sigma_m(end:-1:1,j)],...
+                  options.sim_true.area_col);  
+            plot(Sim.t, Sim.mFineTrue(:,j) - Sim.Sigma_m(:,j),'-',...
+                  'linewidth',options.sim_true.bound_lw,...
+                  'linestyle',options.sim_true.ls,...
+                  'color',options.sim_true.border_col);
+            plot(Sim.t, Sim.mFineTrue(:,j) + Sim.Sigma_m(:,j),'-',...
+                  'linewidth',options.sim_true.bound_lw,...
+                  'linestyle',options.sim_true.ls,...
+                  'color',options.sim_true.border_col);
+            alpha(0.5);
+        end
+        
         
         % Plot data points
-        lh(2) = plot(Data.PA.time, Data.PA.m(:,j), '+',...
+        lhCount = lhCount + 1;
+        lh(lhCount) = plot(Data.PA.time, Data.PA.m(:,j), '+',...
               'linewidth',options.data.mean_lw,...
               'linestyle',options.data.ls,...
               'color',options.data.col);
         
         % Plot simulation
-        lh(3) = plot(Sim.t, Sim.mFine(:,j),'-',...
+        lhCount = lhCount + 1;
+        lh(lhCount) = plot(Sim.t, Sim.mFine(:,j),'-',...
               'linewidth',options.sim.mean_lw,...
               'linestyle',options.sim.ls,...
               'color',options.sim.col);
         
+        if samples_vs_sp
+            % Plot noise
+            lhCount = lhCount + 1;
+            lh(lhCount) = plot(Sim.t, Sim.mFineTrue(:,j),'-',...
+                'linewidth',options.sim_true.mean_lw,...
+                'linestyle',options.sim_true.ls,...
+                'color',options.sim_true.col);
+        end
+          
         xlabel('time'); ylabel(Data.measurands{j});
         xlim(Data.PA.time([1,end]));
-        if j == 1
-            legend(lh,{'noise', 'data', 'model'});
+        if (j == 1)
+            if samples_vs_sp
+                legend(lh,{'noise (SP)', 'noise (Sam)', 'data', 'model (SP)', 'model (Sam)'});
+            else
+                legend(lh,{'noise', 'data', 'model'});
+            end
         end
         
         subplot(nr,nc,2*(j-1)+2); hold off;
