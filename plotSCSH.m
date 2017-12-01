@@ -75,21 +75,23 @@ end
 set(gcf,'Name',options.title);
 
 %% Subplot dimensions
-n_y = size(Data.SCSH.m, 2);
+n_ym = size(Data.SCSH.m, 2);
+n_yC = size(Data.SCSH.C, 2);
 if ~isempty(Sim)
     nc = 3;
-    nr = 2*n_y;
+    nr = n_ym + n_yC;
 else
-    nc = ceil(sqrt(n_y));
-    nr = ceil(n_y/nc);
+    nc = ceil(sqrt(n_ym));
+    nr = ceil(n_ym/nc);
 end
 
 %% Visualization: Data and Simulation
 if ~isempty(Sim)
-    % Loop: measurands
-    for j = 1:n_y
+    % Loop: measurands - means
+    for j = 1:n_ym
         % Data and simulation - mean
-        subplot(nr,nc,6*(j-1)+[1,2]); hold off;
+        subplot(nr,nc,3*(j-1)+[1,2]); 
+        hold off;
         
         lhCount = 1;
         
@@ -161,7 +163,7 @@ if ~isempty(Sim)
         end 
         
         % Error of mean
-        subplot(nr,nc,6*(j-1)+3); hold off;
+        subplot(nr,nc,3*(j-1)+3); hold off;
             plot(Data.SCSH.time,Data.SCSH.m(:,j)-Sim.m(:,j),'-',...
                 'linewidth',options.error.lw,...
                 'linestyle',options.error.ls,...
@@ -169,9 +171,13 @@ if ~isempty(Sim)
             
         xlabel('time'); ylabel(['error of mean(' Data.measurands{j} ')']);
         xlim(Data.SCSH.time([1,end]));
-
-        % Data and simulation - covariance
-        subplot(nr,nc,6*(j-1)+[4,5]); hold off;
+    end
+    
+    % Loop:  measurands - variances
+    for j = 1:n_yC
+        % Data and simulation - mean
+        subplot(nr,nc,3*(n_ym + j-1)+[1,2]); 
+        hold off;
         
         % Plot noise of variability
         lh2Count = 1;
@@ -242,7 +248,7 @@ if ~isempty(Sim)
         end 
         
         % Error of variance
-        subplot(nr,nc,6*(j-1)+6); hold off;
+        subplot(nr,nc,3*(n_ym+j-1)+3); hold off;
             plot(Data.SCSH.time,Data.SCSH.C(:,j)-Sim.C(:,j),'-',...
                 'linewidth',options.error.lw,...
                 'linestyle',options.error.ls,...
@@ -256,7 +262,7 @@ end
 %% Visualization: Data
 if isempty(Sim)
     % Loop: measurands
-    for j = 1:n_y
+    for j = 1:n_ym
         subplot(nr,nc,j); hold off;
         fill([Data.SCSH.time(1:end);Data.SCSH.time(end:-1:1)],...
              [Data.SCSH.m(1:end,j)-sqrt(Data.SCSH.C(1:end,j,j));...

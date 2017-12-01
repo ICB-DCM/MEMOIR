@@ -77,14 +77,19 @@ function getSimulationMEMOIR(xi, Model, Data, ind_exp, ind_xi, options)
             t_sim = Data{s}.(exp_type).time;
             t_ind = 1 : length(unique(Data{s}.(exp_type).time));
         end
+
+        conditions = unique(Data{s}.condition,'rows');
+        if (size(conditions,1) > 1)
+            t_ind = 1:size(conditions,1);
+        end
         
-        doseResponse = (size(unique(Data{s}.condition,'rows'),1) ~= 1);
+        % Preallocate arrays with simulation results
+        my = [];
+        Cy = [];
+        my_true = [];
+        Cy_true = [];
         
-        if doseResponse
-            % If the current experiment is a dose-response experiment
-            
-        else
-        % --- no dose response experiment ---------------------------------
+        for iCondition = 1 : size(conditions,1)
             %% Simulation of the model
             % Set options for sigma point routine
             op_SP.nderiv = options.sensi;
@@ -92,184 +97,179 @@ function getSimulationMEMOIR(xi, Model, Data, ind_exp, ind_xi, options)
             op_SP.type_D = Model.type_D;
             op_SP.approx = 'sp';
             op_SP.plot = 0;
-            
+
             if strcmp(options.approx, 'sp')
                 % Call simulation
-                SP = getSigmaPointApp(@(phi) simulateForSP(Model.exp{s}.model, t_sim, phi, Data{s}.condition, Model.exp{s}.scale), ...  = nonfun (in getSigmaPointApp)
+                SP = getSigmaPointApp(@(phi) simulateForSP(Model.exp{s}.model, t_sim, phi, conditions(iCondition,:), Model.exp{s}.scale), ...  = nonfun (in getSigmaPointApp)
                     xi, ...
                     Model.exp{s}, ... = estruct (in getSigmaPointApp)
                     op_SP);
             elseif strcmp(options.approx, 'sampling')
                 % Call simulation
-                SP = getSamplingApp(@(phi) simulateForSP(Model.exp{s}.model, t_sim, phi, Data{s}.condition, Model.exp{s}.scale), ...  = nonfun (in getSigmaPointApp)
+                SP = getSamplingApp(@(phi) simulateForSP(Model.exp{s}.model, t_sim, phi, conditions(iCondition,:), Model.exp{s}.scale), ...  = nonfun (in getSigmaPointApp)
                     xi, ...
                     Model.exp{s}, ... = estruct (in getSigmaPointApp)
                     op_SP);
             elseif strcmp(options.approx, 'both')
                 % Call simulation
-                SP = testSigmaPointApp(@(phi) simulateForSP(Model.exp{s}.model, t_sim, phi, Data{s}.condition, Model.exp{s}.scale), ...  = nonfun (in getSigmaPointApp)
+                SP = testSigmaPointApp(@(phi) simulateForSP(Model.exp{s}.model, t_sim, phi, conditions(iCondition,:), Model.exp{s}.scale), ...  = nonfun (in getSigmaPointApp)
                     xi, ...
                     Model.exp{s}, ... = estruct (in getSigmaPointApp)
                     op_SP);
             end
-            
-            
+
             %% Post-processing
             % Store the simulation results and apply scaling
             switch Model.exp{s}.scale
                 case 'log'
                     % TBD!
                     tmp = arrayfun(@(x) diag(squeeze(SP.my(x,:,:))), 1:size(SP.Cy,1),'UniformOutput',false);
-                    my = exp(SP.my + transpose([tmp{:}])/2);
+                    my = [my; exp(SP.my + transpose([tmp{:}])/2)];
                     if ~strcmp(options.approx, 'sp')
                         tmp_true = arrayfun(@(x) diag(squeeze(SP.my_true(x,:,:))), 1:size(SP.Cy,1),'UniformOutput',false);
-                        my_true = exp(SP.my_true + transpose([tmp_true{:}])/2);
+                        my_true = [my_true; exp(SP.my_true + transpose([tmp_true{:}])/2)];
                     end
-                    
+
                     if strcmp(exp_type, 'SCSH')
                         tmpCy = bsxfun(@plus, repmat(tmp, 1, 1, size(SP.Cy,3)), permute(repmat(tmp, 1, 1, size(SP.Cy,3)), [1,3,2]));
-                        Cy = exp(tmpCy) .*  (exp(SP.Cy) - ones(size(SP.Cy)));
+                        Cy = [Cy; exp(tmpCy) .* (exp(SP.Cy) - ones(size(SP.Cy)))];
                         if ~strcmp(options.approx, 'sp')
                             tmpCy_true = bsxfun(@plus, repmat(tmp_true, 1, 1, size(SP.Cy_true,3)), permute(repmat(tmp_true, 1, 1, size(SP.Cy_true,3)), [1,3,2]));
-                            Cy = exp(tmpCy_true) .*  (exp(SP.Cy_true) - ones(size(SP.Cy_true)));
+                            Cy_true = [Cy_true; exp(tmpCy_true) .*  (exp(SP.Cy_true) - ones(size(SP.Cy_true)))];
                         end
                     end
 
                 case 'log10'
                     % TBD!
                     tmp = arrayfun(@(x) diag(squeeze(SP.Cy(x,:,:))), 1:size(SP.Cy,1),'UniformOutput',false);
-                    my = 10.^(SP.my + transpose([tmp{:}])/2);
+                    my = [my; 10.^(SP.my + transpose([tmp{:}])/2)];
                     if strcmp(exp_type, 'SCSH')
                         tmpCy = bsxfun(@plus, repmat(tmp, 1, 1, size(SP.Cy,3)), permute(repmat(tmp, 1, 1, size(SP.Cy,3)), [1,3,2]));
-                        Cy = 10.^(tmpCy) .*  (10.^(SP.Cy) - ones(size(SP.Cy)));
+                        Cy = [Cy; 10.^(tmpCy) .*  (10.^(SP.Cy) - ones(size(SP.Cy)))];
                     end
 
                 case 'lin'
-                    my = SP.my;
+                    my = [my; SP.my];
                     if ~strcmp(options.approx, 'sp')
-                        my_true = SP.my_true;
+                        my_true = [my_true; SP.my_true];
                     end
                     if strcmp(exp_type, 'SCSH')
-                        Cy = SP.Cy;
+                        Cy = [Cy; SP.Cy];
                         if ~strcmp(options.approx, 'sp')
-                            Cy_true = SP.Cy_true;
+                            Cy_true = [Cy_true; SP.Cy_true];
                         end
                     end
             end
-            
-            % Store gradients of means and variances
-            if(options.sensi > 0)
-                switch Model.exp{s}.scale
-                    case 'log'
-                        % Set sizes for arrays
-                        nt = size(SP.dmydxi,1);
-                        np = size(SP.dmydxi,4);
-                        ny = size(SP.dmydxi,2);
-                        
-                        % To be checked!
-                        dtmpdxi = arrayfun(@(x,y) diag(squeeze(SP.dCydxi(x,:,:,y))),repmat(1:nt,[np,1]),...
-                            repmat(transpose(1:np),[1,nt]),'UniformOutput',false);
-                        dmydxi = bsxfun(@times,my,SP.dmydxi) ...
-                            + bsxfun(@times,my,permute(reshape([dtmpdxi{:}]/2,...
-                            [ny,np,nt]),[3,1,2]));
-                        dmydxi(isnan(dmydxi)) = 0;
-                        if strcmp(exp_type, 'SCSH')
-                        end
-
-                    case 'log10'
-                        % To be checked!
-                        tmp = arrayfun(@(x) diag(squeeze(SP.Cy(x,:,:))), 1:size(SP.Cy,1),'UniformOutput',false);
-                        my = 10.^(SP.my + transpose([tmp{:}])/2);
-                        if strcmp(exp_type, 'SCSH')
-                        end
-
-                    case 'lin'
-                        dmydxi = SP.dmydxi;
-                        if strcmp(exp_type, 'SCSH')
-                            dCydxi = SP.dCydxi;
-                        end
-                end
-            else
-                dmydxi = zeros([size(my,1),size(my,2),length(xi)]);
-                if strcmp(exp_type, 'SCSH')
-                    dCydxi = zeros([size(my,1),size(my,2),size(my,2),length(xi)]);
-                end
-            end
-            
-            % Apply additional user-defined post-processing
-            if isfield(Model.exp{s}, post_proc)
-                if(options.sensi > 0)
-                    SP.dmydxi = zeros([size(SP.my) size(xi,1)]);
-                end
-                if strcmp(exp_type, 'PA')
-                    [my,dmydxi] = feval(Model.exp{s}.(post_proc), my, dmydxi);
-                    if ~strcmp(options.approx, 'sp')
-                        [my_true,~] = feval(Model.exp{s}.(post_proc), my_true, dmydxi);
-                    end
-                elseif strcmp(exp_type, 'SCSH')
-                    [my,Cy,dmydxi,dCydxi] = feval(Model.exp{s}.(post_proc), my, Cy, dmydxi, dCydxi);
-                    if ~strcmp(options.approx, 'sp')
-                        [my_true,Cy_true,~,~] = feval(Model.exp{s}.(post_proc), my_true, Cy_true, dmydxi, dCydxi);
-                    end
-                end
-            end
-            
-            
-            %% Do sensitivity analysis
-            
-            if (options.sensi > 0)
-                % Find indices of measurands for this experiment
-                measInd = [];
-                for iMeas = options.measurands
-                    for j = 1 : length(Data{s}.measurands)
-                        if strcmp(Data{s}.measurands{j}, iMeas)
-                            measInd = [measInd, j];
-                        end
-                    end
-                end
-                
-                % Compute relative sensitivities by (very simple) intgeration
-                for iT = 1:size(dCydxi,1)
-                    tmp = permute(dCydxi(iT,1,1,:), [4 1 2 3]);
-                    tmp_dCydxi(iT,1,:) = permute(tmp, [2 3 1]);
-                end
-                dAlldxi = [dmydxi, tmp_dCydxi];
-                relSensiExp = dAlldxi(:,measInd,ind_xi);% ./ repmat(my, [1 1 length(ind_xi)]);
-                intSensiExp = zeros(size(relSensiExp,2),size(relSensiExp,3));
-                for j = 1 : size(relSensiExp,1)
-                    intSensiExp = intSensiExp + (Sim.t(j+1)-Sim.t(j)) * 0.5 * permute((relSensiExp(j,:,:)+relSensiExp(j+1,:,:)), [2 3 1]);
-                end
-            end
-            
-            %% Plotting of fine simulation
-            % Assign values for plotting
-            if ~strcmp(options.approx, 'sp')
-                Sim.mFineTrue = my_true;
-            end
-            Sim.mFine = my;
-            Sim.t = unique(t_sim);
-            SigmaStruct = processSigma(Data{s}, Sim.mFine, [], exp_type);
-            Sim.Sigma_m = SigmaStruct.Sigma_m;
-            if strcmp(exp_type, 'SCSH')
-                if ~strcmp(options.approx, 'sp')
-                    Sim.CFineTrue = Cy_true;
-                end
-                Sim.CFine = Cy;
-                SigmaStruct = processSigma(Data{s}, Sim.mFine, Cy, exp_type);
-                Sim.Sigma_C = SigmaStruct.Sigma_C;
-            end
-            
-            % Process values in Sim.m for residual plot
-            Sim = processSimulation(Sim, t_ind, Data{s}, exp_type);
-            
-            % Plotting
-            Model.exp{s}.plot(Data{s}, Sim, s);
-            
-            
-            
-        % --- End of no dose response experiment --------------------------
         end
-        
+
+        % Store gradients of means and variances
+        if(options.sensi > 0)
+            switch Model.exp{s}.scale
+                case 'log'
+                    % Set sizes for arrays
+                    nt = size(SP.dmydxi,1);
+                    np = size(SP.dmydxi,4);
+                    ny = size(SP.dmydxi,2);
+
+                    % To be checked!
+                    dtmpdxi = arrayfun(@(x,y) diag(squeeze(SP.dCydxi(x,:,:,y))),repmat(1:nt,[np,1]),...
+                        repmat(transpose(1:np),[1,nt]),'UniformOutput',false);
+                    dmydxi = bsxfun(@times,my,SP.dmydxi) ...
+                        + bsxfun(@times,my,permute(reshape([dtmpdxi{:}]/2,...
+                        [ny,np,nt]),[3,1,2]));
+                    dmydxi(isnan(dmydxi)) = 0;
+                    if strcmp(exp_type, 'SCSH')
+                    end
+
+                case 'log10'
+                    % To be checked!
+                    tmp = arrayfun(@(x) diag(squeeze(SP.Cy(x,:,:))), 1:size(SP.Cy,1),'UniformOutput',false);
+                    my = 10.^(SP.my + transpose([tmp{:}])/2);
+                    if strcmp(exp_type, 'SCSH')
+                    end
+
+                case 'lin'
+                    dmydxi = SP.dmydxi;
+                    if strcmp(exp_type, 'SCSH')
+                        dCydxi = SP.dCydxi;
+                    end
+            end
+        else
+            dmydxi = zeros([size(my,1),size(my,2),length(xi)]);
+            if strcmp(exp_type, 'SCSH')
+                dCydxi = zeros([size(my,1),size(my,2),size(my,2),length(xi)]);
+            end
+        end
+
+        % Apply additional user-defined post-processing
+        if isfield(Model.exp{s}, post_proc)
+            if(options.sensi > 0)
+                SP.dmydxi = zeros([size(SP.my) size(xi,1)]);
+            end
+            if strcmp(exp_type, 'PA')
+                [my,dmydxi] = feval(Model.exp{s}.(post_proc), my, dmydxi);
+                if ~strcmp(options.approx, 'sp')
+                    [my_true,~] = feval(Model.exp{s}.(post_proc), my_true, dmydxi);
+                end
+            elseif strcmp(exp_type, 'SCSH')
+                [my,Cy,dmydxi,dCydxi] = feval(Model.exp{s}.(post_proc), my, Cy, dmydxi, dCydxi);
+                if ~strcmp(options.approx, 'sp')
+                    [my_true,Cy_true,~,~] = feval(Model.exp{s}.(post_proc), my_true, Cy_true, dmydxi, dCydxi);
+                end
+            end
+        end
+
+
+        %% Do sensitivity analysis
+
+        if (options.sensi > 0)
+            % Find indices of measurands for this experiment
+            measInd = [];
+            for iMeas = options.measurands
+                for j = 1 : length(Data{s}.measurands)
+                    if strcmp(Data{s}.measurands{j}, iMeas)
+                        measInd = [measInd, j];
+                    end
+                end
+            end
+
+            % Compute relative sensitivities by (very simple) intgeration
+            for iT = 1:size(dCydxi,1)
+                tmp = permute(dCydxi(iT,1,1,:), [4 1 2 3]);
+                tmp_dCydxi(iT,1,:) = permute(tmp, [2 3 1]);
+            end
+            dAlldxi = [dmydxi, tmp_dCydxi];
+            relSensiExp = dAlldxi(:,measInd,ind_xi);% ./ repmat(my, [1 1 length(ind_xi)]);
+            intSensiExp = zeros(size(relSensiExp,2),size(relSensiExp,3));
+            for j = 1 : size(relSensiExp,1)
+                intSensiExp = intSensiExp + (Sim.t(j+1)-Sim.t(j)) * 0.5 * permute((relSensiExp(j,:,:)+relSensiExp(j+1,:,:)), [2 3 1]);
+            end
+        end
+
+        %% Plotting of fine simulation
+        % Assign values for plotting
+        if ~strcmp(options.approx, 'sp')
+            Sim.mFineTrue = my_true;
+        end
+        Sim.mFine = my;
+        Sim.t = unique(t_sim);
+        SigmaStruct = processSigma(Data{s}, Sim.mFine, [], exp_type);
+        Sim.Sigma_m = SigmaStruct.Sigma_m;
+        if strcmp(exp_type, 'SCSH')
+            if ~strcmp(options.approx, 'sp')
+                Sim.CFineTrue = Cy_true;
+            end
+            Sim.CFine = Cy;
+            SigmaStruct = processSigma(Data{s}, Sim.mFine, Cy, exp_type);
+            Sim.Sigma_C = SigmaStruct.Sigma_C;
+        end
+
+        % Process values in Sim.m for residual plot
+        Sim = processSimulation(Sim, t_ind, Data{s}, exp_type);
+
+        % Plotting
+        Model.exp{s}.plot(Data{s}, Sim, s);  
+
         % Clean up
         clear Sim;
     % --- End of loop over experiments ------------------------------------
@@ -344,27 +344,42 @@ function Sim = processSimulation(Sim, t_ind, thisData, type)
         Sim.C = Sim.CFine(t_ind,:);
     end
     
-    if (size(thisData.(type).time,1) ~= size(Sim.m,1))
-        k = 0;
-        oldT = nan;
-        tmp_my = nan(size(thisData.(type).time,1), size(Sim.m,2));
-        if strcmp(type, 'SCSH')
-            tmp_Cy = nan(size(thisData.(type).time,1), size(Sim.C,2));
-        end
-        for j = 1 : size(thisData.(type).time,1)
-            if (thisData.(type).time(j) ~= oldT)
-                k = k + 1; 
-            end
-            tmp_my(j,:) = Sim.m(k,:);
+    if (size(thisData.condition,1) == 1)
+        % No dose reponse experiment
+        if (size(thisData.(type).time,1) ~= size(Sim.m,1))
+            k = 0;
+            oldT = nan;
+            tmp_my = nan(size(thisData.(type).time,1), size(Sim.m,2));
             if strcmp(type, 'SCSH')
-                tmp_Cy(j,:) = Sim.C(k,:);
+                tmp_Cy = nan(size(thisData.(type).time,1), size(Sim.C,2));
             end
-            oldT = thisData.(type).time(j);
+            for j = 1 : size(thisData.(type).time,1)
+                if (thisData.(type).time(j) ~= oldT)
+                    k = k + 1; 
+                end
+                tmp_my(j,:) = Sim.m(k,:);
+                if strcmp(type, 'SCSH')
+                    tmp_Cy(j,:) = Sim.C(k,:);
+                end
+                oldT = thisData.(type).time(j);
+            end
+            Sim.m = tmp_my;
+            if strcmp(type, 'SCSH')
+                Sim.C = tmp_Cy;
+            end
+        end
+    else
+        % Dose response experiment
+        tmp_my = nan(size(thisData.condition,1), size(Sim.m,2));
+        thisUniqueCondition = unique(thisData.condition, 'rows');
+        for j = 1 : size(thisData.condition,1) % number of conditions
+            for iDose = 1 : size(thisUniqueCondition,1)
+                if all(thisUniqueCondition(iDose,:) == thisData.condition(j,:))
+                    tmp_my(j,:) =  Sim.m(iDose,:);
+                end
+            end
         end
         Sim.m = tmp_my;
-        if strcmp(type, 'SCSH')
-            Sim.C = tmp_Cy;
-        end
     end
 
 end

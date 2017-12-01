@@ -10,16 +10,6 @@ function [SP,logL_m,dlogL_mdxi,ddlogL_mdxi2] = logL_PA(xi, Model, Data, s, optio
         [SP,my] = getSimulationPA(xi, Model, Data, s);
     end
 
-%     Log-Transformed Version
-%     if(nargout >= 3)
-%         for j = 1 : size(dmydxi,3)
-%             dmydxi(:,:,j) = dmydxi(:,:,j) ./ (my(:,:) * log(10));
-%         end
-%     end
-%     my = log10(my);
-
-
-
     %% Processing of simulation results, in the case that data points are missing, doubled, or multiple conditions are measured
 
     % Duplicate values in my if more than one data point at one time point

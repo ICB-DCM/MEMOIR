@@ -69,7 +69,7 @@ function [SP,my,dmydxi]  = getSimulationPA(xi,Model,Data,s)
                 case 'log10'
                     % To be checked!
                     tmp = arrayfun(@(x) diag(squeeze(SP.Cy(x,:,:))), 1:size(SP.Cy,1),'UniformOutput',false);
-                    [my, 10.^(SP.my + transpose([tmp{:}])/2)];
+                    my = [my, 10.^(SP.my + transpose([tmp{:}])/2)];
 
                 case 'lin'
                     dmydxi = [dmydxi; SP.dmydxi]; 
