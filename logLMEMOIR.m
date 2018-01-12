@@ -340,11 +340,11 @@ function varargout = logLMEMOIR(varargin)
             end
             
             % Summation
-            logL = logL + (logL_m + logL_C)/3;
+            logL = logL + logL_m + logL_C;
             if options.nderiv >= 1
-                dlogLdxi = dlogLdxi + (dlogL_mdxi + dlogL_Cdxi)/3;
+                dlogLdxi = dlogLdxi + dlogL_mdxi + dlogL_Cdxi;
                 if options.nderiv >= 2
-                    ddlogLdxidxi = ddlogLdxidxi + (ddlogL_mdxi2 + ddlogL_Cdxi2)/3;
+                    ddlogLdxidxi = ddlogLdxidxi + ddlogL_mdxi2 + ddlogL_Cdxi2;
                 end
             end
             

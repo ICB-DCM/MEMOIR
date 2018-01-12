@@ -14,6 +14,9 @@ function getSimulationMEMOIR(xi, Model, Data, ind_exp, ind_xi, options)
     if (~isfield(options, 'approx'))
         options.approx = 'sp';
     end
+    if (~isfield(options, 'nSamples'))
+        options.nSamples = 1000;
+    end
     
     if (options.sensi > 0)
         % Collect all measurands
@@ -97,6 +100,7 @@ function getSimulationMEMOIR(xi, Model, Data, ind_exp, ind_xi, options)
             op_SP.type_D = Model.type_D;
             op_SP.approx = 'sp';
             op_SP.plot = 0;
+            op_SP.nsamples = options.nSamples;
 
             if strcmp(options.approx, 'sp')
                 % Call simulation
@@ -258,6 +262,7 @@ function getSimulationMEMOIR(xi, Model, Data, ind_exp, ind_xi, options)
         if strcmp(exp_type, 'SCSH')
             if ~strcmp(options.approx, 'sp')
                 Sim.CFineTrue = Cy_true;
+                Sim.Y_true = SP.Y_true;
             end
             Sim.CFine = Cy;
             SigmaStruct = processSigma(Data{s}, Sim.mFine, Cy, exp_type);
@@ -342,6 +347,9 @@ function Sim = processSimulation(Sim, t_ind, thisData, type)
     Sim.m = Sim.mFine(t_ind,:);
     if strcmp(type, 'SCSH')
         Sim.C = Sim.CFine(t_ind,:);
+        if isfield(Sim, 'Y_true')
+            Sim.Y_true = Sim.Y_true(t_ind,:,:);
+        end
     end
     
     if (size(thisData.condition,1) == 1)

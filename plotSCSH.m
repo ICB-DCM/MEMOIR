@@ -288,5 +288,9 @@ end
 %%
 drawnow
 
+% if isfield(Sim, 'Y_true');
+%     plotSCSHhisto(Data, Sim, s);
+% end
+
 end
 
