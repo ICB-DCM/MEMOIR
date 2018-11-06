@@ -59,7 +59,7 @@ else
     optionmu.atol = 1e-4;
     optionmu.sensi = 2; % number of requested sensitivities
     optionmu.linsol = 9;
-    optionmu.pbar = phi*0+1e-10;
+    %optionmu.pbar = phi*0+1e-10;
     sol = Model.model(t,phi,kappa,optionmu);
     % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(phi,@(phi) Model.model(t,phi,kappa,optionmu),1e-5,'y','sy',true)
     dYdphi = sol.sy(1:(end-(sum(ind_y)<length(t))),:,:);
