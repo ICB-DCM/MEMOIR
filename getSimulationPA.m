@@ -13,18 +13,7 @@ function [SP,my,dmydxi]  = getSimulationPA(xi,Model,Data,s,options)
     if isfield(options, 'samples')
         op_SP.samples = options.samples;
     end
-    
-    % Check, if sigma points or sampling are to be used (so far, only sigma
-    % points work, I think...)
-%     if(isfield(Model.exp{s},'SPapprox'))
-%         op_SP.approx = Model.exp{s}.SPapprox;
-%         if(isfield(Model.exp{s},'samples'))
-%             op_SP.samples = Model.exp{s}.samples;
-%         end
-%     else
-%         op_SP.approx = 'sp';
-%     end
-    
+
     %% Simulate with a loop over different doses
     % Initialize
     my = [];

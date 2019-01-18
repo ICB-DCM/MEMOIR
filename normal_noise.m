@@ -1,5 +1,5 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% AUXILIARY FUNCTIONS FOR NOISE MODELS %%
+%% AUXILIARY(indnan)FUNCTIONS FOR NOISE MODELS %%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 function J_D = normal_noise(Y,Ym,Sigma,ind,nderiv)

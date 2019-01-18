@@ -10,12 +10,12 @@ if ismember(1,S)
     Model.exp{s}.N = 10;
     Model.exp{s}.sigma_noise = 1;
     Model.exp{s}.noise_on = 1;
-    Model.exp{s}.t = [0:0.01:1]';
+    Model.exp{s}.t = [0:0.1:1]';
     
     Model.exp{s}.ind_phi = [1,2];
     Model.exp{s}.sym.phi = [beta(1)+b(1);
         beta(2)+b(2)];
-    Model.exp{s}.sym.sigma_noise = sym(0.01);
+    Model.exp{s}.sym.sigma_noise = sym(0.18);
     Model.exp{s}.sym.sigma_time = sym.empty(0,1);
     
     Model.exp{s}.time_model = 'normal';

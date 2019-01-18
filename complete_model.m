@@ -309,6 +309,7 @@ if(~loadold)
             mfun(Model.exp{s}.sym.dddsigma_noisedphidphidphi,'file',fullfile(mdir,'models',filename,['MEMddds_ndpdpdp_' filename '_' num2str(S(s))]),'vars',{phi});
             eval(['Model.exp{s}.dddsigma_noisedphidphidphi = @MEMddds_ndpdpdp_' filename '_' num2str(S(s)) ';']);
         end
+        
         %         if(Model.integration)
         %             % ddddsigma_noisedphidphidphidphi --- currently disabled due to
         %             % high computational cost

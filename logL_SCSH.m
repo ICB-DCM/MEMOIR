@@ -221,7 +221,4 @@ function [SP,logL_m,logL_C,dlogL_mdxi,dlogL_Cdxi,ddlogL_mdxi2,ddlogL_Cdxi2] = lo
         end
         Model.exp{s}.plot(Data{s}, Sim_SCSH, s);
     end
-    
-    % fprintf('\n\n %e', logL_m);
-    % fprintf('\n %e', logL_C);
 end

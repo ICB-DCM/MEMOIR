@@ -52,24 +52,40 @@ if(~isfield(model,'noise_model'))
     model.noise_model = 'normal';
 end
 
+if(~isfield(model,'estim_sigma'))
+    model.estim_sigma = false;
+end
+
 switch(model.noise_model)
     case 'normal'
-        noisedist = @normal_noise_optims;
+        if(model.estim_sigma)
+            noisedist = @normal_noise_optims;
+        else
+            noisedist = @normal_noise;
+        end
     case 'lognormal'
-        noisedist = @lognormal_noise;
+        if(model.estim_sigma)
+            error('sigma estimation routines not yet available')
+        else
+            noisedist = @lognormal_noise;
+        end
     case 'tdist'
-        noisedist = @tdist_noise;
+        if(model.estim_sigma)
+            error('sigma estimation routines not yet available')
+        else
+            noisedist = @tdist_noise;
+        end
 end
 if(ny>0)
     J_D = noisedist(Y.val,Ym,Sigma_noise.val,ind_y,nderiv+FIMflag);
 else
     J_D.val = 0;
 end
-% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(Y.val,@(Y) noisedist(Y,Ym,Sigma_noise.val,ind_y,nderiv+(nderiv==1)),1e-6,'val','dY')
-% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(Y.val,@(Y) noisedist(Y,Ym,Sigma_noise.val,ind_y,nderiv+(nderiv==1)),1e-6,'dY','dYdY')
-% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(Y.val,@(Y) noisedist(Y,Ym,Sigma_noise.val,ind_y,nderiv+(nderiv==1)),1e-6,'dYdY','dYdYdY')
-% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(Sigma_noise.val,@(Sigma) noisedist(Y.val,Ym,Sigma,ind_y,nderiv+(nderiv==1)),1e-6,'val','dSigma')
-% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(Sigma_noise.val,@(Sigma) noisedist(Y.val,Ym,Sigma,ind_y,nderiv+(nderiv==1)),1e-6,'dSigma','dSigmadSigma')
+% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(Y.val,@(Y) noisedist(Y,Ym,Sigma_noise.val,ind_y,nderiv+(nderiv==1)),1e-6,'val','dY',true)
+% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(Y.val,@(Y) noisedist(Y,Ym,Sigma_noise.val,ind_y,nderiv+(nderiv==1)),1e-6,'dY','dYdY',true)
+% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(Y.val,@(Y) noisedist(Y,Ym,Sigma_noise.val,ind_y,nderiv+(nderiv==1)),1e-6,'dYdY','dYdYdY',true)
+% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(Sigma_noise.val,@(Sigma) noisedist(Y.val,Ym,Sigma,ind_y,nderiv+(nderiv==1)),1e-6,'val','dSigma',true)
+% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(Sigma_noise.val,@(Sigma) noisedist(Y.val,Ym,Sigma,ind_y,nderiv+(nderiv==1)),1e-6,'dSigma','dSigmadSigma',true)
 
 
 % event model
@@ -86,15 +102,15 @@ if(nt>0)
 else
     J_T.val = 0;
 end
-% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(T.val,@(T) timedist(T,Tm,R.val,Sigma_time.val,ind_t,nderiv+(nderiv==1)),1e-6,'val','dT')
-% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(T.val,@(T) timedist(T,Tm,R.val,Sigma_time.val,ind_t,nderiv+(nderiv==1)),1e-6,'dT','dTdT')
-% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(T.val,@(T) timedist(T,Tm,R.val,Sigma_time.val,ind_t,nderiv+(nderiv==1)),1e-6,'dTdT','dTdTdT')
-% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(R.val,@(R) timedist(T.val,Tm,R,Sigma_time.val,ind_t,nderiv+(nderiv==1)),1e-6,'val','dR')
-% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(R.val,@(R) timedist(T.val,Tm,R,Sigma_time.val,ind_t,nderiv+(nderiv==1)),1e-6,'dR','dRdR')
-% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(R.val,@(R) timedist(T.val,Tm,R,Sigma_time.val,ind_t,nderiv+(nderiv==1)),1e-6,'dRdR','dRdRdR')
-% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(Sigma_time.val,@(Sigma) timedist(T.val,Tm,R.val,Sigma,ind_t,nderiv+(nderiv==1)),1e-6,'val','dSigma')
-% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(Sigma_time.val,@(Sigma) timedist(T.val,Tm,R.val,Sigma,ind_t,nderiv+(nderiv==1)),1e-6,'dSigma','dSigmadSigma')
-% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(Sigma_time.val,@(Sigma) timedist(T.val,Tm,R.val,Sigma,ind_t,nderiv+(nderiv==1)),1e-6,'dSigmadSigma','dSigmadSigmadSigma')
+% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(T.val,@(T) timedist(T,Tm,R.val,Sigma_time.val,ind_t,nderiv+(nderiv==1)),1e-6,'val','dT',true)
+% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(T.val,@(T) timedist(T,Tm,R.val,Sigma_time.val,ind_t,nderiv+(nderiv==1)),1e-6,'dT','dTdT',true)
+% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(T.val,@(T) timedist(T,Tm,R.val,Sigma_time.val,ind_t,nderiv+(nderiv==1)),1e-6,'dTdT','dTdTdT',true)
+% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(R.val,@(R) timedist(T.val,Tm,R,Sigma_time.val,ind_t,nderiv+(nderiv==1)),1e-6,'val','dR',true)
+% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(R.val,@(R) timedist(T.val,Tm,R,Sigma_time.val,ind_t,nderiv+(nderiv==1)),1e-6,'dR','dRdR',true)
+% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(R.val,@(R) timedist(T.val,Tm,R,Sigma_time.val,ind_t,nderiv+(nderiv==1)),1e-6,'dRdR','dRdRdR',true)
+% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(Sigma_time.val,@(Sigma) timedist(T.val,Tm,R.val,Sigma,ind_t,nderiv+(nderiv==1)),1e-6,'val','dSigma',true)
+% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(Sigma_time.val,@(Sigma) timedist(T.val,Tm,R.val,Sigma,ind_t,nderiv+(nderiv==1)),1e-6,'dSigma','dSigmadSigma',true)
+% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(Sigma_time.val,@(Sigma) timedist(T.val,Tm,R.val,Sigma,ind_t,nderiv+(nderiv==1)),1e-6,'dSigmadSigma','dSigmadSigmadSigma',true)
 
 
 
@@ -255,9 +271,8 @@ end
 
 if(nargout>=3)
     Sim.SCTL_Y = Y.val;
-    Sim.SCTL_T = T.val(ind_t,:);
-    
-    Sim.SCTL_R = R.val(ind_t,:);
+    Sim.SCTL_T = T.val;
+    Sim.SCTL_R = R.val;
     Sim.SCTL_Sigma_Y = Sigma_noise.val(ind_y,:);
     Sim.SCTL_Sigma_T = Sigma_time.val(ind_t,:);
 end

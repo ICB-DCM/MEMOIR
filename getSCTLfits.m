@@ -28,12 +28,13 @@ for iData = 1:length(Data)
             objective_function = @(phi) objective_phi_wrapper(phi,Model,Data,iData,icl);
             
             parameters_SCTL{iD,icl} = getMultiStarts(parameters, objective_function, optionsMultistart);
+%             parameters_SCTL{iD,icl} = getParameterProfiles(parameters_SCTL{iD,icl}, objective_function, optionsMultistart);
+%             parameters_SCTL{iD,icl} = getParameterSamples(parameters_SCTL{iD,icl}, objective_function, optionsMultistart);
         end
         
        iD = iD+1; 
     end
 end
-
 
 end
 
