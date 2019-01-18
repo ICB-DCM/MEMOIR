@@ -241,7 +241,7 @@ function varargout = logLMEMOIR(varargin)
     options.integration = Model.integration;
     
     % Loop: Experiments/Experimental Conditions
-    for s = batchIndices
+    for s = reshape(batchIndices, [1, numel(batchIndices)])
         
         %% Single cell time-lapse data - Individuals
         if isfield(Data{s},'SCTL')

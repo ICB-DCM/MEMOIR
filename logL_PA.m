@@ -2,12 +2,20 @@ function [SP,logL_m,dlogL_mdxi,ddlogL_mdxi2] = logL_PA(xi, Model, Data, s, optio
 
     nderiv = nargout-2;
     
+    if isfield(Model.exp{s}, 'approx')
+        optionsSim.approx = Model.exp{s}.approx;
+    else
+        optionsSim.approx = 'sp';
+    end
+    if isfield(Model.exp{s}, 'samples')
+        optionsSim.samples = Model.exp{s}.samples;
+    end
     
     % Simulation
     if (nargout >= 3)
-        [SP,my,dmydxi] = getSimulationPA(xi, Model, Data, s);
+        [SP,my,dmydxi] = getSimulationPA(xi, Model, Data, s, optionsSim);
     else
-        [SP,my] = getSimulationPA(xi, Model, Data, s);
+        [SP,my] = getSimulationPA(xi, Model, Data, s, optionsSim);
     end
 
     %% Processing of simulation results, in the case that data points are missing, doubled, or multiple conditions are measured
@@ -99,21 +107,22 @@ function [SP,logL_m,dlogL_mdxi,ddlogL_mdxi2] = logL_PA(xi, Model, Data, s, optio
         if (nderiv >= 2)
             switch Model.exp{s}.noise_model
                 case 'normal'
-                    % Use FIM in the sense of J'*J
-                    dresdxi = ((1 ./ Sigma(:)) * ones(1,length(xi))) .* reshape(dmydxi, numel(Data{s}.PA.m), length(xi));
-                    if (options.estimate_sigma == 1)
-                        % If noise is to be estimated
-                        dresdxi1 = (((my(:) - Data{s}.PA.m(:)) ./ Sigma(:).^2) * ones(1,length(xi))) .* reshape(dSigmadxi, numel(Data{s}.PA.m), length(xi));
-                        nan_ind = isnan(Data{s}.PA.m(:));
-                        dresdxi1(nan_ind,:) = 0;
-                        Sigma_Res = sqrt(log(2*pi*Sigma(:).^2) - log(eps));
-                        Sigma_Res(nan_ind,:) = 0;
-                        dresdxi2 = ((1 ./ (Sigma_Res .* Sigma(:))) * ones(1,length(xi))) .* reshape(dSigmadxi, numel(Data{s}.PA.m), length(xi));
-                        dresdxi2(nan_ind,:) = 0;
-                        dresdxi = [dresdxi - dresdxi1; dresdxi2];
-                    end
+                    % Term coming from sy' * sy
+                    nan_ind = isnan(Data{s}.PA.m(:));
+                    dres_mdxi = ((1 ./ Sigma(:)) * ones(1,length(xi))) .* reshape(dmydxi, numel(Data{s}.PA.m), length(xi));
+                    dres_mdxi(nan_ind,:) = 0;
+                    ddlogL_mdxi2 = -transpose(dres_mdxi) * dres_mdxi;
                     
-                     ddlogL_mdxi2 = -transpose(dresdxi) * dresdxi;
+                    % Term 1 coming from s_sigma' * s_sigma
+                    dresSigmadxi = ((1 ./ Sigma(:)) * ones(1,length(xi))) .* reshape(dSigmadxi, numel(Data{s}.PA.m), length(xi));
+                    dresSigmadxi(nan_ind,:) = 0;
+                    ddlogL_mdxi2 = ddlogL_mdxi2 + transpose(dresSigmadxi) * dresSigmadxi;
+                    
+                    % Term 2 coming from s_sigma' * s_sigma
+                    res = my(:) - Data{s}.PA.m(:);
+                    dresSigmadxi2 = ((sqrt(3) * res ./ (Sigma(:).^2)) * ones(1,length(xi))) .* reshape(dSigmadxi, numel(Data{s}.PA.m), length(xi));
+                    dresSigmadxi2(nan_ind,:) = 0;
+                    ddlogL_mdxi2 = ddlogL_mdxi2 - transpose(dresSigmadxi2) * dresSigmadxi2;
                     
                 case 'lognormal'
                     % To be done!
@@ -136,4 +145,5 @@ function [SP,logL_m,dlogL_mdxi,ddlogL_mdxi2] = logL_PA(xi, Model, Data, s, optio
         Model.exp{s}.plot(Data{s}, Sim_PA, s);
     end
     
+    % fprintf('\n\n %e', logL_m);
 end

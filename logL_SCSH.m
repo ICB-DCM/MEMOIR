@@ -7,12 +7,21 @@ function [SP,logL_m,logL_C,dlogL_mdxi,dlogL_Cdxi,ddlogL_mdxi2,ddlogL_Cdxi2] = lo
 % along with the other parameters, or compute it from replicates.
 
     nderiv = 0.5 * (nargout-1) - 1;
-
+    
+    if isfield(Model.exp{s}, 'approx')
+        optionsSim.approx = Model.exp{s}.approx;
+    else
+        optionsSim.approx = 'sp';
+    end
+    if isfield(Model.exp{s}, 'samples')
+        optionsSim.samples = Model.exp{s}.samples;
+    end
+    
     %% Simulation
     if(nargout >= 4)
-        [SP,my,Cy,dmydxi,dCydxi] = getSimulationSCSH(xi, Model, Data, s);
+        [SP,my,Cy,dmydxi,dCydxi] = getSimulationSCSH(xi, Model, Data, s, optionsSim);
     else
-        [SP,my,Cy] = getSimulationSCSH(xi, Model, Data, s);
+        [SP,my,Cy] = getSimulationSCSH(xi, Model, Data, s, optionsSim);
     end
        
     %% Processing of simulation results, in the case that data points are missing, doubled, or multiple conditions are measured
@@ -111,7 +120,11 @@ function [SP,logL_m,logL_C,dlogL_mdxi,dlogL_Cdxi,ddlogL_mdxi2,ddlogL_Cdxi2] = lo
 
     % Write values to output
     logL_m = -J_D_m.val;
-    logL_C = -J_D_C.val;
+    if strcmp(optionsSim.approx, 'pa only')
+        logL_C = 0;
+    else
+        logL_C = -J_D_C.val;
+    end
 
     if (nderiv >= 1)
         % Compute derivative for dynamic parameters, scalings and offsets
@@ -127,52 +140,65 @@ function [SP,logL_m,logL_C,dlogL_mdxi,dlogL_Cdxi,ddlogL_mdxi2,ddlogL_Cdxi2] = lo
         dlogL_mdxi_Sigma_mPart = squeeze(nansum(nansum(repmat(dlogL_mdSigma_m, [1 1 length(xi)]) .* dSigma_mdxi, 2), 1));
         dlogL_mdxi = dlogL_mdxi + dlogL_mdxi_Sigma_mPart;
         
-        % Compute derivative for dynamic parameters, scalings, offsets and
-        % sigma_noise parameters
-        dlogL_Cdy = reshape(-J_D_C.dY, size(Data{s}.SCSH.C));
-        dlogL_Cdxi = squeeze(nansum(nansum(dCydxi .* repmat(dlogL_Cdy, [1 1 size(dmydxi, 3)]), 2), 1));
-        
-        % Compute derivative for simga_cov parameters
-        dlogL_CdSigma_C = reshape(-J_D_C.dSigma, size(Data{s}.SCSH.C));
-        dSigma_Cdphi = Model.exp{s}.dsigma_covdphi(phi);
-        dSigma_Cdbeta = permute(dSigma_Cdphi, [2 3 1]) * Model.exp{s}.dphidbeta(Model.exp{s}.beta(xi), Model.exp{s}.delta(xi));
-        dSigma_Cdxi = repmat(permute(dSigma_Cdbeta * Model.exp{s}.dbetadxi(xi), [3 1 2]), [size(dlogL_CdSigma_C,1) 1 1]);
-        dlogL_Cdxi_Sigma_CPart = squeeze(nansum(nansum(repmat(dlogL_CdSigma_C, [1 1 length(xi)]) .* dSigma_Cdxi, 2), 1));
-        dlogL_Cdxi = dlogL_Cdxi + dlogL_Cdxi_Sigma_CPart;
-        
+        if strcmp(optionsSim.approx, 'pa only')
+            dlogL_Cdxi = zeros(size(xi));
+        else
+            % Compute derivative for dynamic parameters, scalings, offsets and
+            % sigma_noise parameters
+            dlogL_Cdy = reshape(-J_D_C.dY, size(Data{s}.SCSH.C));
+            dlogL_Cdxi = squeeze(nansum(nansum(dCydxi .* repmat(dlogL_Cdy, [1 1 size(dmydxi, 3)]), 2), 1));
+
+            % Compute derivative for simga_cov parameters
+            dlogL_CdSigma_C = reshape(-J_D_C.dSigma, size(Data{s}.SCSH.C));
+            dSigma_Cdphi = Model.exp{s}.dsigma_covdphi(phi);
+            dSigma_Cdbeta = permute(dSigma_Cdphi, [2 3 1]) * Model.exp{s}.dphidbeta(Model.exp{s}.beta(xi), Model.exp{s}.delta(xi));
+            dSigma_Cdxi = repmat(permute(dSigma_Cdbeta * Model.exp{s}.dbetadxi(xi), [3 1 2]), [size(dlogL_CdSigma_C,1) 1 1]);
+            dlogL_Cdxi_Sigma_CPart = squeeze(nansum(nansum(repmat(dlogL_CdSigma_C, [1 1 length(xi)]) .* dSigma_Cdxi, 2), 1));
+            dlogL_Cdxi = dlogL_Cdxi + dlogL_Cdxi_Sigma_CPart;
+        end
         if (nderiv >= 2)
             switch Model.exp{s}.noise_model
                 case 'normal'
-                    % Use FIM in the sense of J'*J
+                    % Term coming from sy' * sy
+                    nan_ind = isnan(Data{s}.SCSH.m(:));
                     dres_mdxi = ((1 ./ Sigma_m(:)) * ones(1,length(xi))) .* reshape(dmydxi, numel(Data{s}.SCSH.m), length(xi));
-                    dres_Cdxi = ((1 ./ Sigma_C(:)) * ones(1,length(xi))) .* reshape(dCydxi, numel(Data{s}.SCSH.C), length(xi));
+                    dres_mdxi(nan_ind,:) = 0;
+                    ddlogL_mdxi2 = -transpose(dres_mdxi) * dres_mdxi;
                     
-                    if (options.estimate_sigma == 1)
-                        % If noise is to be estimated
-                        % FIM terms coming from sigma_mean
-                        dres_mdxi1 = (((my(:) - Data{s}.SCSH.m(:)) ./ Sigma_m(:).^2) * ones(1,length(xi))) .* reshape(dSigma_mdxi, numel(Data{s}.SCSH.m), length(xi));
-                        nan_ind = isnan(Data{s}.SCSH.m(:));
-                        dres_mdxi1(nan_ind,:) = 0;
-                        Sigma_Res = sqrt(log(2*pi*Sigma_m(:).^2) - log(eps));
-                        Sigma_Res(nan_ind,:) = 0;
-                        dres_mdxi2 = ((1 ./ (Sigma_Res .* Sigma_m(:))) * ones(1,length(xi))) .* reshape(dSigma_mdxi, numel(Data{s}.SCSH.m), length(xi));
-                        dres_mdxi2(nan_ind,:) = 0;
-                        dres_mdxi = [dres_mdxi - dres_mdxi1; dres_mdxi2];
-                        
-                        % FIM terms coming from sigma_cov
-                        dres_Cdxi1 = (((Cy(:) - Data{s}.SCSH.C(:)) ./ Sigma_C(:).^2) * ones(1,length(xi))) .* reshape(dSigma_Cdxi, numel(Data{s}.SCSH.C), length(xi));
+                    if ~strcmp(optionsSim.approx, 'pa only')
+                        % Term coming from sy' * sy
                         nan_ind = isnan(Data{s}.SCSH.C(:));
-                        dres_Cdxi1(nan_ind,:) = 0;
-                        Sigma_C_Res = sqrt(log(2*pi*Sigma_C(:).^2) - log(eps));
-                        Sigma_C_Res(nan_ind,:) = 0;
-                        dres_Cdxi2 = ((1 ./ (Sigma_C_Res .* Sigma_C(:))) * ones(1,length(xi))) .* reshape(dSigma_Cdxi, numel(Data{s}.SCSH.C), length(xi));
-                        dres_Cdxi2(nan_ind,:) = 0;
-                        dres_Cdxi = [dres_Cdxi - dres_Cdxi1; dres_Cdxi2];
+                        dres_Cdxi = ((1 ./ Sigma_C(:)) * ones(1,length(xi))) .* reshape(dCydxi, numel(Data{s}.SCSH.C), length(xi));
+                        dres_Cdxi(nan_ind,:) = 0;
+                        ddlogL_Cdxi2 = -transpose(dres_Cdxi) * dres_Cdxi;
                     end
                     
-                     ddlogL_mdxi2 = -transpose(dres_mdxi) * dres_mdxi;
-                     ddlogL_Cdxi2 = -transpose(dres_Cdxi) * dres_Cdxi;
-                    
+                    if (options.estimate_sigma == 1)
+                        % Term 1 coming from s_sigma' * s_sigma
+                        dresSigma_mdxi = ((1 ./ Sigma_m(:)) * ones(1,length(xi))) .* reshape(dSigma_mdxi, numel(Data{s}.SCSH.m), length(xi));
+                        dresSigma_mdxi(nan_ind,:) = 0;
+                        ddlogL_mdxi2 = ddlogL_mdxi2 + transpose(dresSigma_mdxi) * dresSigma_mdxi;
+
+                        % Term 2 coming from s_sigma' * s_sigma
+                        res = my(:) - Data{s}.SCSH.m(:);
+                        dresSigma_mdxi2 = ((sqrt(3) * res ./ (Sigma_m(:).^2)) * ones(1,length(xi))) .* reshape(dSigma_mdxi, numel(Data{s}.SCSH.m), length(xi));
+                        dresSigma_mdxi2(nan_ind,:) = 0;
+                        ddlogL_mdxi2 = ddlogL_mdxi2 - transpose(dresSigma_mdxi2) * dresSigma_mdxi2;
+
+                        if ~strcmp(optionsSim.approx, 'pa only')
+                            % Term 1 coming from s_sigma' * s_sigma
+                            dresSigma_Cdxi = ((1 ./ Sigma_C(:)) * ones(1,length(xi))) .* reshape(dSigma_Cdxi, numel(Data{s}.SCSH.C), length(xi));
+                            dresSigma_Cdxi(nan_ind,:) = 0;
+                            ddlogL_Cdxi2 = ddlogL_Cdxi2 + transpose(dresSigma_Cdxi) * dresSigma_Cdxi;
+
+                            % Term 2 coming from s_sigma' * s_sigma
+                            res = Cy(:) - Data{s}.SCSH.C(:);
+                            dresSigma_Cdxi2 = ((sqrt(3) * res ./ (Sigma_C(:).^2)) * ones(1,length(xi))) .* reshape(dSigma_Cdxi, numel(Data{s}.SCSH.C), length(xi));
+                            dresSigma_Cdxi2(nan_ind,:) = 0;
+                            ddlogL_Cdxi2 = ddlogL_Cdxi2 - transpose(dresSigma_Cdxi2) * dresSigma_Cdxi2;
+                        end
+                    end
+
                 case 'lognormal'
                     % To be done!
             end
@@ -196,4 +222,6 @@ function [SP,logL_m,logL_C,dlogL_mdxi,dlogL_Cdxi,ddlogL_mdxi2,ddlogL_Cdxi2] = lo
         Model.exp{s}.plot(Data{s}, Sim_SCSH, s);
     end
     
+    % fprintf('\n\n %e', logL_m);
+    % fprintf('\n %e', logL_C);
 end

@@ -1,4 +1,4 @@
-function [SP,my,dmydxi]  = getSimulationPA(xi,Model,Data,s)
+function [SP,my,dmydxi]  = getSimulationPA(xi,Model,Data,s,options)
     %GETSIMULATIONPA Summary of this function goes here
     %   Detailed explanation goes here
     % Simulation using sigma points
@@ -9,16 +9,21 @@ function [SP,my,dmydxi]  = getSimulationPA(xi,Model,Data,s)
     op_SP.req = [1,0,0,0,0,1,0]; % [1,1,0,0,0,1,0];
     op_SP.type_D = Model.type_D;
     
+    op_SP.approx = options.approx;
+    if isfield(options, 'samples')
+        op_SP.samples = options.samples;
+    end
+    
     % Check, if sigma points or sampling are to be used (so far, only sigma
     % points work, I think...)
-    if(isfield(Model.exp{s},'SPapprox'))
-        op_SP.approx = Model.exp{s}.SPapprox;
-        if(isfield(Model.exp{s},'samples'))
-            op_SP.samples = Model.exp{s}.samples;
-        end
-    else
-        op_SP.approx = 'sp';
-    end
+%     if(isfield(Model.exp{s},'SPapprox'))
+%         op_SP.approx = Model.exp{s}.SPapprox;
+%         if(isfield(Model.exp{s},'samples'))
+%             op_SP.samples = Model.exp{s}.samples;
+%         end
+%     else
+%         op_SP.approx = 'sp';
+%     end
     
     %% Simulate with a loop over different doses
     % Initialize
@@ -95,7 +100,7 @@ function [SP,my,dmydxi]  = getSimulationPA(xi,Model,Data,s)
         if(nderiv==1)
             SP.dmydxi = zeros([size(SP.my) size(xi,1)]);
         end
-        [my,dmydxi] = Model.exp{s}.PA_post_processing(my,dmydxi);
+        [my,dmydxi] = Model.exp{s}.PA_post_processing(my, dmydxi, xi);
     end
     if isfield(Model.exp{s},'PA_post_processing_SP')
         SP = Model.exp{s}.PA_post_processing_SP(SP);

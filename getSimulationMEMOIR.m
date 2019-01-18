@@ -4,7 +4,6 @@ function getSimulationMEMOIR(xi, Model, Data, ind_exp, ind_xi, options)
 % set (ind_xi)
 
     %% Preprocess inputs
-    
     if (~isfield(options, 'sensi'))
         options.sensi = 0;
     end
@@ -17,39 +16,43 @@ function getSimulationMEMOIR(xi, Model, Data, ind_exp, ind_xi, options)
     if (~isfield(options, 'nSamples'))
         options.nSamples = 1000;
     end
-    
-    if (options.sensi > 0)
-        % Collect all measurands
-        measurands = cell(1,0);
-        for s = ind_exp
-            measurands = {measurands{1:size(measurands,2)}, Data{s}.measurands{1:length(Data{s}.measurands)}};
-        end
-        measurands = unique(measurands);
-        
-        % Get length of parameter vector
-        parameters = 1 : length(Model.param);
-    
-        % Check validity of parameters for sensitivities to be computed
-        for j = 1 : length(ind_xi)
-            if ~any(parameters == ind_xi(j));
-                error('The vector of parameter indices for sensitivity analysis is invalid.');
-            end
-        end
-        
-        % Check validity of observables for sensitivities to be computed
-        for iMeas = options.measurands
-            if ~any(strcmp(measurands, iMeas));
-                err_msg = ['The observable '  iMeas{1,1} ...
-                    ' for which sensitivity is requested can not be found among the observables of the specified experiments.'];
-                error(err_msg);
-            end
-        end
-        
-        %intSensiExp
+    if (~isfield(options, 'samples'))
+        options.samples = [];
     end
+    
+%     if (options.sensi > 0)
+%         % Collect all measurands
+%         measurands = cell(1,0);
+%         for s = ind_exp
+%             measurands = {measurands{1:size(measurands,2)}, Data{s}.measurands{1:length(Data{s}.measurands)}};
+%         end
+%         measurands = unique(measurands);
+%         
+%         % Get length of parameter vector
+%         parameters = 1 : length(Model.param);
+%     
+%         % Check validity of parameters for sensitivities to be computed
+%         for j = 1 : length(ind_xi)
+%             if ~any(parameters == ind_xi(j))
+%                 error('The vector of parameter indices for sensitivity analysis is invalid.');
+%             end
+%         end
+%         
+%         % Check validity of observables for sensitivities to be computed
+%         for iMeas = options.measurands
+%             if ~any(strcmp(measurands, iMeas))
+%                 err_msg = ['The observable '  iMeas{1,1} ...
+%                     ' for which sensitivity is requested can not be found among the observables of the specified experiments.'];
+%                 error(err_msg);
+%             end
+%         end
+%         
+%         %intSensiExp
+%     end
     
 
     %% Perform run through all experiments
+    % long_Y_true = nan(8,10,6,10000);
     
     for s = ind_exp
     % --- Loop over experiments -------------------------------------------
@@ -108,15 +111,34 @@ function getSimulationMEMOIR(xi, Model, Data, ind_exp, ind_xi, options)
                     xi, ...
                     Model.exp{s}, ... = estruct (in getSigmaPointApp)
                     op_SP);
-            elseif strcmp(options.approx, 'sampling')
+            elseif strcmp(options.approx, 'samples')
                 % Call simulation
-                SP = getSamplingApp(@(phi) simulateForSP(Model.exp{s}.model, t_sim, phi, conditions(iCondition,:), Model.exp{s}.scale), ...  = nonfun (in getSigmaPointApp)
+                op_SP.approx = 'samples';
+                if ~isempty(options.samples)
+                    op_SP.samples = options.samples;
+                end
+                SP = getSigmaPointApp(@(phi) simulateForSP(Model.exp{s}.model, t_sim, phi, conditions(iCondition,:), Model.exp{s}.scale), ...  = nonfun (in getSigmaPointApp)
                     xi, ...
                     Model.exp{s}, ... = estruct (in getSigmaPointApp)
                     op_SP);
+                 SP.my_true = SP.my;
+                 SP.Y_true = SP.Y;
+                 if isfield(SP, 'Cy')
+                    SP.Cy_true = SP.Cy;
+                 end
             elseif strcmp(options.approx, 'both')
                 % Call simulation
                 SP = testSigmaPointApp(@(phi) simulateForSP(Model.exp{s}.model, t_sim, phi, conditions(iCondition,:), Model.exp{s}.scale), ...  = nonfun (in getSigmaPointApp)
+                    xi, ...
+                    Model.exp{s}, ... = estruct (in getSigmaPointApp)
+                    op_SP);
+            else
+                % Call simulation
+                op_SP.approx = Model.exp{s}.approx;
+                if ~isempty(Model.exp{s}.samples)
+                    op_SP.samples = Model.exp{s}.samples;
+                end
+                SP = getSigmaPointApp(@(phi) simulateForSP(Model.exp{s}.model, t_sim, phi, conditions(iCondition,:), Model.exp{s}.scale), ...  = nonfun (in getSigmaPointApp)
                     xi, ...
                     Model.exp{s}, ... = estruct (in getSigmaPointApp)
                     op_SP);
@@ -154,12 +176,12 @@ function getSimulationMEMOIR(xi, Model, Data, ind_exp, ind_xi, options)
 
                 case 'lin'
                     my = [my; SP.my];
-                    if ~strcmp(options.approx, 'sp')
+                    if any(strcmp(options.approx, {'samples', 'both'}))
                         my_true = [my_true; SP.my_true];
                     end
                     if strcmp(exp_type, 'SCSH')
                         Cy = [Cy; SP.Cy];
-                        if ~strcmp(options.approx, 'sp')
+                        if any(strcmp(options.approx, {'samples', 'both'}))
                             Cy_true = [Cy_true; SP.Cy_true];
                         end
                     end
@@ -211,13 +233,13 @@ function getSimulationMEMOIR(xi, Model, Data, ind_exp, ind_xi, options)
                 SP.dmydxi = zeros([size(SP.my) size(xi,1)]);
             end
             if strcmp(exp_type, 'PA')
-                [my,dmydxi] = feval(Model.exp{s}.(post_proc), my, dmydxi);
-                if ~strcmp(options.approx, 'sp')
-                    [my_true,~] = feval(Model.exp{s}.(post_proc), my_true, dmydxi);
+                [my,dmydxi] = feval(Model.exp{s}.(post_proc), my, dmydxi, xi);
+                if any(strcmp(options.approx, {'samples', 'both'}))
+                    %[my_true,~] = feval(Model.exp{s}.(post_proc), my_true, dmydxi);
                 end
             elseif strcmp(exp_type, 'SCSH')
                 [my,Cy,dmydxi,dCydxi] = feval(Model.exp{s}.(post_proc), my, Cy, dmydxi, dCydxi);
-                if ~strcmp(options.approx, 'sp')
+                if any(strcmp(options.approx, {'samples', 'both'}))
                     [my_true,Cy_true,~,~] = feval(Model.exp{s}.(post_proc), my_true, Cy_true, dmydxi, dCydxi);
                 end
             end
@@ -252,7 +274,7 @@ function getSimulationMEMOIR(xi, Model, Data, ind_exp, ind_xi, options)
 
         %% Plotting of fine simulation
         % Assign values for plotting
-        if ~strcmp(options.approx, 'sp')
+        if any(strcmp(options.approx, {'samples', 'both'}))
             Sim.mFineTrue = my_true;
         end
         Sim.mFine = my;
@@ -260,7 +282,7 @@ function getSimulationMEMOIR(xi, Model, Data, ind_exp, ind_xi, options)
         SigmaStruct = processSigma(Data{s}, Sim.mFine, [], exp_type);
         Sim.Sigma_m = SigmaStruct.Sigma_m;
         if strcmp(exp_type, 'SCSH')
-            if ~strcmp(options.approx, 'sp')
+            if any(strcmp(options.approx, {'samples', 'both'}))
                 Sim.CFineTrue = Cy_true;
                 Sim.Y_true = SP.Y_true;
             end
@@ -272,6 +294,7 @@ function getSimulationMEMOIR(xi, Model, Data, ind_exp, ind_xi, options)
         % Process values in Sim.m for residual plot
         Sim = processSimulation(Sim, t_ind, Data{s}, exp_type);
 
+        % long_Y_true(s-21,:,:,:) = Sim.Y_true;
         % Plotting
         Model.exp{s}.plot(Data{s}, Sim, s);  
 
@@ -279,7 +302,7 @@ function getSimulationMEMOIR(xi, Model, Data, ind_exp, ind_xi, options)
         clear Sim;
     % --- End of loop over experiments ------------------------------------
     end
-    
+    % save('simData.mat', 'long_Y_true');
 end
 
 

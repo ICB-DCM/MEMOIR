@@ -25,15 +25,15 @@ function plotPA(varargin)
 
     % Figure handle
     s = varargin{3};
-    if(isempty(fh))
+    %if(~isvalid(fh))
         fh(s) = figure;
-    else
-        if length(fh) < s
-            fh(s) = figure;
-        elseif(isempty(fh(s)))
-            fh(s) = figure;
-        end
-    end
+%     else
+%         if length(fh) < s
+%             fh(s) = figure;
+%         elseif(isempty(fh(s)))
+%             fh(s) = figure;
+%         end
+%     end
     figure(fh(s));
 
     % Simulations for sigma points
@@ -64,7 +64,7 @@ function plotPA(varargin)
     options.error.col = 'b';
     options.error.ls = 'none';
     options.error.lw = 1;
-    options.title = '';
+    options.title = Data.name;
     if nargin == 4
         options = setdefault(varargin{4},options);
     end

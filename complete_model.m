@@ -68,7 +68,7 @@ loadold = false;
 
 % concatenate model name
 switch(Model.type_D)
-    case 'matrix-logarithm'
+    case {'matrix-logarithm', 'givens-parametrization', 'Lie-generators'}
         filename = [Model.name '_full'];
     case 'diag-matrix-logarithm'
         filename = [Model.name '_diag'];
@@ -174,7 +174,19 @@ if(~loadold)
     % construct variance matrix parametrisation
     C = sym('C',[n_b,n_b]);
     switch(Model.type_D)
-        case 'matrix-logarithm'
+        case {'givens-parametrization','Lie-generators'}
+            for j = 1:n_b
+                C(j,j) = Model.sym.delta(j);
+            end
+            l = 1;
+            for j = 1:n_b
+                for k = 1:j-1
+                    C(k,j) = Model.sym.delta(n_b + l);
+                    C(j,k) = Model.sym.delta(n_b + l);
+                    l = l + 1;
+                end
+            end
+        case {'matrix-logarithm', 'cholesky-parametrization'}
             l = 1;
             for j = 1:n_b
                 for k = 1:j
@@ -198,9 +210,14 @@ if(~loadold)
         
         % construct indices for reduced parameters
         Model.exp{s}.ind_beta = find(ismember(Model.sym.beta,symvar(Model.exp{s}.sym.phi)));
-        Model.exp{s}.ind_b = find(ismember(Model.sym.b,symvar(Model.exp{s}.sym.phi)));
-        Cs = C(Model.exp{s}.ind_b,Model.exp{s}.ind_b);
-        Model.exp{s}.ind_delta =  find(ismember(Model.sym.delta,symvar(Cs)));
+        if ~strcmp(Model.type_D, 'diag-matrix-logarithm')
+            Model.exp{s}.ind_b = 1:length(Model.sym.b);
+            Model.exp{s}.ind_delta = 1:length(Model.sym.delta);
+        else
+            Model.exp{s}.ind_b = find(ismember(Model.sym.b,symvar(Model.exp{s}.sym.phi)));
+            Cs = C(Model.exp{s}.ind_b,Model.exp{s}.ind_b);
+            Model.exp{s}.ind_delta =  find(ismember(Model.sym.delta,symvar(Cs)));
+        end
         
         % constructe reduced parameters
         Model.exp{s}.sym.beta = Model.sym.beta(Model.exp{s}.ind_beta);
@@ -263,7 +280,7 @@ if(~loadold)
         Model.exp{s}.sym.dsigma_noisedphi = sym(zeros(size(Model.exp{s}.sym.sigma_noise,1),size(Model.exp{s}.sym.sigma_noise,2),n_phi));
         for j = 1:size(Model.exp{s}.sym.sigma_noise,1)
             for k = 1:size(Model.exp{s}.sym.sigma_noise,2)
-                Model.exp{s}.sym.dsigma_noisedphi(j,k,:) = jacobian(Model.exp{s}.sym.sigma_noise(j,k),phi);
+                % Model.exp{s}.sym.dsigma_noisedphi(j,k,:) = jacobian(Model.exp{s}.sym.sigma_noise(j,k),phi);
             end
         end
         mfun(Model.exp{s}.sym.dsigma_noisedphi,'file',fullfile(mdir,'models',filename,['MEMds_ndp_' filename '_' num2str(S(s))]),'vars',{phi});
@@ -315,7 +332,7 @@ if(~loadold)
         Model.exp{s}.sym.dsigma_meandphi = sym(zeros(size(Model.exp{s}.sym.sigma_mean,1),size(Model.exp{s}.sym.sigma_mean,2),n_phi));
         for j = 1:size(Model.exp{s}.sym.sigma_mean,1)
             for k = 1:size(Model.exp{s}.sym.sigma_mean,2)
-                Model.exp{s}.sym.dsigma_meandphi(j,k,:) = jacobian(Model.exp{s}.sym.sigma_mean(j,k),phi);
+                % Model.exp{s}.sym.dsigma_meandphi(j,k,:) = jacobian(Model.exp{s}.sym.sigma_mean(j,k),phi);
             end
         end
         mfun(Model.exp{s}.sym.dsigma_meandphi,'file',fullfile(mdir,'models',filename,['MEMds_mdp_' filename '_' num2str(S(s))]),'vars',{phi});
@@ -448,7 +465,19 @@ else
     % construct variance matrix parametrisation
     C = sym('C',[n_b,n_b]);
     switch(Model.type_D)
-        case 'matrix-logarithm'
+        case {'givens-parametrization','Lie-generators'}
+            for j = 1:n_b
+                C(j,j) = Model.sym.delta(j);
+            end
+            l = 1;
+            for j = 1:n_b
+                for k = 1:j-1
+                    C(k,j) = Model.sym.delta(n_b + l);
+                    C(j,k) = Model.sym.delta(n_b + l);
+                    l = l + 1;
+                end
+            end
+        case {'matrix-logarithm', 'cholesky-parametrization'}
             l = 1;
             for j = 1:n_b
                 for k = 1:j

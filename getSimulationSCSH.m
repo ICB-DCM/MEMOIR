@@ -1,4 +1,4 @@
-function [SP,my,Cy,dmydxi,dCydxi]  = getSimulationSCSH(xi,Model,Data,s)
+function [SP,my,Cy,dmydxi,dCydxi]  = getSimulationSCSH(xi,Model,Data,s,options)
     % GETSIMULATIONSCSH Summary of this function goes here
     %   Detailed explanation goes here
     % Simulation using sigma points
@@ -8,7 +8,11 @@ function [SP,my,Cy,dmydxi,dCydxi]  = getSimulationSCSH(xi,Model,Data,s)
     op_SP.nderiv = nderiv;
     op_SP.req = [1,1,0,0,0,1,0];
     op_SP.type_D = Model.type_D;
-   
+    op_SP.approx = options.approx;
+    if isfield(options, 'samples')
+        op_SP.samples = options.samples;
+    end
+    
     %% Simulate with a loop over different doses
     % Initialize
     my = [];
@@ -44,8 +48,12 @@ function [SP,my,Cy,dmydxi,dCydxi]  = getSimulationSCSH(xi,Model,Data,s)
                 Cy = [Cy; 10.^(tmpCy) .*  (10.^(SP.Cy) - ones(size(SP.Cy)))];
                 
             case 'lin'
-                my = [my; SP.my];
-                Cy = [Cy; SP.Cy];
+                if strcmp(op_SP.approx, 'pa only')
+                    my = [my; SP.my];
+                else
+                    my = [my; SP.my];
+                    Cy = [Cy; SP.Cy];
+                end
         end
 
         % Store gradients of means and variances
@@ -74,8 +82,12 @@ function [SP,my,Cy,dmydxi,dCydxi]  = getSimulationSCSH(xi,Model,Data,s)
                     dmydxi(isnan(dmydxi)) = 0;
 
                 case 'lin'
-                    dmydxi = [dmydxi; SP.dmydxi];
-                    dCydxi = [dCydxi; SP.dCydxi];
+                    if strcmp(op_SP.approx, 'pa only')
+                        dmydxi = [dmydxi; SP.dmydxi];
+                    else
+                        dmydxi = [dmydxi; SP.dmydxi];
+                        dCydxi = [dCydxi; SP.dCydxi];
+                    end
             end
         else
             dmydxi = [dmydxi; zeros([size(my,1),size(my,2),length(xi)])];
@@ -86,6 +98,12 @@ function [SP,my,Cy,dmydxi,dCydxi]  = getSimulationSCSH(xi,Model,Data,s)
     
     
     %% Post-process and clean-up
+    if strcmp(op_SP.approx, 'pa only')
+        Cy = zeros(size(Data{s}.SCSH.C));
+        dCydxi = zeros([size(Data{s}.SCSH.C, 1), size(Data{s}.SCSH.C, 2), length(xi)]);
+        SP.Cy = Cy;
+        SP.dCydxi = dCydxi;
+    end
     
     % Kill the NANs, althoug nansum ist used later... (necessary?)
     my(isnan(my)) = 0;
@@ -99,7 +117,7 @@ function [SP,my,Cy,dmydxi,dCydxi]  = getSimulationSCSH(xi,Model,Data,s)
     if isfield(Model.exp{s},'SCSH_post_processing')
         if(nderiv==1)
             SP.dmydxi = zeros([size(SP.my) size(xi,1)]);
-            SP.dCydxi = zeros([size(SP.Cy) size(xi,1)]);
+            SP.dCydxi = zeros([size(Cy) size(xi,1)]);
         end
         [my, Cy, dmydxi, dCydxi] = Model.exp{s}.SCSH_post_processing(my, Cy, dmydxi, dCydxi);
     end
