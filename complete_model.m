@@ -280,7 +280,7 @@ if(~loadold)
         Model.exp{s}.sym.dsigma_noisedphi = sym(zeros(size(Model.exp{s}.sym.sigma_noise,1),size(Model.exp{s}.sym.sigma_noise,2),n_phi));
         for j = 1:size(Model.exp{s}.sym.sigma_noise,1)
             for k = 1:size(Model.exp{s}.sym.sigma_noise,2)
-                % Model.exp{s}.sym.dsigma_noisedphi(j,k,:) = jacobian(Model.exp{s}.sym.sigma_noise(j,k),phi);
+                Model.exp{s}.sym.dsigma_noisedphi(j,k,:) = jacobian(Model.exp{s}.sym.sigma_noise(j,k),phi);
             end
         end
         mfun(Model.exp{s}.sym.dsigma_noisedphi,'file',fullfile(mdir,'models',filename,['MEMds_ndp_' filename '_' num2str(S(s))]),'vars',{phi});
@@ -333,7 +333,7 @@ if(~loadold)
         Model.exp{s}.sym.dsigma_meandphi = sym(zeros(size(Model.exp{s}.sym.sigma_mean,1),size(Model.exp{s}.sym.sigma_mean,2),n_phi));
         for j = 1:size(Model.exp{s}.sym.sigma_mean,1)
             for k = 1:size(Model.exp{s}.sym.sigma_mean,2)
-                % Model.exp{s}.sym.dsigma_meandphi(j,k,:) = jacobian(Model.exp{s}.sym.sigma_mean(j,k),phi);
+                Model.exp{s}.sym.dsigma_meandphi(j,k,:) = jacobian(Model.exp{s}.sym.sigma_mean(j,k),phi);
             end
         end
         mfun(Model.exp{s}.sym.dsigma_meandphi,'file',fullfile(mdir,'models',filename,['MEMds_mdp_' filename '_' num2str(S(s))]),'vars',{phi});
