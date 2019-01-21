@@ -54,7 +54,7 @@ for j = 1:length(Model.param)
 end
 
 switch(Model.type_D)
-    case 'matrix-logarithm'
+    case {'matrix-logarithm', 'givens-parametrization', 'Lie-generators'}
         n = length(Model.param);
         n_f = sum(Model.common_effect);
         n_r = sum(Model.random_effect);
@@ -67,7 +67,7 @@ switch(Model.type_D)
         k = 0;
         k_f = 0;
         k_r = 0;
-        for j = 1:n;
+        for j = 1:n
             if(Model.common_effect(j))
                 k_f = k_f + 1;
                 % construct variables corresponding to common effects
@@ -79,12 +79,24 @@ switch(Model.type_D)
                 % construct variables corresponding to radom effects
                 k_r = k_r + 1;
                 eval(['syms b_' Model.param{j} ';']);
-                ll = find(Model.random_effect(1:k_r));
-                for l = 1:length(ll)
-                    m = ll(l);
-                    eval(['syms C_' Model.param{j} '_' Model.param{m} ';']);
-                    eval(['Model.sym.xi(sum(Model.common_effect)+((k_r-1)^2+(k_r-1))/2+l) = C_' Model.param{j} '_' Model.param{m} ';']);
-                    eval(['Model.sym.delta(((k_r-1)^2+(k_r-1))/2+l) = C_' Model.param{j} '_' Model.param{m} ';'])
+                ll = find(Model.random_effect(1:j)); %k_r
+                if any(strcmp(Model.type_D, {'givens-parametrization', 'Lie-generators'})) 
+                    eval(['syms C_' Model.param{j} '_' Model.param{j} ';']);
+                    eval(['Model.sym.xi(sum(Model.common_effect)+k_r) = C_' Model.param{j} '_' Model.param{j} ';']);
+                    eval(['Model.sym.delta(k_r) = C_' Model.param{j} '_' Model.param{j} ';'])
+                    for l = 1:length(ll)-1
+                        m = ll(l);
+                        eval(['syms C_' Model.param{j} '_' Model.param{m} ';']);
+                        eval(['Model.sym.xi(sum(Model.common_effect)+n_r+((k_r-2)^2+(k_r-2))/2+l) = C_' Model.param{j} '_' Model.param{m} ';']);
+                        eval(['Model.sym.delta(n_r+((k_r-2)^2+(k_r-2))/2+l) = C_' Model.param{j} '_' Model.param{m} ';'])
+                    end
+                else
+                    for l = 1:length(ll)
+                        m = ll(l);
+                        eval(['syms C_' Model.param{j} '_' Model.param{m} ';']);
+                        eval(['Model.sym.xi(sum(Model.common_effect)+((k_r-1)^2+(k_r-1))/2+l) = C_' Model.param{j} '_' Model.param{m} ';']);
+                        eval(['Model.sym.delta(((k_r-1)^2+(k_r-1))/2+l) = C_' Model.param{j} '_' Model.param{m} ';'])
+                    end
                 end
                 eval(['Model.sym.b(k_r) = b_' Model.param{j} ';']);
             end
@@ -109,7 +121,7 @@ switch(Model.type_D)
         k = 0;
         k_f = 0;
         k_r = 0;
-        for j = 1:n;
+        for j = 1:n
             if(Model.common_effect(j))
                 % construct variables corresponding to common effects
                 k_f = k_f + 1;

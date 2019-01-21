@@ -163,7 +163,6 @@
 % 2015/04/14 Fabian Froehlich
 
 function varargout = logLMEMOIR(varargin)
-    
     %% Load old values
     persistent tau
     persistent P_old
@@ -177,6 +176,7 @@ function varargout = logLMEMOIR(varargin)
     xi = varargin{1};
     Data = varargin{2};
     Model = varargin{3};
+    batchIndices = 1:length(Data);
     
     % Options
     options.tau_update = 0;
@@ -185,22 +185,25 @@ function varargout = logLMEMOIR(varargin)
     options.events = 1;
     options.rescaleSCTL = 0;
     options.optimal_sigma = 1;
-    if nargin >= 4
+    if nargin >= 4 && ~isempty(varargin{4})
         if(isstruct(varargin{4}))
-            options = setdefault(varargin{4},options);
+            options = varargin{4};
         end
     end
-    if nargin >= 5
+    if nargin >= 5 && ~isempty(varargin{5})
         extract_flag = varargin{5};
     else
         extract_flag = false;
     end
-    if nargin >= 6
+    if nargin >= 6 && ~isempty(varargin{6})
         P_old = varargin{6};
         logL_old = -Inf;
     end
+    if nargin >= 7
+        batchIndices = varargin{7};
+        batchIndices = batchIndices';
+    end
     options.nderiv = max(nargout-1,0);
-    
     
     % initialise storage
     if(isempty(logL_old))
@@ -238,7 +241,7 @@ function varargout = logLMEMOIR(varargin)
     options.integration = Model.integration;
     
     % Loop: Experiments/Experimental Conditions
-    for s = 1:length(Data)
+    for s = reshape(batchIndices, [1, numel(batchIndices)])
         
         %% Single cell time-lapse data - Individuals
         if isfield(Data{s},'SCTL')
@@ -332,16 +335,16 @@ function varargout = logLMEMOIR(varargin)
                 case 0
                     [SP,logL_m,logL_C] = logL_SCSH(xi, Model, Data, s, options);
                 case 1
-                    [SP,logL_m,logL_C,dlogL_mdxi,dlogL_Cdxi] = logL_PA(xi, Model, Data, s, options);
+                    [SP,logL_m,logL_C,dlogL_mdxi,dlogL_Cdxi] = logL_SCSH(xi, Model, Data, s, options);
                 case 2
-                    [SP,logL_m,logL_C,dlogL_mdxi,dlogL_Cdxi,ddlogL_mdxi2,ddlogL_Cdxi2] = logL_PA(xi, Model, Data, s, options);
+                    [SP,logL_m,logL_C,dlogL_mdxi,dlogL_Cdxi,ddlogL_mdxi2,ddlogL_Cdxi2] = logL_SCSH(xi, Model, Data, s, options);
             end
             
             % Summation
             logL = logL + logL_m + logL_C;
-            if options.nderiv >= 2
+            if options.nderiv >= 1
                 dlogLdxi = dlogLdxi + dlogL_mdxi + dlogL_Cdxi;
-                if options.nderiv >= 3
+                if options.nderiv >= 2
                     ddlogLdxidxi = ddlogLdxidxi + ddlogL_mdxi2 + ddlogL_Cdxi2;
                 end
             end
@@ -436,5 +439,4 @@ function varargout = logLMEMOIR(varargin)
             end
         end
     end
-    
 end

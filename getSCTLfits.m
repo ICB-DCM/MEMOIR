@@ -13,9 +13,8 @@ for iData = 1:length(Data)
     optionsMultistart = PestoOptions();
     optionsMultistart.n_starts = n_starts;
     optionsMultistart.comp_type = 'sequential';
-    optionsMultistart.mode = 'visual';
+    optionsMultistart.mode = 'text';
     optionsMultistart.obj_type = 'log-posterior';
-    optionsMultistart.MCMC.nsimu_run = 1e6;
     
     if(isfield(Data{iData},'SCTL'))
         if(~isfield(Data{iData}.SCTL,'T'))
@@ -30,12 +29,12 @@ for iData = 1:length(Data)
             
             parameters_SCTL{iD,icl} = getMultiStarts(parameters, objective_function, optionsMultistart);
 %             parameters_SCTL{iD,icl} = getParameterProfiles(parameters_SCTL{iD,icl}, objective_function, optionsMultistart);
-            parameters_SCTL{iD,icl} = getParameterSamples(parameters_SCTL{iD,icl}, objective_function, optionsMultistart);
+%             parameters_SCTL{iD,icl} = getParameterSamples(parameters_SCTL{iD,icl}, objective_function, optionsMultistart);
         end
         
        iD = iD+1; 
     end
 end
 
-
 end
+

@@ -272,7 +272,6 @@ end
 if(nargout>=3)
     Sim.SCTL_Y = Y.val;
     Sim.SCTL_T = T.val;
-    
     Sim.SCTL_R = R.val;
     Sim.SCTL_Sigma_Y = Sigma_noise.val(ind_y,:);
     Sim.SCTL_Sigma_T = Sigma_time.val(ind_t,:);

@@ -1,53 +1,86 @@
-function [SP,my,dmydxi]  = getSimulationPA(xi,Model,Data,s )
+function [SP,my,dmydxi]  = getSimulationPA(xi,Model,Data,s,options)
     %GETSIMULATIONPA Summary of this function goes here
     %   Detailed explanation goes here
     % Simulation using sigma points
     
+    % Set options for sigma point routine
     nderiv = nargout-2;
     op_SP.nderiv = nderiv;
-    op_SP.req = [1,1,0,0,0,1,0];
+    op_SP.req = [1,0,0,0,0,1,0]; % [1,1,0,0,0,1,0];
     op_SP.type_D = Model.type_D;
-    if(isfield(Model.exp{s},'SPapprox'))
-        op_SP.approx = Model.exp{s}.SPapprox;
-        if(isfield(Model.exp{s},'samples'))
-            op_SP.samples = Model.exp{s}.samples;
+    
+    op_SP.approx = options.approx;
+    if isfield(options, 'samples')
+        op_SP.samples = options.samples;
+    end
+
+    %% Simulate with a loop over different doses
+    % Initialize
+    my = [];
+    dmydxi = [];
+    
+    % Loop over doses
+    thisUniqueCondition = unique(Data{s}.condition,'rows');
+    for iDose = 1:size(thisUniqueCondition,1)
+    % === Loop over doses =================================================
+        % Simulate
+        SP = getSigmaPointApp(@(phi) simulateForSP(Model.exp{s}.model, Data{s}.PA.time, phi, thisUniqueCondition(iDose,:), Model.exp{s}.scale), ...  = nonfun (in getSigmaPointApp)
+            xi, ...
+            Model.exp{s}, ... = estruct (in getSigmaPointApp)
+            op_SP);
+
+        % Store the simulation results
+        switch Model.exp{s}.scale
+            case 'log'
+                % TBD!
+                tmp = arrayfun(@(x) diag(squeeze(SP.my(x,:,:))), 1:size(SP.Cy,1),'UniformOutput',false);
+                my = [my; exp(SP.my + transpose([tmp{:}])/2)];
+
+            case 'log10'
+                % TBD!
+                tmp = arrayfun(@(x) diag(squeeze(SP.Cy(x,:,:))), 1:size(SP.Cy,1),'UniformOutput',false);
+                my = [my; 10.^(SP.my + transpose([tmp{:}])/2)];
+                
+            case 'lin'
+                my = [my; SP.my];
         end
-    else
-        op_SP.approx = 'sp';
-    end
-    
-    logFlag = strcmp(op_SP.approx,'sp');
-%     SP = testSigmaPointApp(@(phi) simulateForSP(Model.exp{s}.model,Data{s}.PA.time,phi,Data{s}.condition),xi,Model.exp{s},op_SP);
-    SP = getSigmaPointApp(@(phi) simulateForSP(Model.exp{s}.model,Data{s}.PA.time,phi,Data{s}.condition,logFlag),xi,Model.exp{s},op_SP);
-    
-%     [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(xi,@(x)getSigmaPointApp(@(phi) simulateForSP(Model.exp{s}.model,Data{s}.PA.time,phi,Data{s}.condition),x,Model.exp{s},op_SP),1e-4,'my','dmydxi')
-    
-    % we log transformed in simulateForSP (only if we used sigma point approximation)
-    % now we need to compute the mean from a lognormal density
-    if(logFlag)
-        tmp = arrayfun(@(x) diag(squeeze(SP.Cy(x,:,:))),1:size(SP.Cy,1),'UniformOutput',false);
-        my = exp(SP.my+transpose([tmp{:}])/2);
-        my(isnan(my)) = 0;
-    else
-        my = SP.my;
-    end
-    
-    if(nderiv>0)
-        if(logFlag)
-            nt = size(SP.dCydxi,1);
-            np = size(SP.dCydxi,4);
-            ny = size(SP.dCydxi,2);
-            dtmpdxi = arrayfun(@(x,y) diag(squeeze(SP.dCydxi(x,:,:,y))),repmat(1:nt,[np,1]),...
-                repmat(transpose(1:np),[1,nt]),'UniformOutput',false);
-            dmydxi = bsxfun(@times,my,SP.dmydxi) ...
-                + bsxfun(@times,my,permute(reshape([dtmpdxi{:}]/2,...
-                [ny,np,nt]),[3,1,2]));
-            dmydxi(isnan(dmydxi)) = 0;
+        
+        % Store gradients of means and variances
+        if(nderiv>0)
+            switch Model.exp{s}.scale
+                case 'log'
+                    nt = size(SP.dmydxi,1);
+                    np = size(SP.dmydxi,4);
+                    ny = size(SP.dmydxi,2);
+                    % To be checked!
+                    dtmpdxi = arrayfun(@(x,y) diag(squeeze(SP.dCydxi(x,:,:,y))),repmat(1:nt,[np,1]),...
+                        repmat(transpose(1:np),[1,nt]),'UniformOutput',false);
+                    dmydxi = bsxfun(@times,my,SP.dmydxi) ...
+                        + bsxfun(@times,my,permute(reshape([dtmpdxi{:}]/2,...
+                        [ny,np,nt]),[3,1,2]));
+                    dmydxi(isnan(dmydxi)) = 0;
+
+                case 'log10'
+                    % To be checked!
+                    tmp = arrayfun(@(x) diag(squeeze(SP.Cy(x,:,:))), 1:size(SP.Cy,1),'UniformOutput',false);
+                    my = [my, 10.^(SP.my + transpose([tmp{:}])/2)];
+
+                case 'lin'
+                    dmydxi = [dmydxi; SP.dmydxi]; 
+            end
         else
-            dmydxi = SP.dmydxi;
+            dmydxi = [dmydxi;zeros([size(my,1),size(my,2),length(xi)])];
         end
-    else
-        dmydxi = zeros([size(my,1),size(my,2),length(xi)]);
+    % === Loop over doses ends ============================================        
+    end
+
+        
+    %% Post-process and clean-up
+    
+    % Kill the NANs, althoug nansum ist used later... (necessary?)
+    my(isnan(my)) = 0;
+    if (nderiv>0)
+        dmydxi(isnan(dmydxi)) = 0;
     end
     
     
@@ -56,8 +89,9 @@ function [SP,my,dmydxi]  = getSimulationPA(xi,Model,Data,s )
         if(nderiv==1)
             SP.dmydxi = zeros([size(SP.my) size(xi,1)]);
         end
-        [my,dmydxi] = Model.exp{s}.PA_post_processing(my,dmydxi);
+        [my,dmydxi] = Model.exp{s}.PA_post_processing(my, dmydxi, xi);
     end
-    
+    if isfield(Model.exp{s},'PA_post_processing_SP')
+        SP = Model.exp{s}.PA_post_processing_SP(SP);
+    end
 end
-
