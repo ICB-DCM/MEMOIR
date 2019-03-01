@@ -114,11 +114,11 @@ YY.val = Y(:);
 if nderiv >= 1
     YY.dphi = reshape(dYdphi,[size(dYdphi,1)*size(dYdphi,2),size(dYdphi,3)]);
     TT.dphi = reshape(dTdphi,[size(dTdphi,1)*size(dTdphi,2),size(dTdphi,3)]);
-    RR.dphi = reshape(dRdphi,[size(dRdphi,1)*size(dRdphi,2),size(dRdphi,3)]);
+    RR.dphi = reshape(dRdphi,[size(dRdphi,1)*size(dRdphi,2),size(dRdphi,3)]) .* (RR.val ~= 0);
     if nderiv >= 2
         YY.dphidphi = reshape(ddYdphidphi,[size(ddYdphidphi,1)*size(ddYdphidphi,2),size(ddYdphidphi,3),size(ddYdphidphi,4)]);
         TT.dphidphi = reshape(ddTdphidphi,[size(ddTdphidphi,1)*size(ddTdphidphi,2),size(ddTdphidphi,3),size(ddTdphidphi,4)]);
-        RR.dphidphi = reshape(ddRdphidphi,[size(ddRdphidphi,1)*size(ddRdphidphi,2),size(ddRdphidphi,3),size(ddRdphidphi,4)]);
+        RR.dphidphi = reshape(ddRdphidphi,[size(ddRdphidphi,1)*size(ddRdphidphi,2),size(ddRdphidphi,3),size(ddRdphidphi,4)]) .* (RR.val ~= 0);
     end
 end
 

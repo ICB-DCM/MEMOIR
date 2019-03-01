@@ -64,13 +64,14 @@ else
     [J_D,J_T] = objective_phi(model,data,phi.val,s,i,options,nderiv,nargout>=3);
 end
 
-% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(phi.val,@(phi) objective_phi_J_D(model,data,phi,s,i,options,nderiv,nargout>=3),1e-5,'val','dphi',true)
-% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(phi.val,@(phi) objective_phi_J_D(model,data,phi,s,i,options,nderiv,nargout>=3),1e-6,'dphi','dphidphi',true)
-% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(phi.val,@(phi) objective_phi_J_D(model,data,phi,s,i,options,nderiv,nargout>=3),1e-6,'dphi','FIM',true)
-% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(phi.val,@(phi) objective_phi_J_D(model,data,phi,s,i,options,nderiv,nargout>=3),1e-6,'FIM','FIMdphi',true)
-% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(phi.val,@(phi) objective_phi_J_T(model,data,phi,s,i,options,nderiv,nargout>=3),1e-6,'val','dphi',true)
-% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(phi.val,@(phi) objective_phi_J_T(model,data,phi,s,i,options,nderiv,nargout>=3),1e-6,'dphi','dphidphi',true)
-% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(phi.val,@(phi) objective_phi_J_T(model,data,phi,s,i,options,nderiv,nargout>=3),1e-6,'FIM','FIMdphi',true)
+% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(phi.val,@(phi) objective_phi_J_D(model,data,phi,s,i,options,nderiv,nargout>=3),1e-5,'val','dphi')
+% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(phi.val,@(phi) objective_phi_J_D(model,data,phi,s,i,options,nderiv,nargout>=3),1e-6,'dphi','dphidphi')
+% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(phi.val,@(phi) objective_phi_J_D(model,data,phi,s,i,options,nderiv,nargout>=3),1e-6,'dphi','FIM')
+% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(phi.val,@(phi) objective_phi_J_D(model,data,phi,s,i,options,nderiv,nargout>=3),1e-6,'FIM','FIMdphi')
+% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(phi.val,@(phi) objective_phi_J_T(model,data,phi,s,i,options,nderiv,nargout>=3),1e-6,'val','dphi')
+% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(phi.val,@(phi) objective_phi_J_T(model,data,phi,s,i,options,nderiv,nargout>=3),1e-6,'dphi','dphidphi')
+% save('20190228\objective_phi_J_T_dphi_dphidphi', 'g', 'g_fd_b', 'g_fd_f', 'g_fd_c')
+% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(phi.val,@(phi) objective_phi_J_T(model,data,phi,s,i,options,nderiv,nargout>=3),1e-6,'FIM','FIMdphi')
 
 if(any([isinf(J_D.val),isinf(J_T.val)]))
     varargout{1} = Inf;
@@ -412,7 +413,11 @@ if nargout >= 4
         varargout{6} = Sim;
     end
 end
-
+%%%%%%%%%%%%%%%%%%%%
+% if nargout > 6
+%     varargout{7} = J_T;
+% end
+%%%%%%%%%%%%%%%%%%%
 end
 
 function J = objective_phi_J_D(model,data,phi,s,i,options,nderiv,FIMflag)
