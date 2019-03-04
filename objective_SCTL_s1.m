@@ -64,14 +64,6 @@ else
     [J_D,J_T] = objective_phi(model,data,phi.val,s,i,options,nderiv,nargout>=3);
 end
 
-% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(phi.val,@(phi) objective_phi_J_D(model,data,phi,s,i,options,nderiv,nargout>=3),1e-5,'val','dphi',true)
-% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(phi.val,@(phi) objective_phi_J_D(model,data,phi,s,i,options,nderiv,nargout>=3),1e-6,'dphi','dphidphi',true)
-% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(phi.val,@(phi) objective_phi_J_D(model,data,phi,s,i,options,nderiv,nargout>=3),1e-6,'dphi','FIM',true)
-% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(phi.val,@(phi) objective_phi_J_D(model,data,phi,s,i,options,nderiv,nargout>=3),1e-6,'FIM','FIMdphi',true)
-% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(phi.val,@(phi) objective_phi_J_T(model,data,phi,s,i,options,nderiv,nargout>=3),1e-6,'val','dphi',true)
-% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(phi.val,@(phi) objective_phi_J_T(model,data,phi,s,i,options,nderiv,nargout>=3),1e-6,'dphi','dphidphi',true)
-% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(phi.val,@(phi) objective_phi_J_T(model,data,phi,s,i,options,nderiv,nargout>=3),1e-6,'FIM','FIMdphi',true)
-
 if(any([isinf(J_D.val),isinf(J_T.val)]))
     varargout{1} = Inf;
     varargout{2} = zeros(length(b),1);
@@ -88,11 +80,6 @@ switch(model.parameter_model)
         paramdist = @normal_param;
 end
 J_b = paramdist(b,delta,options.type_D,nderiv+(nargout>=3));
-
-% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(b,@(b) paramdist(b,delta,options.type_D,nderiv+(nargout>=3)),1e-5,'val','db')
-% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(b,@(b) paramdist(b,delta,options.type_D,nderiv+(nargout>=3)),1e-5,'db','dbdb')
-% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(delta,@(delta) paramdist(b,delta,options.type_D,nderiv+(nargout>=3)),1e-5,'val','ddelta')
-% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(delta,@(delta) paramdist(b,delta,options.type_D,nderiv+(nargout>=3)),1e-5,'db','dbddelta')
 
 J.val = J_D.val + J_T.val + J_b.val ;
 J.J_D = J_D;

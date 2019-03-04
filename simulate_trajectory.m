@@ -61,7 +61,6 @@ else
     optionmu.linsol = 9;
     %optionmu.pbar = phi*0+1e-10;
     sol = Model.model(t,phi,kappa,optionmu);
-    % [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(phi,@(phi) Model.model(t,phi,kappa,optionmu),1e-5,'y','sy',true)
     dYdphi = sol.sy(1:(end-(sum(ind_y)<length(t))),:,:);
     if(isfield(sol,'sz') && sum(ind_t)>0)
         dTdphi = sol.sz(ind_t,:,:);
@@ -88,13 +87,6 @@ else
     end
 end
 
-% [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(phi,@(phi) Model.model(t,phi,kappa,optionmu),1e-3,'y','sy',true)
-% [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(phi,@(phi) Model.model(t,phi,kappa,optionmu),1e-3,'sy','s2y',true)
-% [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(phi,@(phi) Model.model(t,phi,kappa,optionmu),1e-3,'z','sz',true)
-% [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(phi,@(phi) Model.model(t,phi,kappa,optionmu),1e-3,'sz','s2z',true)
-% [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(phi,@(phi) Model.model(t,phi,kappa,optionmu),1e-3,'rz','srz',true)
-% [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(phi,@(phi) Model.model(t,phi,kappa,optionmu),1e-3,'srz','s2rz',true)
-
 if(sol.status <0)
     error('integration failed');
 end
@@ -114,11 +106,11 @@ YY.val = Y(:);
 if nderiv >= 1
     YY.dphi = reshape(dYdphi,[size(dYdphi,1)*size(dYdphi,2),size(dYdphi,3)]);
     TT.dphi = reshape(dTdphi,[size(dTdphi,1)*size(dTdphi,2),size(dTdphi,3)]);
-    RR.dphi = reshape(dRdphi,[size(dRdphi,1)*size(dRdphi,2),size(dRdphi,3)]);
+    RR.dphi = reshape(dRdphi,[size(dRdphi,1)*size(dRdphi,2),size(dRdphi,3)]) .* (RR.val ~= 0);
     if nderiv >= 2
         YY.dphidphi = reshape(ddYdphidphi,[size(ddYdphidphi,1)*size(ddYdphidphi,2),size(ddYdphidphi,3),size(ddYdphidphi,4)]);
         TT.dphidphi = reshape(ddTdphidphi,[size(ddTdphidphi,1)*size(ddTdphidphi,2),size(ddTdphidphi,3),size(ddTdphidphi,4)]);
-        RR.dphidphi = reshape(ddRdphidphi,[size(ddRdphidphi,1)*size(ddRdphidphi,2),size(ddRdphidphi,3),size(ddRdphidphi,4)]);
+        RR.dphidphi = reshape(ddRdphidphi,[size(ddRdphidphi,1)*size(ddRdphidphi,2),size(ddRdphidphi,3),size(ddRdphidphi,4)]) .* (RR.val ~= 0);
     end
 end
 

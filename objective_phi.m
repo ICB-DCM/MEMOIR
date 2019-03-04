@@ -81,12 +81,6 @@ if(ny>0)
 else
     J_D.val = 0;
 end
-% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(Y.val,@(Y) noisedist(Y,Ym,Sigma_noise.val,ind_y,nderiv+(nderiv==1)),1e-6,'val','dY',true)
-% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(Y.val,@(Y) noisedist(Y,Ym,Sigma_noise.val,ind_y,nderiv+(nderiv==1)),1e-6,'dY','dYdY',true)
-% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(Y.val,@(Y) noisedist(Y,Ym,Sigma_noise.val,ind_y,nderiv+(nderiv==1)),1e-6,'dYdY','dYdYdY',true)
-% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(Sigma_noise.val,@(Sigma) noisedist(Y.val,Ym,Sigma,ind_y,nderiv+(nderiv==1)),1e-6,'val','dSigma',true)
-% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(Sigma_noise.val,@(Sigma) noisedist(Y.val,Ym,Sigma,ind_y,nderiv+(nderiv==1)),1e-6,'dSigma','dSigmadSigma',true)
-
 
 % event model
 if(~isfield(model,'time_model'))
@@ -102,17 +96,6 @@ if(nt>0)
 else
     J_T.val = 0;
 end
-% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(T.val,@(T) timedist(T,Tm,R.val,Sigma_time.val,ind_t,nderiv+(nderiv==1)),1e-6,'val','dT',true)
-% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(T.val,@(T) timedist(T,Tm,R.val,Sigma_time.val,ind_t,nderiv+(nderiv==1)),1e-6,'dT','dTdT',true)
-% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(T.val,@(T) timedist(T,Tm,R.val,Sigma_time.val,ind_t,nderiv+(nderiv==1)),1e-6,'dTdT','dTdTdT',true)
-% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(R.val,@(R) timedist(T.val,Tm,R,Sigma_time.val,ind_t,nderiv+(nderiv==1)),1e-6,'val','dR',true)
-% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(R.val,@(R) timedist(T.val,Tm,R,Sigma_time.val,ind_t,nderiv+(nderiv==1)),1e-6,'dR','dRdR',true)
-% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(R.val,@(R) timedist(T.val,Tm,R,Sigma_time.val,ind_t,nderiv+(nderiv==1)),1e-6,'dRdR','dRdRdR',true)
-% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(Sigma_time.val,@(Sigma) timedist(T.val,Tm,R.val,Sigma,ind_t,nderiv+(nderiv==1)),1e-6,'val','dSigma',true)
-% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(Sigma_time.val,@(Sigma) timedist(T.val,Tm,R.val,Sigma,ind_t,nderiv+(nderiv==1)),1e-6,'dSigma','dSigmadSigma',true)
-% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(Sigma_time.val,@(Sigma) timedist(T.val,Tm,R.val,Sigma,ind_t,nderiv+(nderiv==1)),1e-6,'dSigmadSigma','dSigmadSigmadSigma',true)
-
-
 
 if nderiv >= 1
     if(ny>0)
@@ -177,7 +160,8 @@ if nderiv >= 1
         end
         if(nt>0)
             J_T.dphidphi = J_T.FIM...
-                + permute(sum(bsxfun(@times,J_T.dT,permute(T.dphidphi,[4,1,2,3])),2),[3,4,1,2]);
+                + permute(sum(bsxfun(@times,J_T.dT,permute(T.dphidphi,[4,1,2,3])),2),[3,4,1,2])...
+                + permute(sum(bsxfun(@times,J_T.dR,permute(R.dphidphi,[4,1,2,3])),2),[3,4,1,2]);
         else
             J_T.dphidphi = zeros(nphi,nphi);
         end
@@ -278,3 +262,14 @@ if(nargout>=3)
 end
 
 end
+
+function T = simulate_trajectory_T(t,phi,model,condition,s,ind_t,ind_y,nderiv)
+[~,T,~] = simulate_trajectory(t,phi,model,condition,s,ind_t,ind_y,nderiv);
+end
+function Y = simulate_trajectory_Y(t,phi,model,condition,s,ind_t,ind_y,nderiv)
+[Y,~,~] = simulate_trajectory(t,phi,model,condition,s,ind_t,ind_y,nderiv);
+end
+function R = simulate_trajectory_R(t,phi,model,condition,s,ind_t,ind_y,nderiv)
+[~,~,R] = simulate_trajectory(t,phi,model,condition,s,ind_t,ind_y,nderiv);
+end
+

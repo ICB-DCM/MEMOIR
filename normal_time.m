@@ -15,7 +15,7 @@ if nderiv >= 0
     if nderiv >= 1
         % dJ_TdT
         J_T.dT = transpose((T - Tm)./(Sigma.^2));
-        % dJ_TdR
+        % dJ_TdR 
         J_T.dR = transpose(R./(Sigma.^2));
         % dJ_TdSigma
         J_T.dSigma = transpose(- (((T - Tm).^2)./(Sigma.^3)) - (((R).^2)./(Sigma.^3)) + 2./Sigma);
