@@ -9,11 +9,6 @@ beta = model.beta(xi);
 delta = model.delta(xi);
 
 [D,~,~,~,~,~] = xi2D(delta,options.type_D);
-% debugging:
-% [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(delta,@(x) xi2D(x,options.type_D),1e-4,1,3)
-% [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(delta,@(x) xi2D(x,options.type_D),1e-4,3,5)
-% [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(delta,@(x) xi2D(x,options.type_D),1e-4,2,4)
-% [g,g_fd_f,g_fd_b,g_fd_c] = testGradient(delta,@(x) xi2D(x,options.type_D),1e-4,4,6)
 
 % Initialization measurements
 Sim_SCTL.Y = NaN(size(data.SCTL.Y));
@@ -67,8 +62,6 @@ if isempty(p)
         ST = zeros(size(data.SCTL.T(:,:,i)));
         RR = zeros(size(data.SCTL.T(:,:,i)));
         [ logL, bhat, Sim ] = logL_SCTL_si(xi, model, data, s, options, P, i);
-        % [g,g_fd_f,g_fd_b,g_fd_c]=testGradient(xi,@(xi) logL_SCTL_si(xi, model, data, s, options, P, i),1e-3,'val','dxi',true)
-        % [g,g_fd_f,g_fd_b,g_fd_c]=testGradient(xi,@(xi) logL_SCTL_si(xi, model, data, s, options, P, i),1e-3,'I','Idxi',true)
         logLi_D(i,1) = logL.D;
         logLi_T(i,1) = logL.T;
         logLi_b(i,1) = logL.b;

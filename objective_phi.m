@@ -27,19 +27,6 @@ end
 % simulate trajectory
 try
     [Y,T,R] = simulate_trajectory(t,phi,model,data.condition,s,ind_t,ind_y,nderiv);
-%     % test
-%     [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(phi,@(phi) simulate_trajectory_T(t,phi,model,data.condition,s,ind_t,ind_y,nderiv),1e-6,'val','dphi')
-%     save('20190206\simulate_trajectory_T_val_dphi', 'g', 'g_fd_b', 'g_fd_f', 'g_fd_c')
-%     [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(phi,@(phi) simulate_trajectory_T(t,phi,model,data.condition,s,ind_t,ind_y,2),1e-6,'dphi','dphidphi')
-%     save('20190206\simulate_trajectory_T_dphi_dphidphi', 'g', 'g_fd_b', 'g_fd_f', 'g_fd_c')
-%     [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(phi,@(phi) simulate_trajectory_Y(t,phi,model,data.condition,s,ind_t,ind_y,nderiv),1e-6,'val','dphi')
-%     save('20190206\simulate_trajectory_Y_val_dphi', 'g', 'g_fd_b', 'g_fd_f', 'g_fd_c')
-%     [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(phi,@(phi) simulate_trajectory_Y(t,phi,model,data.condition,s,ind_t,ind_y,2),1e-6,'dphi','dphidphi')
-%     save('20190206\simulate_trajectory_Y_dphi_dphidphi', 'g', 'g_fd_b', 'g_fd_f', 'g_fd_c')
-%     [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(phi,@(phi) simulate_trajectory_R(t,phi,model,data.condition,s,ind_t,ind_y,nderiv),1e-6,'val','dphi')
-%     save('20190228\simulate_trajectory_R_val_dphi', 'g', 'g_fd_b', 'g_fd_f', 'g_fd_c')
-%     [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(phi,@(phi) simulate_trajectory_R(t,phi,model,data.condition,s,ind_t,ind_y,2),1e-6,'dphi','dphidphi')
-%     save('20190206\simulate_trajectory_R_dphi_dphidphi', 'g', 'g_fd_b', 'g_fd_f', 'g_fd_c')
 catch err
     % if simulation fails, return Inf
     J_D.val = Inf;
@@ -94,12 +81,6 @@ if(ny>0)
 else
     J_D.val = 0;
 end
-% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(Y.val,@(Y) noisedist(Y,Ym,Sigma_noise.val,ind_y,nderiv+(nderiv==1)),1e-6,'val','dY',true)
-% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(Y.val,@(Y) noisedist(Y,Ym,Sigma_noise.val,ind_y,nderiv+(nderiv==1)),1e-6,'dY','dYdY',true)
-% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(Y.val,@(Y) noisedist(Y,Ym,Sigma_noise.val,ind_y,nderiv+(nderiv==1)),1e-6,'dYdY','dYdYdY',true)
-% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(Sigma_noise.val,@(Sigma) noisedist(Y.val,Ym,Sigma,ind_y,nderiv+(nderiv==1)),1e-6,'val','dSigma',true)
-% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(Sigma_noise.val,@(Sigma) noisedist(Y.val,Ym,Sigma,ind_y,nderiv+(nderiv==1)),1e-6,'dSigma','dSigmadSigma',true)
-
 
 % event model
 if(~isfield(model,'time_model'))
@@ -115,20 +96,6 @@ if(nt>0)
 else
     J_T.val = 0;
 end
-% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(T.val,@(T) timedist(T,Tm,R.val,Sigma_time.val,ind_t,nderiv+(nderiv==1)),1e-6,'val','dT')
-% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(T.val,@(T) timedist(T,Tm,R.val,Sigma_time.val,ind_t,nderiv+(nderiv==1)),1e-6,'dT','dTdT')
-% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(T.val,@(T) timedist(T,Tm,R.val,Sigma_time.val,ind_t,nderiv+(nderiv==1)),1e-6,'dTdT','dTdTdT')
-% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(R.val,@(R) timedist(T.val,Tm,R,Sigma_time.val,ind_t,2),1e-3,'dT','dTdR')
-% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(Sigma_time.val,@(Sigma_time) timedist(T.val,Tm,R.val,Sigma_time,ind_t,2),1e-3,'dT','dTdSigma')
-% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(R.val,@(R) timedist(T.val,Tm,R,Sigma_time.val,ind_t,nderiv+(nderiv==1)),1e-6,'val','dR')
-% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(R.val,@(R) timedist(T.val,Tm,R,Sigma_time.val,ind_t,nderiv+(nderiv==1)),1e-6,'dR','dRdR')
-% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(Sigma_time.val,@(Sigma_time) timedist(T.val,Tm,R.val,Sigma_time,ind_t,2),1e-6,'dR','dRdSigma')
-% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(R.val,@(R) timedist(T.val,Tm,R,Sigma_time.val,ind_t,nderiv+(nderiv==1)),1e-6,'dRdR','dRdRdR')
-% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(Sigma_time.val,@(Sigma) timedist(T.val,Tm,R.val,Sigma,ind_t,nderiv+(nderiv==1)),1e-6,'val','dSigma')
-% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(Sigma_time.val,@(Sigma) timedist(T.val,Tm,R.val,Sigma,ind_t,nderiv+(nderiv==1)),1e-6,'dSigma','dSigmadSigma')
-% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(Sigma_time.val,@(Sigma) timedist(T.val,Tm,R.val,Sigma,ind_t,nderiv+(nderiv==1)),1e-6,'dSigmadSigma','dSigmadSigmadSigma')
-
-
 
 if nderiv >= 1
     if(ny>0)

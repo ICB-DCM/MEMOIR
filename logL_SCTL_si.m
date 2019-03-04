@@ -15,14 +15,6 @@ end
 % compute bhat (optimum of the single cell likelihood
 % (objective_SCTL_s1) with respect to b and the respective
 % derivatives with respect to beta and delta
-%
-% testing:
-% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(beta,@(beta) getBhat_B( beta, delta, bhat_si0, model, data, s, i, options, P),1e-3,'val','dbeta')
-% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(delta,@(delta) getBhat_B( beta, delta, bhat_si0, model, data, s, i, options, P),1e-3,'val','ddelta')
-% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(beta,@(beta) getBhat_J( beta, delta, bhat_si0, model, data, s, i, options, P),1e-3,'val','dbeta')
-% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(delta,@(delta) getBhat_J( beta, delta, bhat_si0, model, data, s, i, options, P),1e-3,'val','ddelta')
-% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(beta,@(beta) getBhat_G( beta, delta, bhat_si0, model, data, s, i, options, P),1e-3,'val','dbeta')
-% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(delta,@(delta) getBhat_G( beta, delta, bhat_si0, model, data, s, i, options, P),1e-3,'val','ddelta')
 
 beta = model.beta(xi);
 delta = model.delta(xi);

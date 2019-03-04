@@ -55,7 +55,7 @@ if(fms)
     try
     [bhat,OBJ,~,~,~,~,~] = fmincon(...
         @(b) objective_SCTL_s1(model,data,beta,b,delta,s,i,options,1),...
-        bhat_0,[],[],[],[],-15*ones(length(bhat_0),1),10*ones(length(bhat_0),1),[],options_fmincon);
+        bhat_0,[],[],[],[],-15*ones(length(bhat_0),1),15*ones(length(bhat_0),1),[],options_fmincon);
     catch err
         OBJ = inf;
     end
@@ -84,19 +84,6 @@ else
     bhat_0,[],[],[],[],-10*ones(length(bhat_0),1),10*ones(length(bhat_0),1),[],options_fmincon);
 end
 
-% testing:
-% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(bhat,@(bhat) objSCTL_J(model,data,beta,bhat,delta,s,i,options,1),1e-6,'val','db')
-% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(beta,@(beta) objSCTL_J(model,data,beta,bhat,delta,s,i,options,1),1e-3,'val','dbeta')
-% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(delta,@(delta) objSCTL_J(model,data,beta,bhat,delta,s,i,options,1),1e-3,'val','ddelta')
-% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(bhat,@(bhat) objSCTL_J(model,data,beta,bhat,delta,s,i,options,2),1e-1,'db','dbdb')
-% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(beta,@(beta) objSCTL_J(model,data,beta,bhat,delta,s,i,options,2),1e-1,'db','dbdbeta')
-% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(delta,@(delta) objSCTL_J(model,data,beta,bhat,delta,s,i,options,2),1e-3,'db','dbddelta')
-% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(beta,@(beta) objSCTL_J(model,data,beta,bhat,delta,s,i,options,2),1e-1,'dbeta','dbetadbeta')
-% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(delta,@(delta) objSCTL_J(model,data,beta,bhat,delta,s,i,options,2),1e-3,'ddelta','ddeltaddelta')
-% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(delta,@(delta) objSCTL_J(model,data,beta,bhat,delta,s,i,options,2),1e-3,'dbeta','dbetaddelta')
-% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(bhat,@(bhat) objSCTL_FIM(model,data,beta,bhat,delta,s,i,options,3),1e-4,'val','db')
-% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(beta,@(beta) objSCTL_FIM(model,data,beta,bhat,delta,s,i,options,3),1e-3,'val','dbeta')
-% [g,g_fd_b,g_fd_f,g_fd_c] = testGradient(delta,@(delta) objSCTL_FIM(model,data,beta,bhat,delta,s,i,options,3),1e-6,'val','ddelta')
 assert(OBJ<inf);
 
 [~,~,~,J,FIM,Sim] = objective_SCTL_s1(model,data,beta,bhat,delta,s,i,options,F_diff);
