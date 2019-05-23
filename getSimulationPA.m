@@ -6,7 +6,7 @@ function [SP,my,dmydxi]  = getSimulationPA(xi,Model,Data,s,options)
     % Set options for sigma point routine
     nderiv = nargout-2;
     op_SP.nderiv = nderiv;
-    op_SP.req = [1,0,0,0,0,1,0]; % [1,1,0,0,0,1,0];
+    op_SP.req = [1,1,0,0,0,1,0]; % [1,1,0,0,0,1,0];
     op_SP.type_D = Model.type_D;
     
     op_SP.approx = options.approx;
@@ -28,13 +28,14 @@ function [SP,my,dmydxi]  = getSimulationPA(xi,Model,Data,s,options)
             xi, ...
             Model.exp{s}, ... = estruct (in getSigmaPointApp)
             op_SP);
-
+        
         % Store the simulation results
         switch Model.exp{s}.scale
             case 'log'
                 % TBD!
-                tmp = arrayfun(@(x) diag(squeeze(SP.my(x,:,:))), 1:size(SP.Cy,1),'UniformOutput',false);
-                my = [my; exp(SP.my + transpose([tmp{:}])/2)];
+                tmp = arrayfun(@(x) diag(squeeze(SP.Cy(x,:,:))), 1:size(SP.Cy,1),'UniformOutput',false);
+                my_new = exp(SP.my + transpose([tmp{:}])/2);
+                my = [my; my_new];
 
             case 'log10'
                 % TBD!
@@ -49,15 +50,14 @@ function [SP,my,dmydxi]  = getSimulationPA(xi,Model,Data,s,options)
         if(nderiv>0)
             switch Model.exp{s}.scale
                 case 'log'
-                    nt = size(SP.dmydxi,1);
-                    np = size(SP.dmydxi,4);
-                    ny = size(SP.dmydxi,2);
-                    % To be checked!
+                    nt = size(SP.dCydxi,1);
+                    np = size(SP.dCydxi,4);
+                    ny = size(SP.dCydxi,2);
                     dtmpdxi = arrayfun(@(x,y) diag(squeeze(SP.dCydxi(x,:,:,y))),repmat(1:nt,[np,1]),...
                         repmat(transpose(1:np),[1,nt]),'UniformOutput',false);
-                    dmydxi = bsxfun(@times,my,SP.dmydxi) ...
-                        + bsxfun(@times,my,permute(reshape([dtmpdxi{:}]/2,...
-                        [ny,np,nt]),[3,1,2]));
+                    dmydxi = [dmydxi; bsxfun(@times,my_new,SP.dmydxi) ...
+                        + bsxfun(@times,my_new,permute(reshape([dtmpdxi{:}]/2,...
+                        [ny,np,nt]),[3,1,2]))];
                     dmydxi(isnan(dmydxi)) = 0;
 
                 case 'log10'
@@ -89,7 +89,7 @@ function [SP,my,dmydxi]  = getSimulationPA(xi,Model,Data,s,options)
         if(nderiv==1)
             SP.dmydxi = zeros([size(SP.my) size(xi,1)]);
         end
-        [my,dmydxi] = Model.exp{s}.PA_post_processing(my, dmydxi, xi);
+        [my,dmydxi] = Model.exp{s}.PA_post_processing(my, dmydxi);
     end
     if isfield(Model.exp{s},'PA_post_processing_SP')
         SP = Model.exp{s}.PA_post_processing_SP(SP);

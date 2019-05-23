@@ -187,7 +187,8 @@ function varargout = logLMEMOIR(varargin)
     options.optimal_sigma = 1;
     if nargin >= 4 && ~isempty(varargin{4})
         if(isstruct(varargin{4}))
-            options = varargin{4};
+            %options = varargin{4};
+            options = setdefault(varargin{4}, options);
         end
     end
     if nargin >= 5 && ~isempty(varargin{5})
