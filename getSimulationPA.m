@@ -28,7 +28,6 @@ function [SP,my,dmydxi]  = getSimulationPA(xi,Model,Data,s,options)
             xi, ...
             Model.exp{s}, ... = estruct (in getSigmaPointApp)
             op_SP);
-        
         % Store the simulation results
         switch Model.exp{s}.scale
             case 'log'
@@ -45,7 +44,6 @@ function [SP,my,dmydxi]  = getSimulationPA(xi,Model,Data,s,options)
             case 'lin'
                 my = [my; SP.my];
         end
-        
         % Store gradients of means and variances
         if(nderiv>0)
             switch Model.exp{s}.scale
@@ -82,7 +80,6 @@ function [SP,my,dmydxi]  = getSimulationPA(xi,Model,Data,s,options)
     if (nderiv>0)
         dmydxi(isnan(dmydxi)) = 0;
     end
-    
     
     % Post-processing of population average data
     if isfield(Model.exp{s},'PA_post_processing')
