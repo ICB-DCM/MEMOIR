@@ -146,14 +146,14 @@ function [SP,logL_m,logL_C,dlogL_mdxi,dlogL_Cdxi,ddlogL_mdxi2,ddlogL_Cdxi2] = lo
             % Compute derivative for dynamic parameters, scalings, offsets and
             % sigma_noise parameters
             dlogL_Cdy = reshape(-J_D_C.dY, size(Data{s}.SCSH.C));
-            dlogL_Cdxi = squeeze(nansum(nansum(dCydxi .* repmat(dlogL_Cdy, [1 1 size(dmydxi, 3)]), 2), 1));
+            dlogL_Cdxi = squeeze(nansum(nansum(nansum(dCydxi .* repmat(dlogL_Cdy, [1 1 1 size(dCydxi, 4)]), 2), 3), 1));
 
             % Compute derivative for simga_cov parameters
             dlogL_CdSigma_C = reshape(-J_D_C.dSigma, size(Data{s}.SCSH.C));
             dSigma_Cdphi = Model.exp{s}.dsigma_covdphi(phi);
             dSigma_Cdbeta = permute(dSigma_Cdphi, [2 3 1]) * Model.exp{s}.dphidbeta(Model.exp{s}.beta(xi), Model.exp{s}.delta(xi));
             dSigma_Cdxi = repmat(permute(dSigma_Cdbeta * Model.exp{s}.dbetadxi(xi), [3 1 2]), [size(dlogL_CdSigma_C,1) 1 1]);
-            dlogL_Cdxi_Sigma_CPart = squeeze(nansum(nansum(repmat(dlogL_CdSigma_C, [1 1 length(xi)]) .* dSigma_Cdxi, 2), 1));
+            dlogL_Cdxi_Sigma_CPart = squeeze(nansum(nansum(nansum(bsxfun(@times, dlogL_CdSigma_C, permute(dSigma_Cdxi, [4,1,2,3])), 2), 3), 1));
             dlogL_Cdxi = dlogL_Cdxi + dlogL_Cdxi_Sigma_CPart;
         end
         if (nderiv >= 2)

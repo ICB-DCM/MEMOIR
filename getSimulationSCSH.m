@@ -36,9 +36,11 @@ function [SP,my,Cy,dmydxi,dCydxi]  = getSimulationSCSH(xi,Model,Data,s,options)
             case 'log'
                 tmp = arrayfun(@(x) diag(squeeze(SP.Cy(x,:,:))), 1:size(SP.Cy,1),'UniformOutput',false);
                 tmp = transpose([tmp{:}])/2;
-                my = [my; exp(SP.my + tmp)];
+                my_new = exp(SP.my + tmp);
+                my = [my; my_new];
                 tmpCy = bsxfun(@plus, repmat(tmp, 1, 1, size(SP.Cy,3)), permute(repmat(tmp, 1, 1, size(SP.Cy,3)), [1,3,2]));
-                Cy = [Cy; exp(tmpCy) .*  (exp(SP.Cy) - ones(size(SP.Cy)))];
+                Cy_new = exp(tmpCy) .*  (exp(SP.Cy) - ones(size(SP.Cy)));
+                Cy = [Cy; Cy_new];
                 
             case 'log10'
                 tmp = arrayfun(@(x) diag(squeeze(SP.my(x,:,:))), 1:size(SP.my,1),'UniformOutput',false);
@@ -65,10 +67,15 @@ function [SP,my,Cy,dmydxi,dCydxi]  = getSimulationSCSH(xi,Model,Data,s,options)
                     ny = size(SP.dCydxi,2);
                     dtmpdxi = arrayfun(@(x,y) diag(squeeze(SP.dCydxi(x,:,:,y))),repmat(1:nt,[np,1]),...
                         repmat(transpose(1:np),[1,nt]),'UniformOutput',false);
-                    dmydxi = bsxfun(@times,my,SP.dmydxi) ...
-                        + bsxfun(@times,my,permute(reshape([dtmpdxi{:}]/2,...
-                        [ny,np,nt]),[3,1,2]));
+                    dtmpdxi = permute(reshape([dtmpdxi{:}]/2, [ny,np,nt]),[3,1,2]);
+                    dmydxi = [dmydxi; bsxfun(@times,my_new,SP.dmydxi) ...
+                        + bsxfun(@times,my_new, dtmpdxi)];
                     dmydxi(isnan(dmydxi)) = 0;
+                    dtmpCydxi = bsxfun(@plus, repmat(permute(dtmpdxi, [1,2,4,3]),...
+                        1, 1, size(SP.Cy,3), 1), repmat(permute(dtmpdxi, [1,4,2,3]),...
+                        1, size(SP.Cy,3), 1, 1));
+                    dCydxi = [dCydxi; bsxfun(@times, exp(tmpCy) .* (exp(SP.Cy) - ones(size(SP.Cy))), dtmpCydxi)...
+                        + bsxfun(@times, exp(tmpCy), bsxfun(@times, exp(SP.Cy), SP.dCydxi))];
 
                 case 'log10'
                     nt = size(SP.dCydxi,1);
